@@ -1,0 +1,158 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\MonHoc;
+use App\Models\DieuKienMonHoc;
+use App\Models\DangKyHocPhan;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+
+class MonHocService
+{
+    public function getMonHocList(array $filters = [])
+    {
+        // Eager loading các môn tiên quyết và song hành để frontend hiển thị được
+        $query = MonHoc::with([
+            'khoa',
+            'monTienQuyet' => function ($q) {
+                $q->wherePivot('Loai', 1); // Chỉ lấy môn có Loai = 1 (Tiên quyết)
+            },
+            'monSongHanh' => function ($q) {
+                $q->wherePivot('Loai', 2); // Chỉ lấy môn có Loai = 2 (Song hành)
+            }
+        ]);
+
+        if (!empty($filters['KhoaID'])) {
+            $query->where('KhoaID', $filters['KhoaID']);
+        }
+
+        // Áp dụng bộ lọc theo Ngành chỉ khi không có từ khóa tìm kiếm chung.
+        // Điều này cho phép tìm kiếm môn học tự do (chưa gán CTĐT) bằng tên/mã môn.
+        if (!empty($filters['NganhID']) && empty($filters['search'])) {
+            $query->whereHas('chuongTrinhDaoTao', function ($q) use ($filters) {
+                $q->where('NganhID', $filters['NganhID']);
+            });
+        }
+
+        // Áp dụng bộ lọc tìm kiếm chung (tên môn hoặc mã môn).
+        // Bộ lọc này sẽ hoạt động độc lập và có thể tìm thấy các môn học
+        // chưa được gán vào CTĐT nếu không có bộ lọc Ngành cụ thể.
+        if (!empty($filters['search'])) {
+            $query->where(function ($q) use ($filters) {
+                $q->where('monhoc.TenMon', 'like', '%' . $filters['search'] . '%')
+                  ->orWhere('monhoc.MaMon', 'like', '%' . $filters['search'] . '%');
+            });
+        }
+
+        // Sắp xếp môn học mới nhất lên đầu để người dùng thấy ngay sau khi thêm
+        $query->orderBy('MonHocID', 'desc');
+
+        // Nếu có tham số phân trang thì thực hiện paginate, ngược lại lấy toàn bộ (cho dropdown)
+        return (isset($filters['page']) || isset($filters['per_page']))
+            ? $query->paginate($filters['per_page'] ?? 15)
+            : $query->get();
+    }
+    
+    public function createMonHoc(array $data): MonHoc
+    {
+        $monHoc = DB::transaction(function () use ($data) {
+            $newMon = MonHoc::create([
+                'MaMon'         => $data['MaMon'],
+                'TenMon'        => $data['TenMon'],
+                'SoTinChi'      => $data['SoTinChi'] ?? 3,
+                'TietLyThuyet'  => $data['TietLyThuyet'] ?? 0,
+                'TietThucHanh'  => $data['TietThucHanh'] ?? 0,
+                'KhoaID'        => $data['KhoaID'],
+            ]);
+
+            // Đồng bộ môn tiên quyết và song hành
+            $this->syncDieuKien($newMon, $data['mon_tien_quyet'] ?? [], $data['mon_song_hanh'] ?? []);
+
+            return $newMon;
+        });
+
+        $this->logAction('CREATE', "Tạo môn học: {$monHoc->TenMon}", 'monhoc', $monHoc->MonHocID);
+        return $monHoc;
+    }
+
+    public function updateMonHoc(int $monHocId, array $data): MonHoc
+    {
+        $monHoc = MonHoc::findOrFail($monHocId);
+
+        DB::transaction(function () use ($monHoc, $data) {
+            $monHoc->update([
+                'MaMon'        => $data['MaMon'] ?? $monHoc->MaMon,
+                'TenMon'       => $data['TenMon'] ?? $monHoc->TenMon,
+                'SoTinChi'     => $data['SoTinChi'] ?? $monHoc->SoTinChi,
+                'TietLyThuyet' => isset($data['TietLyThuyet']) ? $data['TietLyThuyet'] : $monHoc->TietLyThuyet,
+                'TietThucHanh' => isset($data['TietThucHanh']) ? $data['TietThucHanh'] : $monHoc->TietThucHanh,
+                'KhoaID'       => $data['KhoaID'] ?? $monHoc->KhoaID,
+            ]);
+
+            // Cập nhật lại các môn điều kiện
+            $this->syncDieuKien($monHoc, $data['mon_tien_quyet'] ?? [], $data['mon_song_hanh'] ?? []);
+        });
+
+        $this->logAction('UPDATE', "Cập nhật môn học: {$monHoc->TenMon}", 'monhoc', $monHoc->MonHocID);
+        return $monHoc->fresh();
+    }
+
+    /**
+     * Đồng bộ môn tiên quyết và môn song hành
+     * Giả định Loai: 1 là Tiên quyết, 2 là Song hành
+     */
+    protected function syncDieuKien(MonHoc $monHoc, array $tienQuyetIds, array $songHanhIds)
+    {
+        // Xóa các điều kiện cũ
+        DieuKienMonHoc::where('MonHocID', $monHoc->MonHocID)->delete();
+
+        // Thêm môn tiên quyết
+        foreach ($tienQuyetIds as $id) {
+            DieuKienMonHoc::create([
+                'MonHocID' => $monHoc->MonHocID,
+                'MonTienQuyetID' => $id,
+                'Loai' => 1 
+            ]);
+        }
+
+        // Thêm môn song hành
+        foreach ($songHanhIds as $id) {
+            DieuKienMonHoc::create([
+                'MonHocID' => $monHoc->MonHocID,
+                'MonTienQuyetID' => $id,
+                'Loai' => 2
+            ]);
+        }
+    }
+
+    public function addDieuKien(int $monHocId, int $monDieuKienId)
+    {
+        return DieuKienMonHoc::updateOrCreate([
+            'MonHocID' => $monHocId,
+            'MonTienQuyetID' => $monDieuKienId
+        ]);
+    }
+
+    public function deleteMonHoc(int $id): bool
+    {
+        $monHoc = MonHoc::findOrFail($id);
+        $this->logAction('DELETE', "Xóa môn học: {$monHoc->TenMon}", 'monhoc', $id);
+        return $monHoc->delete();
+    }
+
+    protected function logAction($hanhDong, $moTa, $bang, $id)
+    {
+
+        DB::table('hethong_log')->insert([
+            'UserID'       => Auth::id(),
+            'HanhDong'     => $hanhDong,
+            'MoTa'         => $moTa,
+            'BangLienQuan' => $bang,
+            'IDBanGhi'     => $id,
+            'IP'           => request()->ip(),
+            'UserAgent'    => request()->userAgent(),
+            'created_at'   => now(),
+        ]);
+    }
+}
