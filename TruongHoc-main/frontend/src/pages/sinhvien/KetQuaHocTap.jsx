@@ -5,6 +5,19 @@ const KetQuaHocTap = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Hàm quy đổi điểm số sang điểm chữ (Hệ 4 chuẩn Việt Nam)
+  const quyDoiDiemChu = (diem) => {
+    if (diem === null || diem === undefined || diem === "") return "-";
+    const d = parseFloat(diem);
+    if (isNaN(d)) return "-";
+
+    if (d >= 8.5) return "A";
+    if (d >= 7.0) return "B";
+    if (d >= 5.5) return "C";
+    if (d >= 4.0) return "D";
+    return "F";
+  };
+
   useEffect(() => {
     const fetchKetQua = async () => {
       try {
@@ -32,14 +45,44 @@ const KetQuaHocTap = () => {
       </div>
     );
 
-  const { diem_chi_tiet, gpa_hoc_ky } = data;
+  const diem_chi_tiet = data.diem_chi_tiet || data.DiemChiTiet || [];
+  const gpa_hoc_ky = data.gpa_hoc_ky || data.GPAHocKy || null;
+
+  // Tính toán GPA dự phòng nếu gpa_hoc_ky bị null nhưng có diem_chi_tiet
+  const gpa_hệ_10 =
+    gpa_hoc_ky?.gpa ||
+    gpa_hoc_ky?.GPA ||
+    (diem_chi_tiet.length > 0
+      ? (
+          diem_chi_tiet.reduce(
+            (sum, i) =>
+              sum +
+              parseFloat(i.diem_tk || i.DiemTongKet || 0) *
+                parseInt(i.so_tin_chi || i.SoTinChi || 0),
+            0,
+          ) /
+          diem_chi_tiet.reduce(
+            (sum, i) => sum + parseInt(i.so_tin_chi || i.SoTinChi || 0),
+            0,
+          )
+        ).toFixed(2)
+      : "0.0");
+
+  const tong_tin_chi =
+    gpa_hoc_ky?.tong_tin_chi ||
+    gpa_hoc_ky?.TongTinChi ||
+    diem_chi_tiet.reduce(
+      (sum, i) => sum + parseInt(i.so_tin_chi || i.SoTinChi || 0),
+      0,
+    );
 
   // Nhóm điểm theo học kỳ để hiển thị theo từng block
-  const groupedBySemester = (diem_chi_tiet || []).reduce((acc, item) => {
-    if (!acc[item.ten_hoc_ky]) {
-      acc[item.ten_hoc_ky] = [];
+  const groupedBySemester = diem_chi_tiet.reduce((acc, item) => {
+    const hocKy = item.ten_hoc_ky || item.TenHocKy || "Học kỳ khác";
+    if (!acc[hocKy]) {
+      acc[hocKy] = [];
     }
-    acc[item.ten_hoc_ky].push(item);
+    acc[hocKy].push(item);
     return acc;
   }, {});
 
@@ -55,29 +98,33 @@ const KetQuaHocTap = () => {
       </div>
 
       {/* Tóm tắt GPA hiện tại */}
-      {gpa_hoc_ky && (
+      {(gpa_hoc_ky || diem_chi_tiet.length > 0) && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <SummaryCard
             title="GPA Hệ 10"
-            value={gpa_hoc_ky.gpa}
+            value={gpa_hệ_10}
             subValue="Học kỳ hiện tại"
             color="text-blue-600"
           />
           <SummaryCard
             title="GPA Hệ 4"
-            value={(gpa_hoc_ky.gpa * 0.4).toFixed(2)}
+            value={
+              gpa_hoc_ky?.gpa_he_4 || (parseFloat(gpa_hệ_10) * 0.4).toFixed(2)
+            }
             subValue="Quy đổi"
             color="text-indigo-600"
           />
           <SummaryCard
             title="Số tín chỉ đạt"
-            value={gpa_hoc_ky.tong_tin_chi}
+            value={tong_tin_chi}
             subValue="Tích lũy học kỳ"
             color="text-green-600"
           />
           <SummaryCard
             title="Số môn học"
-            value={gpa_hoc_ky.so_mon}
+            value={
+              gpa_hoc_ky?.so_mon || gpa_hoc_ky?.SoMon || diem_chi_tiet.length
+            }
             subValue="Đã hoàn thành"
             color="text-orange-600"
           />
@@ -107,11 +154,12 @@ const KetQuaHocTap = () => {
                   <tr>
                     <th className="px-6 py-4">Mã môn</th>
                     <th className="px-6 py-4">Tên môn học</th>
-                    <th className="px-6 py-4 text-center">Tín chỉ</th>
-                    <th className="px-6 py-4 text-center">Chuyên cần</th>
-                    <th className="px-6 py-4 text-center">Giữa kỳ</th>
-                    <th className="px-6 py-4 text-center">Điểm thi</th>
-                    <th className="px-6 py-4 text-center">Tổng kết</th>
+                    <th className="px-2 py-4 text-center">Tín chỉ</th>
+                    <th className="px-2 py-4 text-center">CC</th>
+                    <th className="px-2 py-4 text-center">GK</th>
+                    <th className="px-2 py-4 text-center">Thi</th>
+                    <th className="px-2 py-4 text-center">TK (10)</th>
+                    <th className="px-2 py-4 text-center">Điểm Chữ</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -121,33 +169,42 @@ const KetQuaHocTap = () => {
                       className="hover:bg-blue-50/30 transition-colors"
                     >
                       <td className="px-6 py-4 font-medium text-gray-600">
-                        {item.ma_mon}
+                        {item.ma_mon || item.MaMon}
                       </td>
                       <td className="px-6 py-4 font-semibold text-gray-800">
-                        {item.ten_mon}
+                        {item.ten_mon || item.TenMon}
                       </td>
                       <td className="px-6 py-4 text-center">
-                        {item.so_tin_chi}
+                        {item.so_tin_chi || item.SoTinChi}
                       </td>
                       <td className="px-6 py-4 text-center">
-                        {item.diem_cc ?? "-"}
+                        {item.diem_cc || item.DiemChuyenCan || "-"}
                       </td>
                       <td className="px-6 py-4 text-center">
-                        {item.diem_gk ?? "-"}
+                        {item.diem_gk || item.DiemGiuaKy || "-"}
                       </td>
                       <td className="px-6 py-4 text-center">
-                        {item.diem_thi ?? "-"}
+                        {item.diem_thi || item.DiemThi || "-"}
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <span
-                          className={`font-bold px-2 py-1 rounded ${
-                            item.diem_tk >= 5
-                              ? "bg-green-50 text-green-600"
-                              : "bg-red-50 text-red-500"
-                          }`}
-                        >
-                          {item.diem_tk ?? "-"}
+                        <span className="font-bold text-gray-700">
+                          {item.diem_tk || item.DiemTongKet || "-"}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        {(() => {
+                          const diemChu =
+                            item.diem_chu ||
+                            item.DiemChu ||
+                            quyDoiDiemChu(item.diem_tk || item.DiemTongKet);
+                          return (
+                            <span
+                              className={`font-bold px-2 py-1 rounded ${diemChu === "F" ? "text-red-500" : "text-blue-600"}`}
+                            >
+                              {diemChu}
+                            </span>
+                          );
+                        })()}
                       </td>
                     </tr>
                   ))}

@@ -74,6 +74,10 @@ class UserController extends Controller
 
         try {
             $data = $this->userService->getSinhVienList($filters);
+            
+            // Nạp thêm các quan hệ cần thiết để hiển thị thông tin đầy đủ ở Frontend
+            $data->getCollection()->load(['user', 'khoa', 'nganh', 'lopSinhHoat']);
+
             return response()->json([
                 'status' => 'success',
                 'count'  => $data->total(),

@@ -13,7 +13,9 @@ class HocKy extends Model
     protected $fillable = [
         'NamHocID',
         'TenHocKy',
-        'LoaiHocKy'
+        'LoaiHocKy',
+        'NgayBatDau',
+        'NgayKetThuc'
     ];
 
     public function lopHocPhan()

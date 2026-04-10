@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axiosClient from "@/api/axios";
 import toast from "react-hot-toast";
+import ConfirmModal from "@/components/ConfirmModal";
 
 const ThongBaoManager = () => {
   const [announcements, setAnnouncements] = useState([]);
@@ -8,6 +9,10 @@ const ThongBaoManager = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ TieuDe: "", NoiDung: "" });
+  const [confirmConfig, setConfirmConfig] = useState({
+    isOpen: false,
+    id: null,
+  });
 
   const fetchAnnouncements = async () => {
     setLoading(true);
@@ -45,7 +50,6 @@ const ThongBaoManager = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa thông báo này?")) return;
     try {
       await axiosClient.delete(`/admin/thong-bao/${id}`);
       toast.success("Xóa thông báo thành công");
@@ -123,7 +127,12 @@ const ThongBaoManager = () => {
                       Sửa
                     </button>
                     <button
-                      onClick={() => handleDelete(item.ThongBaoID)}
+                      onClick={() =>
+                        setConfirmConfig({
+                          isOpen: true,
+                          id: item.ThongBaoID,
+                        })
+                      }
                       className="text-red-500 hover:text-red-700 font-bold text-xs uppercase"
                     >
                       Xóa
@@ -200,6 +209,14 @@ const ThongBaoManager = () => {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        onClose={() => setConfirmConfig({ isOpen: false, id: null })}
+        onConfirm={() => handleDelete(confirmConfig.id)}
+        title="Xóa thông báo"
+        message="Thông báo này sẽ biến mất vĩnh viễn khỏi hệ thống. Bạn có chắc chắn?"
+      />
     </div>
   );
 };

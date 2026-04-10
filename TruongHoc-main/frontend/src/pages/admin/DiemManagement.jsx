@@ -36,8 +36,15 @@ const DiemManagement = () => {
   const filteredLops = lops.filter(
     (l) =>
       l.MaLopHP?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      l.mon_hoc?.TenMon?.toLowerCase().includes(searchTerm.toLowerCase()),
+      l.TenMon?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
+
+  // Lọc lấy danh sách lớp duy nhất để không bị lặp lại trên giao diện
+  const uniqueLops = React.useMemo(() => {
+    return Array.from(
+      new Map(filteredLops.map((item) => [item.LopHocPhanID, item])).values(),
+    );
+  }, [filteredLops]);
 
   return (
     <div className="space-y-6">
@@ -76,16 +83,16 @@ const DiemManagement = () => {
                   Đang tải...
                 </td>
               </tr>
-            ) : filteredLops.length === 0 ? (
+            ) : uniqueLops.length === 0 ? (
               <tr>
                 <td colSpan="5" className="p-10 text-center text-gray-400">
                   Không tìm thấy lớp nào.
                 </td>
               </tr>
             ) : (
-              filteredLops.map((lop) => (
+              uniqueLops.map((lop, index) => (
                 <tr
-                  key={lop.LopHocPhanID}
+                  key={`${lop.LopHocPhanID}-${index}`}
                   className="hover:bg-gray-50 transition-colors text-sm"
                 >
                   <td className="px-6 py-4 font-bold text-blue-600">
@@ -93,14 +100,14 @@ const DiemManagement = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="font-semibold text-gray-800">
-                      {lop.mon_hoc?.TenMon}
+                      {lop.TenMon}
                     </div>
                     <div className="text-[10px] text-gray-400">
-                      {lop.hoc_ky?.TenHocKy}
+                      {lop.TenHocKy}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-gray-600">
-                    {lop.giang_vien?.HoTen || "N/A"}
+                    {lop.HoTenGV || "Chưa phân công"}
                   </td>
                   <td className="px-6 py-4 text-center">
                     {lop.IsLocked ? (

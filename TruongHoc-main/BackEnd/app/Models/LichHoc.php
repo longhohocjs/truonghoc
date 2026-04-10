@@ -13,6 +13,7 @@ class LichHoc extends Model
     protected $fillable = [
         'LopHocPhanID',
         'NgayHoc',
+        'Thu', // Thêm trường Thu vào fillable
         'BuoiHoc',
         'TietBatDau',
         'SoTiet',

@@ -134,4 +134,39 @@ class DotDangKyController extends Controller
             'data'    => $updatedDot
         ]);
     }
+
+    // BackEnd/app/Http/Controllers/Api/Admin/DotDangKyController.php
+
+public function destroy($id)
+{
+    try {
+        $dot = \App\Models\DotDangKy::findOrFail($id);
+
+        // Kiểm tra xem đã có dữ liệu đăng ký liên quan chưa (Tùy chọn)
+        // Nếu đã có sinh viên đăng ký, thường chúng ta không cho phép xóa
+        $hasEnrollments = \App\Models\DangKyHocPhan::whereHas('lopHocPhan', function($q) use ($dot) {
+            $q->where('HocKyID', $dot->HocKyID);
+        })->exists();
+
+        if ($hasEnrollments) {
+            return response()->json([
+                'message' => 'Không thể xóa đợt đăng ký này vì đã có dữ liệu sinh viên đăng ký học phần.'
+            ], 422);
+        }
+
+        $dot->delete();
+
+        return response()->json([
+            'message' => 'Xóa đợt đăng ký thành công'
+        ]);
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        return response()->json(['message' => 'Không tìm thấy đợt đăng ký'], 404);
+    } catch (\Exception $e) {
+        // Trả về lỗi chi tiết để debug (trong môi trường dev)
+        return response()->json([
+            'message' => 'Lỗi hệ thống: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
 }

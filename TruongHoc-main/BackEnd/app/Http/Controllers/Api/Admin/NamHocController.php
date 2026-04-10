@@ -33,12 +33,29 @@ class NamHocController extends Controller
         ], 201);
     }
 
+    public function updateNamHoc(Request $request, $id)
+    {
+        $request->validate([
+            'TenNamHoc'   => 'required|string|max:50|unique:namhoc,TenNamHoc,' . $id . ',NamHocID',
+            'NgayBatDau'  => 'required|date',
+            'NgayKetThuc' => 'required|date|after_or_equal:NgayBatDau',
+        ]);
+
+        $namHoc = NamHoc::findOrFail($id);
+        $namHoc->update($request->all());
+
+        return response()->json(['message' => 'Cập nhật năm học thành công', 'data' => $namHoc]);
+    }
+
+
     public function storeHocKy(Request $request)
     {
         $request->validate([
             'NamHocID'    => 'required|exists:namhoc,NamHocID',
             'TenHocKy'    => 'required|string|max:100',
             'LoaiHocKy'   => 'required|in:HK1,HK2,He',
+            'NgayBatDau'  => 'required|date',
+            'NgayKetThuc' => 'required|date|after_or_equal:NgayBatDau',
         ]);
 
         $exists = HocKy::where('NamHocID', $request->NamHocID)
@@ -57,6 +74,27 @@ class NamHocController extends Controller
         ], 201);
     }
 
+    public function updateHocKy(Request $request, $id)
+    {
+        $request->validate([
+            'NamHocID'    => 'required|exists:namhoc,NamHocID',
+            'TenHocKy'    => 'required|string|max:100',
+            'LoaiHocKy'   => 'required|in:HK1,HK2,He',
+            'NgayBatDau'  => 'required|date',
+            'NgayKetThuc' => 'required|date|after_or_equal:NgayBatDau',
+        ]);
+
+        $hocKy = HocKy::findOrFail($id);
+
+        // Kiểm tra trùng lặp, loại trừ chính học kỳ đang cập nhật
+        if (HocKy::where('NamHocID', $request->NamHocID)->where('TenHocKy', $request->TenHocKy)->where('HocKyID', '!=', $id)->exists()) {
+            return response()->json(['message' => 'Học kỳ này đã tồn tại trong năm học'], 422);
+        }
+
+        $hocKy->update($request->all());
+        return response()->json(['message' => 'Cập nhật học kỳ thành công', 'data' => $hocKy]);
+    }
+
     public function getDanhSachHocKy(Request $request)
     {
         $query = HocKy::with('namHoc');
@@ -71,5 +109,41 @@ class NamHocController extends Controller
             'message' => 'Lấy danh sách học kỳ thành công',
             'data'    => $list
         ]);
+    }
+
+    public function getDanhSachNamHoc()
+    {
+        $list = NamHoc::orderByDesc('NamHocID')->get();
+
+        return response()->json([
+            'message' => 'Lấy danh sách năm học thành công',
+            'data'    => $list
+        ]);
+    }
+
+    public function destroyNamHoc($id)
+    {
+        $namHoc = NamHoc::findOrFail($id);
+        
+        // Kiểm tra xem có học kỳ nào thuộc năm học này không
+        if (HocKy::where('NamHocID', $id)->exists()) {
+            return response()->json(['message' => 'Không thể xóa năm học đã có dữ liệu học kỳ.'], 422);
+        }
+
+        $namHoc->delete();
+        return response()->json(['message' => 'Xóa năm học thành công']);
+    }
+
+    public function destroyHocKy($id)
+    {
+        $hocKy = HocKy::findOrFail($id);
+
+        // Kiểm tra xem có dữ liệu liên quan không (Lớp học phần, Đợt đăng ký)
+        if (\App\Models\LopHocPhan::where('HocKyID', $id)->exists() || \App\Models\DotDangKy::where('HocKyID', $id)->exists()) {
+            return response()->json(['message' => 'Không thể xóa học kỳ đã có dữ liệu lớp học hoặc đợt đăng ký.'], 422);
+        }
+
+        $hocKy->delete();
+        return response()->json(['message' => 'Xóa học kỳ thành công']);
     }
 }

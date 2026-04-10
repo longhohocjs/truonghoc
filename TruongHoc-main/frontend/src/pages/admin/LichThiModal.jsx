@@ -5,6 +5,7 @@ const LichThiModal = ({ isOpen, onClose, lopHocPhan, onSave }) => {
   const [errors, setErrors] = useState("");
 
   useEffect(() => {
+    // Sử dụng lich_thi_details từ Backend
     if (lopHocPhan && isOpen) {
       // Lấy dữ liệu lịch thi hiện có hoặc khởi tạo mảng rỗng
       // Chuẩn hóa key từ backend (nếu là snake_case) sang PascalCase để frontend xử lý và backend nhận lại đúng
@@ -12,7 +13,7 @@ const LichThiModal = ({ isOpen, onClose, lopHocPhan, onSave }) => {
         NgayThi: item.NgayThi || item.ngay_thi || "",
         GioBatDau: item.GioBatDau || item.gio_bat_dau || "07:30",
         GioKetThuc: item.GioKetThuc || item.gio_ket_thuc || "09:00",
-        PhongThi: item.PhongThi || item.phong_thi || item.PhongHoc || "",
+        PhongThi: item.PhongThi || item.phong_thi || "",
       }));
       setLichThi(normalizedLich);
     }
@@ -94,137 +95,169 @@ const LichThiModal = ({ isOpen, onClose, lopHocPhan, onSave }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col">
-        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fadeIn">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col border border-gray-100">
+        <div className="px-8 py-5 border-b border-gray-50 flex justify-between items-center bg-white">
           <div>
-            <h3 className="text-xl font-bold text-gray-800">
-              Cấu hình Lịch thi
+            <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">
+              Phân lịch thi
             </h3>
-            <p className="text-sm text-gray-500">
-              {lopHocPhan?.MaLopHP} - {lopHocPhan?.mon_hoc?.TenMon}
+            <p className="text-xs font-bold text-blue-600">
+              LỚP: {lopHocPhan?.MaLopHP} | MÔN: {lopHocPhan?.mon_hoc?.TenMon}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-2xl transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 transition-all"
           >
             &times;
           </button>
         </div>
 
-        {errors && (
-          <div className="mx-6 mt-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm font-medium">
+        {errors && ( // Hiển thị lỗi cục bộ
+          <div className="mx-8 mt-4 p-3 bg-red-50 text-red-600 text-xs font-bold rounded-xl border border-red-100">
             {errors}
           </div>
         )}
 
-        <div className="p-6 overflow-y-auto max-h-[60vh]">
+        <div className="p-8 overflow-y-auto max-h-[60vh] custom-scrollbar">
+          {/* Khung trạng thái đơn giản */}
+          <div
+            className={`mb-8 p-5 rounded-2xl border-2 border-dashed ${lichThi.length > 0 ? "bg-green-50/50 border-green-200" : "bg-gray-50 border-gray-200"}`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">
+                  Trạng thái hiện tại
+                </p>
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`w-2.5 h-2.5 rounded-full animate-pulse ${lichThi.length > 0 ? "bg-green-500" : "bg-gray-300"}`}
+                  ></div>
+                  <h4
+                    className={`text-sm font-black uppercase ${lichThi.length > 0 ? "text-green-700" : "text-gray-500"}`}
+                  >
+                    {lichThi.length > 0
+                      ? "Đã được gán lịch thi"
+                      : "Đang trống lịch thi"}
+                  </h4>
+                </div>
+              </div>
+              {lichThi.length > 0 && (
+                <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-green-100">
+                  <span className="text-lg font-black text-green-600">
+                    {lichThi.length}
+                  </span>
+                  <span className="ml-1 text-[10px] font-bold text-gray-400 uppercase">
+                    buổi thi
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
           {lichThi.length === 0 ? (
-            <div className="text-center py-10 border-2 border-dashed border-gray-200 rounded-xl text-gray-400">
-              Chưa có lịch thi nào được gán. Nhấn "Thêm buổi thi" để bắt đầu.
+            <div className="text-center py-12 text-gray-400">
+              <p className="text-sm font-medium">
+                Lớp này chưa có cấu hình lịch thi.
+              </p>
+              <p className="text-[10px] uppercase mt-1">
+                Nhấn nút phía dưới để bắt đầu
+              </p>
             </div>
           ) : (
-            <table className="w-full text-left">
-              <thead className="text-xs font-bold text-gray-400 uppercase border-b border-gray-100">
-                <tr>
-                  <th className="pb-3 px-2">Ngày thi</th>
-                  <th className="pb-3 px-2 w-32">Giờ bắt đầu</th>
-                  <th className="pb-3 px-2 w-32">Giờ kết thúc</th>
-                  <th className="pb-3 px-2">Phòng thi</th>
-                  <th className="pb-3 px-2 text-right"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {lichThi.map((item, index) => (
-                  <tr key={index}>
-                    <td className="py-3 px-2">
-                      <input
-                        type="date"
-                        className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none"
-                        value={item.NgayThi || ""}
-                        onChange={(e) =>
-                          handleChange(index, "NgayThi", e.target.value)
-                        }
-                      />
-                    </td>
-                    <td className="py-3 px-2">
-                      <input
-                        type="time"
-                        className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none"
-                        value={item.GioBatDau || ""}
-                        onChange={(e) =>
-                          handleChange(index, "GioBatDau", e.target.value)
-                        }
-                      />
-                    </td>
-                    <td className="py-3 px-2">
-                      <input
-                        type="time"
-                        className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none"
-                        value={item.GioKetThuc || ""}
-                        onChange={(e) =>
-                          handleChange(index, "GioKetThuc", e.target.value)
-                        }
-                      />
-                    </td>
-                    <td className="py-3 px-2">
-                      <input
-                        type="text"
-                        placeholder="VD: P.Phòng 402"
-                        className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none"
-                        value={item.PhongThi || ""}
-                        onChange={(e) =>
-                          handleChange(index, "PhongThi", e.target.value)
-                        }
-                      />
-                    </td>
-                    <td className="py-3 px-2 text-right">
-                      <button
-                        onClick={() => handleRemoveRow(index)}
-                        className="text-red-500 hover:text-red-700 p-2 transition-colors"
-                      >
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                          />
-                        </svg>
-                      </button>
-                    </td>
+            <div className="space-y-4">
+              <table className="w-full text-left">
+                <thead className="text-[10px] font-black text-gray-400 uppercase tracking-wider">
+                  <tr>
+                    <th className="pb-2 px-2">Ngày thi</th>
+                    <th className="pb-2 px-2">Giờ bắt đầu</th>
+                    <th className="pb-2 px-2">Giờ kết thúc</th>
+                    <th className="pb-2 px-2">Phòng thi</th>
+                    <th className="pb-2 px-2 text-right"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {lichThi.map((item, index) => (
+                    <tr key={index} className="group">
+                      <td className="py-2 px-1">
+                        <input
+                          type="date"
+                          className="w-full p-2 bg-gray-50 border-none rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+                          value={item.NgayThi || ""}
+                          onChange={(e) =>
+                            handleChange(index, "NgayThi", e.target.value)
+                          }
+                        />
+                      </td>
+                      <td className="py-2 px-1">
+                        <input
+                          type="time"
+                          className="w-full p-2 bg-gray-50 border-none rounded-xl text-xs font-bold text-center outline-none"
+                          value={item.GioBatDau || ""}
+                          onChange={(e) =>
+                            handleChange(index, "GioBatDau", e.target.value)
+                          }
+                        />
+                      </td>
+                      <td className="py-2 px-1">
+                        <input
+                          type="time"
+                          className="w-full p-2 bg-gray-50 border-none rounded-xl text-xs font-bold text-center outline-none"
+                          value={item.GioKetThuc || ""}
+                          onChange={(e) =>
+                            handleChange(index, "GioKetThuc", e.target.value)
+                          }
+                        />
+                      </td>
+                      <td className="py-2 px-1">
+                        <input
+                          type="text"
+                          placeholder="VD: P.Phòng 402"
+                          className="w-full p-2 bg-gray-50 border-none rounded-xl text-xs font-bold placeholder:text-gray-300 outline-none"
+                          value={item.PhongThi || ""}
+                          onChange={(e) =>
+                            handleChange(index, "PhongThi", e.target.value)
+                          }
+                        />
+                      </td>
+                      <td className="py-2 px-1 text-right">
+                        <button
+                          onClick={() => handleRemoveRow(index)}
+                          className="text-gray-300 hover:text-red-500 p-2 transition-colors"
+                        >
+                          &times;
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
 
           <button
             onClick={handleAddRow}
-            className="mt-4 w-full py-3 border-2 border-dashed border-orange-200 text-orange-600 rounded-xl font-bold text-sm hover:bg-orange-50 hover:border-orange-300 transition-all"
+            className="mt-6 w-full py-3 bg-gray-50 text-gray-500 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-blue-50 hover:text-blue-600 transition-all border border-transparent hover:border-blue-100"
           >
-            + Thêm buổi thi
+            + Thêm buổi thi mới
           </button>
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end space-x-3">
+        <div className="px-8 py-6 border-t border-gray-50 bg-white flex justify-end space-x-4">
           <button
             onClick={onClose}
-            className="px-5 py-2 text-sm font-bold text-gray-500 hover:text-gray-700"
+            type="button"
+            className="px-6 py-2.5 text-xs font-black text-gray-400 uppercase tracking-widest hover:text-gray-600"
           >
-            Đóng
+            Hủy bỏ
           </button>
           <button
             onClick={handleSubmit}
-            className="px-6 py-2 bg-orange-600 text-white rounded-lg font-bold text-sm hover:bg-orange-700 shadow-lg shadow-orange-200 transition-all active:scale-95"
+            type="button"
+            className="px-8 py-2.5 bg-blue-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-100 transition-all active:scale-95"
           >
-            Cập nhật lịch thi
+            Lưu cấu hình
           </button>
         </div>
       </div>

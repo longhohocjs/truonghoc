@@ -25,7 +25,7 @@ class LichThiService
             LichThi::create(array_merge($item, ['LopHocPhanID' => $lopHocPhanID]));
         }
 
-        return ['message' => 'Lịch thi đã được cập nhật thành công.'];
+        return ['status' => 'success', 'message' => 'Lịch thi đã được cập nhật thành công.'];
     }
 
     public function updateLichThi($id, array $data)

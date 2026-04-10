@@ -29,6 +29,7 @@ use App\Http\Controllers\Api\Admin\ThongKeController;
 use App\Http\Controllers\Api\Admin\ThongBaoController;
 
 
+
 Route::post('/login', [AuthController::class, 'login']);
 
 // Tất cả các đều yêu cầu Đăng nhập và Tài khoản phải đang Active
@@ -44,7 +45,7 @@ Route::middleware(['auth:api', \App\Http\Middleware\CheckActiveUser::class])->gr
         Route::get('profile', [SinhVienProfile::class, 'show']);
         Route::put('profile/contact', [SinhVienProfile::class, 'updateContact']);
         Route::get('study-info', [SinhVienProfile::class, 'studyInfo']);
-        Route::get('chuong-trinh-dao-tao', [ChuongTrinhDaoTaoController::class, 'getChuongTrinh']);
+        Route::get('chuong-trinh', [ChuongTrinhDaoTaoController::class, 'index']);
         Route::get('mon-da-hoan-thanh', [ChuongTrinhDaoTaoController::class, 'getMonDaHoanThanh']);
         Route::get('mon-con-thieu', [ChuongTrinhDaoTaoController::class, 'getMonConThieu']);
         Route::get('loc-hoc-ky', [LichHocController::class, 'getBoLocHocKy']);
@@ -102,8 +103,13 @@ Route::middleware(['auth:api', \App\Http\Middleware\CheckActiveUser::class])->gr
         Route::delete('thong-bao/{id}', [ThongBaoController::class, 'destroy']);
 
         Route::post('nam-hoc', [NamHocController::class, 'storeNamHoc']);
+        Route::get('nam-hoc', [NamHocController::class, 'getDanhSachNamHoc']);
+        Route::put('nam-hoc/{id}', [NamHocController::class, 'updateNamHoc']);
+        Route::delete('nam-hoc/{id}', [NamHocController::class, 'destroyNamHoc']);
         Route::post('hoc-ky', [NamHocController::class, 'storeHocKy']);
         Route::get('hoc-ky', [NamHocController::class, 'getDanhSachHocKy']);
+        Route::put('hoc-ky/{id}', [NamHocController::class, 'updateHocKy']);
+        Route::delete('hoc-ky/{id}', [NamHocController::class, 'destroyHocKy']);
 
         // Quản lý Khoa
         Route::post('khoa/list', [KhoaController::class, 'index']);
@@ -111,12 +117,17 @@ Route::middleware(['auth:api', \App\Http\Middleware\CheckActiveUser::class])->gr
         Route::get('khoa/{id}/nganh', [KhoaController::class, 'getNganhByKhoa']);
         Route::get('nganh/list', [KhoaController::class, 'getAllNganh']);
         Route::delete('khoa/{id}', [KhoaController::class, 'destroy']);
+        Route::patch('khoa/{id}', [KhoaController::class, 'update']);
+        Route::post('nganh', [KhoaController::class, 'storeNganh']); // Thêm route cho việc tạo ngành
+        Route::patch('nganh/{id}', [KhoaController::class, 'updateNganh']);
+        Route::delete('nganh/{id}', [KhoaController::class, 'destroyNganh']);
 
         Route::post('dot-dang-ky/filter', [AdminDotDangKyController::class, 'filterDots']);
         Route::post('dot-dang-ky/lop-hoc-phan-list', [AdminDotDangKyController::class, 'getLopHocPhanByJson']);
         Route::post('dot-dang-ky', [AdminDotDangKyController::class, 'storeDotDangKy']);
         Route::put('dot-dang-ky/cap-nhat', [AdminDotDangKyController::class, 'updateDotDangKy']);
         Route::put('dot-dang-ky/doi-trang-thai', [AdminDotDangKyController::class, 'changeStatusDotDangKy']);
+        Route::delete('dot-dang-ky/{id}', [AdminDotDangKyController::class, 'destroy']);
         
         Route::get('lop-hoc-phan', [AdminLopHocPhanController::class, 'index']);
         Route::post('lop-hoc-phan', [AdminLopHocPhanController::class, 'store']);

@@ -101,7 +101,12 @@ class SinhVienProfileService
             throw new ModelNotFoundException('Không tìm thấy thông tin sinh viên.');
         }
 
-        $updateData = array_filter($data, fn($v) => $v !== null && $v !== '');
+        $updateData = [];
+        foreach (['email', 'sodienthoai'] as $field) {
+            if (array_key_exists($field, $data)) {
+                $updateData[$field] = ($data[$field] === '') ? null : $data[$field];
+            }
+        }
 
         if (empty($updateData)) {
             throw new \InvalidArgumentException('Không có dữ liệu cập nhật hợp lệ.');

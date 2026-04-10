@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Services\DiemSoService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log; // Thêm dòng này
 use Illuminate\Support\Facades\Auth;
 
 class DiemSoController extends Controller
@@ -18,13 +19,19 @@ class DiemSoController extends Controller
 
     public function indexLopHP(Request $request)
     {
-        $data = $this->diemSoService->getBangDiemLopHP($request->json()->all());
+        // Lấy trực tiếp từ input (Hỗ trợ cả JSON body và Query params)
+        $lopHocPhanID = $request->input('LopHocPhanID');
+
+        Log::info('DiemSoController@indexLopHP - ID detected:', ['id' => $lopHocPhanID]);
+
+        // Truyền mảng chứa ID chuẩn cho Service
+        $data = $this->diemSoService->getBangDiemLopHP(['LopHocPhanID' => $lopHocPhanID]);
         return response()->json(['success' => true, 'data' => $data]);
     }
 
     public function indexRenLuyen(Request $request)
     {
-        $data = $this->diemSoService->getDiemRenLuyen($request->json()->all());
+        $data = $this->diemSoService->getDiemRenLuyen($request->all());
         return response()->json(['success' => true, 'data' => $data]);
     }
 
@@ -32,7 +39,7 @@ class DiemSoController extends Controller
     {
         try {
             $userID = Auth::id() ?: 1; // Ưu tiên Auth ID, fallback về admin hệ thống
-            $this->diemSoService->capNhatDiemLopHP($request->json()->all(), $userID);
+            $this->diemSoService->capNhatDiemLopHP($request->all(), $userID);
             return response()->json(['success' => true, 'message' => 'Cập nhật điểm thành công']);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
@@ -42,7 +49,7 @@ class DiemSoController extends Controller
     public function updateRenLuyen(Request $request)
     {
         try {
-            $this->diemSoService->capNhatDiemRenLuyen($request->json()->all());
+            $this->diemSoService->capNhatDiemRenLuyen($request->all());
             return response()->json(['success' => true, 'message' => 'Cập nhật điểm rèn luyện thành công']);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 400);

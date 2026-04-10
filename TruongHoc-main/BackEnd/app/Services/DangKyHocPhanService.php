@@ -99,11 +99,17 @@ class DangKyHocPhanService
             return true;
         }
 
-        return DB::table('trangthai_monhoc_sinhvien')
-            ->where('SinhVienID', $sinhVienID)
-            ->whereIn('MonHocID', $tienQuyetIDs)
-            ->where('TrangThai', 'Đã đạt')
-            ->count() === $tienQuyetIDs->count();
+        try {
+            return DB::table('trangthai_monhoc_sinhvien')
+                ->where('SinhVienID', $sinhVienID)
+                ->whereIn('MonHocID', $tienQuyetIDs)
+                ->where('TrangThai', 'Đã đạt')
+                ->count() === $tienQuyetIDs->count();
+        } catch (\Exception $e) {
+            Log::error("Lỗi khi kiểm tra môn tiên quyết từ view 'trangthai_monhoc_sinhvien': " . $e->getMessage());
+            // Fallback hoặc trả về false để ngăn đăng ký nếu không thể xác định trạng thái tiên quyết
+            return false; 
+        }
     }
 
     private function checkMonSongHanh(int $sinhVienID, $monHoc): bool

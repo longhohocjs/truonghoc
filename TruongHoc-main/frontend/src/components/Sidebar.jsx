@@ -23,6 +23,8 @@ const Sidebar = () => {
     ],
     sinhvien: [
       { title: "Hồ sơ sinh viên", path: "/sinh-vien/profile" },
+      { title: "Chương trình đào tạo", path: "/sinh-vien/chuong-trinh" },
+      { title: "Môn đã hoàn thành", path: "/sinh-vien/mon-da-dat" },
       { title: "Đăng ký học phần", path: "/sinh-vien/dang-ky" },
       { title: "Kết quả học tập", path: "/sinh-vien/ket-qua" },
       { title: "Lịch học", path: "/sinh-vien/lich-hoc" },

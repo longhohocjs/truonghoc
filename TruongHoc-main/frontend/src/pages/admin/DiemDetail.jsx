@@ -22,17 +22,29 @@ const DiemDetail = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
+      if (!id) throw new Error("ID không hợp lệ");
+
+      console.log("Gửi yêu cầu lấy điểm cho ID:", id);
+
       // Sử dụng đúng API bảng điểm lớp học phần
       const res = await axiosClient.post("/admin/diem-so/danh-sach-lop-hp", {
         LopHocPhanID: id,
       });
       const data = getArray(res);
-      setStudents(data);
 
       // Lấy thông tin lớp từ bản ghi đầu tiên
-      if (data.length > 0) setInfo(data[0].lop_hoc_phan);
+      if (data.length > 0) {
+        // Map đầy đủ các trường từ View (PascalCase)
+        setInfo({
+          MaLopHP: data[0].MaLopHP,
+          TenMon: data[0].TenMon,
+          HoTenGV: data[0].HoTenGV || "Chưa phân công",
+          TenHocKy: data[0].TenHocKy,
+        });
+      }
     } catch (error) {
-      toast.error("Không thể tải bảng điểm");
+      console.error("Lỗi fetchData:", error);
+      toast.error(error.message || "Không thể tải bảng điểm");
     } finally {
       setLoading(false);
     }
@@ -62,9 +74,9 @@ const DiemDetail = () => {
         DanhSachDiem: [
           {
             DangKyID: student.DangKyID,
-            DiemChuyenCan: student.DiemChuyenCan || student.diem_cc,
-            DiemGiuaKy: student.DiemGiuaKy || student.diem_gk,
-            DiemThi: student.DiemThi || student.diem_thi,
+            DiemChuyenCan: student.DiemChuyenCan,
+            DiemGiuaKy: student.DiemGiuaKy,
+            DiemThi: student.DiemThi,
           },
         ],
       });
@@ -90,9 +102,13 @@ const DiemDetail = () => {
   };
 
   const calculateTotal = (cc, gk, thi) => {
-    const total =
-      Number(cc || 0) * 0.1 + Number(gk || 0) * 0.3 + Number(thi || 0) * 0.6;
-    return total.toFixed(1);
+    const nCC = parseFloat(cc) || 0;
+    const nGK = parseFloat(gk) || 0;
+    const nThi = parseFloat(thi) || 0;
+
+    if (cc === null && gk === null && thi === null) return "0.0";
+    const totalScore = nCC * 0.1 + nGK * 0.3 + nThi * 0.6;
+    return totalScore.toFixed(1);
   };
 
   return (
@@ -110,7 +126,13 @@ const DiemDetail = () => {
               Bảng điểm chi tiết
             </h2>
             <p className="text-sm text-gray-500">
-              {info?.MaLopHP} - {info?.mon_hoc?.TenMon}
+              <span className="font-bold text-blue-600">{info?.MaLopHP}</span> -{" "}
+              {info?.TenMon}
+              {info?.HoTenGV && (
+                <span className="ml-2 italic text-gray-400">
+                  | GV: {info.HoTenGV}
+                </span>
+              )}
             </p>
           </div>
         </div>
@@ -149,16 +171,12 @@ const DiemDetail = () => {
                   Đang tải bảng điểm...
                 </td>
               </tr>
-            ) : (
+            ) : students.length > 0 ? (
               students.map((sv) => (
                 <tr key={sv.SinhVienID} className="hover:bg-gray-50 text-sm">
                   <td className="px-6 py-4">
-                    <div className="font-bold text-gray-800">
-                      {sv.HoTen || sv.sinh_vien?.HoTen}
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      {sv.MaSV || sv.sinh_vien?.MaSV}
-                    </div>
+                    <div className="font-bold text-gray-800">{sv.HoTen}</div>
+                    <div className="text-xs text-gray-400">{sv.MaSV}</div>
                   </td>
                   <td className="px-4 py-4">
                     <input
@@ -167,11 +185,11 @@ const DiemDetail = () => {
                       min="0"
                       max="10"
                       className="w-full p-1.5 border border-gray-200 rounded text-center outline-none focus:ring-1 focus:ring-blue-500"
-                      value={sv.diem_cc || ""}
+                      value={sv.DiemChuyenCan ?? ""}
                       onChange={(e) =>
                         handleGradeChange(
                           sv.SinhVienID,
-                          "diem_cc",
+                          "DiemChuyenCan",
                           e.target.value,
                         )
                       }
@@ -184,11 +202,11 @@ const DiemDetail = () => {
                       min="0"
                       max="10"
                       className="w-full p-1.5 border border-gray-200 rounded text-center outline-none focus:ring-1 focus:ring-blue-500"
-                      value={sv.diem_gk || ""}
+                      value={sv.DiemGiuaKy ?? ""}
                       onChange={(e) =>
                         handleGradeChange(
                           sv.SinhVienID,
-                          "diem_gk",
+                          "DiemGiuaKy",
                           e.target.value,
                         )
                       }
@@ -201,18 +219,22 @@ const DiemDetail = () => {
                       min="0"
                       max="10"
                       className="w-full p-1.5 border border-gray-200 rounded text-center outline-none focus:ring-1 focus:ring-blue-500"
-                      value={sv.diem_thi || ""}
+                      value={sv.DiemThi ?? ""}
                       onChange={(e) =>
                         handleGradeChange(
                           sv.SinhVienID,
-                          "diem_thi",
+                          "DiemThi",
                           e.target.value,
                         )
                       }
                     />
                   </td>
                   <td className="px-4 py-4 text-center font-black text-blue-600">
-                    {calculateTotal(sv.diem_cc, sv.diem_gk, sv.diem_thi)}
+                    {calculateTotal(
+                      sv.DiemChuyenCan,
+                      sv.DiemGiuaKy,
+                      sv.DiemThi,
+                    )}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <button
@@ -225,6 +247,16 @@ const DiemDetail = () => {
                   </td>
                 </tr>
               ))
+            ) : (
+              <tr>
+                <td
+                  colSpan="6"
+                  className="p-10 text-center text-gray-400 italic"
+                >
+                  Chưa có sinh viên nào đăng ký lớp học phần này hoặc không tìm
+                  thấy dữ liệu điểm.
+                </td>
+              </tr>
             )}
           </tbody>
         </table>

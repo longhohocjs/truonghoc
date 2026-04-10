@@ -1,245 +1,459 @@
 import React, { useState, useEffect } from "react";
 import axiosClient from "@/api/axios";
+import toast from "react-hot-toast";
+import ConfirmModal from "@/components/ConfirmModal";
 
 const NamHocHocKy = () => {
-  const [academicYears, setAcademicYears] = useState([]);
+  const [hocKys, setHocKys] = useState([]);
+  const [namHocs, setNamHocs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isAddingYear, setIsAddingYear] = useState(false);
-  const [newYear, setNewYear] = useState("");
+  const [showAddYear, setShowAddYear] = useState(false);
+  const [editingYear, setEditingYear] = useState(null);
+  const [showAddSemester, setShowAddSemester] = useState(false);
+  const [editingSemester, setEditingSemester] = useState(null);
+  const [confirmConfig, setConfirmConfig] = useState({
+    isOpen: false,
+    id: null,
+    type: "", // 'year' hoặc 'semester'
+  });
 
-  const fetchData = async () => {
+  const [newYear, setNewYear] = useState({
+    TenNamHoc: "",
+    NgayBatDau: "",
+    NgayKetThuc: "",
+  });
+  const [newSemester, setNewSemester] = useState({
+    TenHocKy: "",
+    NamHocID: "",
+    LoaiHocKy: "",
+    NgayBatDau: "",
+    NgayKetThuc: "",
+  });
+
+  const fetchHocKys = async () => {
     setLoading(true);
     try {
-      const response = await axiosClient.get("/admin/hoc-ky");
-
-      // Trích xuất mảng dữ liệu (hỗ trợ cả khi response là {data: []} hoặc trực tiếp [])
-      const rawData =
-        response?.data || (Array.isArray(response) ? response : []);
-
-      // Chuyển đổi dữ liệu phẳng (Học kỳ) thành cấu trúc nhóm theo Năm học
-      const groupedYears = rawData.reduce((acc, hk) => {
-        const year = hk.nam_hoc; // Object năm học đi kèm học kỳ
-        if (!year) return acc;
-
-        if (!acc[year.NamHocID]) {
-          acc[year.NamHocID] = {
-            ...year,
-            HocKy: [],
-          };
-        }
-        acc[year.NamHocID].HocKy.push(hk);
-        return acc;
-      }, {});
-
-      setAcademicYears(Object.values(groupedYears));
-    } catch (error) {
-      console.error("Lỗi khi tải dữ liệu năm học:", error);
-      // Dữ liệu mẫu để minh họa giao diện
-      setAcademicYears([
-        {
-          id: 1,
-          nam_hoc: "2023-2024",
-          hoc_ky: [
-            { id: 1, ten_hoc_ky: "Học kỳ 1", trang_thai: "Đã kết thúc" },
-            { id: 2, ten_hoc_ky: "Học kỳ 2", trang_thai: "Đang diễn ra" },
-            { id: 3, ten_hoc_ky: "Học kỳ hè", trang_thai: "Sắp mở" },
-          ],
-        },
-        {
-          id: 2,
-          nam_hoc: "2024-2025",
-          hoc_ky: [],
-        },
+      const [resHk, resNh] = await Promise.all([
+        axiosClient.get("/admin/hoc-ky"),
+        axiosClient.get("/admin/nam-hoc"),
       ]);
+      setHocKys(resHk.data || []);
+      setNamHocs(resNh.data || []);
+    } catch (error) {
+      console.error(error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    fetchHocKys();
   }, []);
 
-  const handleAddYear = async () => {
-    if (!newYear) return;
+  const handleAddYear = async (e) => {
+    e.preventDefault();
     try {
-      await axiosClient.post("/admin/nam-hoc", { TenNamHoc: newYear });
-      setIsAddingYear(false);
-      setNewYear("");
-      fetchData();
+      console.log("Dữ liệu gửi đi (Năm học):", newYear);
+      const apiCall = editingYear
+        ? axiosClient.put(`/admin/nam-hoc/${editingYear.NamHocID}`, newYear)
+        : axiosClient.post("/admin/nam-hoc", newYear);
+      await apiCall;
+      toast.success(
+        editingYear ? "Cập nhật năm học thành công" : "Thêm năm học thành công",
+      );
+      setShowAddYear(false);
+      // Reset editingYear và newYear sau khi thành công
+      setEditingYear(null);
+      setNewYear({ TenNamHoc: "", NgayBatDau: "", NgayKetThuc: "" });
+      fetchHocKys();
     } catch (error) {
-      console.error("Lỗi thêm năm học:", error);
+      // Bắt lỗi và hiển thị thông báo chi tiết từ backend
+      toast.error(error.response?.data?.message || "Lỗi khi xử lý năm học");
     }
+  };
+
+  const handleAddSemester = async (e) => {
+    e.preventDefault();
+    try {
+      console.log("Dữ liệu gửi đi (Học kỳ):", newSemester);
+      const apiCall = editingSemester
+        ? axiosClient.put(
+            `/admin/hoc-ky/${editingSemester.HocKyID}`,
+            newSemester,
+          )
+        : axiosClient.post("/admin/hoc-ky", newSemester);
+      await apiCall;
+      toast.success(
+        editingSemester
+          ? "Cập nhật học kỳ thành công"
+          : "Thêm học kỳ thành công",
+      );
+      setShowAddSemester(false);
+      setEditingSemester(null);
+      setNewSemester({
+        TenHocKy: "",
+        NamHocID: "",
+        LoaiHocKy: "",
+        NgayBatDau: "",
+        NgayKetThuc: "",
+      });
+      fetchHocKys();
+    } catch (error) {
+      // Bắt lỗi và hiển thị thông báo chi tiết từ backend
+      toast.error(error.response?.data?.message || "Lỗi khi xử lý học kỳ");
+    }
+  };
+
+  const handleDeleteYear = async (id) => {
+    try {
+      await axiosClient.delete(`/admin/nam-hoc/${id}`);
+      toast.success("Xóa năm học thành công");
+      fetchHocKys();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Không thể xóa năm học");
+    }
+  };
+
+  const handleDeleteSemester = async (id) => {
+    try {
+      await axiosClient.delete(`/admin/hoc-ky/${id}`);
+      toast.success("Xóa học kỳ thành công");
+      fetchHocKys();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Không thể xóa học kỳ");
+    }
+  };
+
+  const formatDateForInput = (dateStr) => {
+    if (!dateStr) return "";
+    // Xử lý cả định dạng "YYYY-MM-DD HH:mm:ss" và "YYYY-MM-DDTHH:mm:ss..."
+    return dateStr.includes("T")
+      ? dateStr.split("T")[0]
+      : dateStr.split(" ")[0];
+  };
+
+  const handleEditYear = (year) => {
+    setEditingYear(year);
+    setNewYear({
+      TenNamHoc: year.TenNamHoc || year.ten_nam_hoc,
+      NgayBatDau: formatDateForInput(year.NgayBatDau || year.ngay_bat_dau),
+      NgayKetThuc: formatDateForInput(year.NgayKetThuc || year.ngay_ket_thuc),
+    });
+    setShowAddYear(true);
+  };
+
+  const handleEditSemester = (semester) => {
+    setEditingSemester(semester);
+    setNewSemester({
+      TenHocKy: semester.TenHocKy || semester.ten_hoc_ky,
+      NamHocID: semester.NamHocID || semester.nam_hoc_id,
+      LoaiHocKy: semester.LoaiHocKy || semester.loai_hoc_ky,
+      NgayBatDau: formatDateForInput(
+        semester.NgayBatDau || semester.ngay_bat_dau,
+      ),
+      NgayKetThuc: formatDateForInput(
+        semester.NgayKetThuc || semester.ngay_ket_thuc,
+      ),
+    });
+    setShowAddSemester(true);
   };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">
-            Quản lý Năm học & Học kỳ
-          </h2>
-          <p className="text-gray-500 text-sm">
-            Thiết lập cấu trúc thời gian đào tạo cho hệ thống
-          </p>
+        <h2 className="text-2xl font-bold text-gray-800">Năm học & Học kỳ</h2>
+        <div className="space-x-2">
+          <button
+            onClick={() => {
+              setEditingYear(null);
+              setShowAddYear(true);
+            }}
+            className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold"
+          >
+            + Thêm Năm học
+          </button>
+          <button
+            onClick={() => {
+              setEditingSemester(null);
+              setShowAddSemester(true);
+            }}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold"
+          >
+            + Thêm Học kỳ
+          </button>
         </div>
-        <button
-          onClick={() => setIsAddingYear(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-blue-700 shadow-md transition-all active:scale-95"
-        >
-          + Thêm Năm học mới
-        </button>
       </div>
 
-      {isAddingYear && (
-        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-center gap-4 animate-fadeIn">
-          <input
-            type="text"
-            placeholder="VD: 2025-2026"
-            className="px-4 py-2 border border-blue-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 flex-1"
-            value={newYear}
-            onChange={(e) => setNewYear(e.target.value)}
-          />
-          <button
-            onClick={handleAddYear}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold text-sm"
+      {/* Modal Thêm Năm Học */}
+      {showAddYear && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <form
+            onSubmit={handleAddYear}
+            className="bg-white p-6 rounded-2xl w-96 space-y-4"
           >
-            Lưu
-          </button>
-          <button
-            onClick={() => setIsAddingYear(false)}
-            className="text-gray-500 font-bold text-sm"
-          >
-            Hủy
-          </button>
+            <h3 className="font-bold">
+              {editingYear ? "Cập nhật Năm học" : "Thêm Năm học mới"}
+            </h3>
+            <div>
+              <label className="text-[10px] font-bold text-gray-400 uppercase">
+                Tên năm học
+              </label>
+              <input
+                type="text"
+                placeholder="Ví dụ: 2023-2024"
+                className="w-full border p-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                value={newYear.TenNamHoc}
+                onChange={(e) =>
+                  setNewYear({ ...newYear, TenNamHoc: e.target.value })
+                }
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase">
+                  Ngày bắt đầu
+                </label>
+                <input
+                  type="date"
+                  className="w-full border p-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                  value={newYear.NgayBatDau}
+                  onChange={(e) =>
+                    setNewYear({ ...newYear, NgayBatDau: e.target.value })
+                  }
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase">
+                  Ngày kết thúc
+                </label>
+                <input
+                  type="date"
+                  className="w-full border p-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                  value={newYear.NgayKetThuc}
+                  onChange={(e) =>
+                    setNewYear({ ...newYear, NgayKetThuc: e.target.value })
+                  }
+                  required
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setShowAddYear(false)}>
+                Hủy
+              </button>
+              <button className="bg-blue-600 text-white px-4 py-2 rounded-lg">
+                {editingYear ? "Cập nhật" : "Lưu"}
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
-      {loading ? (
-        <div className="text-center py-10 text-gray-400">
-          Đang tải dữ liệu...
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-6">
-          {academicYears.map((year) => (
-            <div
-              key={year.NamHocID || year.id}
-              className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+      {/* Modal Thêm Học Kỳ */}
+      {showAddSemester && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <form
+            onSubmit={handleAddSemester}
+            className="bg-white p-6 rounded-2xl w-96 space-y-4"
+          >
+            <h3 className="font-bold">
+              {editingSemester ? "Cập nhật Học kỳ" : "Thêm Học kỳ mới"}
+            </h3>
+            <select
+              className="w-full border p-2 rounded-lg"
+              value={newSemester.NamHocID}
+              onChange={(e) =>
+                setNewSemester({ ...newSemester, NamHocID: e.target.value })
+              }
+              required
             >
-              <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                <h3 className="text-lg font-bold text-gray-700 flex items-center">
-                  <svg
-                    className="w-5 h-5 mr-2 text-blue-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                  Năm học: {year.TenNamHoc || year.nam_hoc}
-                </h3>
-                <div className="space-x-2">
-                  <button className="text-blue-600 hover:bg-blue-50 px-3 py-1 rounded-md text-xs font-bold uppercase transition-all">
-                    Thêm Học kỳ
-                  </button>
-                  <button className="text-red-500 hover:bg-red-50 px-3 py-1 rounded-md text-xs font-bold uppercase transition-all">
-                    Xóa Năm học
-                  </button>
-                </div>
-              </div>
-              <div className="p-6">
-                {/* Hiển thị danh sách học kỳ đã được nhóm */}
-                {year.HocKy && year.HocKy.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {year.HocKy.map((hk) => (
-                      <div
-                        key={hk.HocKyID || hk.id}
-                        className="p-4 rounded-xl border border-gray-100 bg-gray-50 hover:border-blue-200 transition-all group relative"
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <span className="text-sm font-bold text-gray-800">
-                            {hk.TenHocKy || hk.ten_hoc_ky}
-                          </span>
-                          <span
-                            className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                              (hk.trang_thai || hk.TrangThai) ===
-                                "Đang diễn ra" || hk.TrangThai === 1
-                                ? "bg-green-100 text-green-600"
-                                : (hk.trang_thai || hk.TrangThai) ===
-                                      "Đã kết thúc" || hk.TrangThai === 0
-                                  ? "bg-gray-200 text-gray-600"
-                                  : "bg-orange-100 text-orange-600"
-                            }`}
-                          >
-                            {hk.trang_thai ||
-                              (hk.TrangThai === 1
-                                ? "Đang diễn ra"
-                                : "Đã kết thúc")}
-                          </span>
-                        </div>
-                        <div className="flex gap-3 mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button className="text-[10px] font-bold text-blue-600 uppercase">
-                            Sửa
-                          </button>
-                          <button className="text-[10px] font-bold text-red-500 uppercase">
-                            Xóa
-                          </button>
-                          <button className="text-[10px] font-bold text-indigo-600 uppercase ml-auto">
-                            Kích hoạt
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-4 text-gray-400 italic text-sm">
-                    Chưa có học kỳ nào được thiết lập cho năm học này.
-                  </div>
-                )}
+              <option value="">Chọn năm học...</option>
+              {namHocs.map((y) => (
+                <option key={y.NamHocID} value={y.NamHocID}>
+                  {y.TenNamHoc}
+                </option>
+              ))}
+            </select>
+            <select
+              className="w-full border p-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+              value={newSemester.LoaiHocKy}
+              onChange={(e) =>
+                setNewSemester({ ...newSemester, LoaiHocKy: e.target.value })
+              }
+              required
+            >
+              <option value="">-- Chọn loại học kỳ --</option>
+              <option value="HK1">Học kỳ 1</option>
+              <option value="HK2">Học kỳ 2</option>
+              <option value="He">Học kỳ Hè</option>
+            </select>
+            <input
+              type="text"
+              placeholder="Tên học kỳ (Ví dụ: Học kỳ 1)"
+              className="w-full border p-2 rounded-lg"
+              value={newSemester.TenHocKy}
+              onChange={(e) =>
+                setNewSemester({ ...newSemester, TenHocKy: e.target.value })
+              }
+              required
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="date"
+                className="border p-2 rounded-lg"
+                value={newSemester.NgayBatDau}
+                onChange={(e) =>
+                  setNewSemester({ ...newSemester, NgayBatDau: e.target.value })
+                }
+                required
+              />
+              <input
+                type="date"
+                className="border p-2 rounded-lg"
+                value={newSemester.NgayKetThuc}
+                onChange={(e) =>
+                  setNewSemester({
+                    ...newSemester,
+                    NgayKetThuc: e.target.value,
+                  })
+                }
+                required
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setShowAddSemester(false)}>
+                Hủy
+              </button>
+              <button className="bg-blue-600 text-white px-4 py-2 rounded-lg">
+                {editingSemester ? "Cập nhật" : "Lưu"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Hiển thị danh sách Năm học hiện có (Đáp ứng yêu cầu "có trên giao diện") */}
+      <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+        <h3 className="text-xs font-bold text-blue-600 uppercase mb-3 tracking-widest">
+          Năm học hệ thống
+        </h3>
+        <div className="flex flex-wrap gap-2">
+          {namHocs.map((y) => (
+            <div
+              key={y.NamHocID}
+              className="bg-white px-4 py-2 rounded-2xl text-sm font-bold text-blue-800 shadow-sm border border-blue-200 flex flex-col group relative min-w-[150px]"
+            >
+              <span className="text-lg font-black">📅 {y.TenNamHoc}</span>
+              <span className="text-[10px] text-blue-400 font-medium uppercase">
+                {formatDateForInput(y.NgayBatDau || y.ngay_bat_dau)} ➜{" "}
+                {formatDateForInput(y.NgayKetThuc || y.ngay_ket_thuc)}
+              </span>
+              <div className="absolute right-0 top-0 -mr-2 -mt-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={() => handleEditYear(y)}
+                  className="bg-blue-100 text-blue-600 rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-blue-200"
+                  title="Sửa năm học"
+                >
+                  ✏️
+                </button>
+                <button
+                  onClick={() =>
+                    setConfirmConfig({
+                      isOpen: true,
+                      id: y.NamHocID,
+                      type: "year",
+                    })
+                  }
+                  className="bg-red-100 text-red-600 rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-200"
+                  title="Xóa năm học"
+                >
+                  ✕
+                </button>
               </div>
             </div>
           ))}
         </div>
-      )}
-
-      {/* Hướng dẫn */}
-      <div className="bg-indigo-50 p-6 rounded-2xl border border-indigo-100">
-        <h4 className="text-indigo-800 font-bold mb-2 flex items-center">
-          <svg
-            className="w-5 h-5 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          Lưu ý cho Quản trị viên
-        </h4>
-        <ul className="text-sm text-indigo-600 space-y-1 list-disc list-inside">
-          <li>
-            Chỉ nên có duy nhất <strong>một</strong> học kỳ ở trạng thái "Đang
-            diễn ra" trên toàn hệ thống.
-          </li>
-          <li>
-            Khi kích hoạt học kỳ mới, các học kỳ cũ sẽ tự động được chuyển sang
-            trạng thái lưu trữ.
-          </li>
-          <li>
-            Việc xóa năm học sẽ ảnh hưởng đến các lớp học phần và lịch thi liên
-            quan.
-          </li>
-        </ul>
       </div>
+
+      <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+        <table className="w-full text-left">
+          <thead className="bg-gray-50 text-xs font-bold text-gray-500 uppercase">
+            <tr>
+              <th className="px-6 py-4">Năm học</th>
+              <th className="px-6 py-4">Học kỳ</th>
+              <th className="px-6 py-4">Bắt đầu</th>
+              <th className="px-6 py-4">Kết thúc</th>
+              <th className="px-6 py-4 text-right">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {hocKys.map((hk) => (
+              <tr key={hk.HocKyID}>
+                <td className="px-6 py-4 font-bold">{hk.nam_hoc?.TenNamHoc}</td>
+                <td className="px-6 py-4 text-blue-600 font-medium">
+                  {hk.TenHocKy}
+                </td>
+                <td className="px-6 py-4">
+                  {formatDateForInput(
+                    hk.NgayBatDau ||
+                      hk.ngay_bat_dau ||
+                      hk.nam_hoc?.NgayBatDau ||
+                      hk.nam_hoc?.ngay_bat_dau,
+                  )}
+                </td>
+                <td className="px-6 py-4">
+                  {formatDateForInput(
+                    hk.NgayKetThuc ||
+                      hk.ngay_ket_thuc ||
+                      hk.nam_hoc?.NgayKetThuc ||
+                      hk.nam_hoc?.ngay_ket_thuc,
+                  )}
+                </td>
+                <td className="px-6 py-4 text-right">
+                  <div className="flex justify-end space-x-2">
+                    <button
+                      onClick={() => handleEditSemester(hk)}
+                      className="text-blue-600 hover:text-blue-800 font-bold text-xs uppercase"
+                    >
+                      Sửa
+                    </button>
+                    <button
+                      onClick={() =>
+                        setConfirmConfig({
+                          isOpen: true,
+                          id: hk.HocKyID,
+                          type: "semester",
+                        })
+                      }
+                      className="text-red-500 hover:text-red-700 font-bold text-xs uppercase"
+                    >
+                      Xóa
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        onClose={() => setConfirmConfig({ isOpen: false, id: null, type: "" })}
+        onConfirm={() =>
+          confirmConfig.type === "year"
+            ? handleDeleteYear(confirmConfig.id)
+            : handleDeleteSemester(confirmConfig.id)
+        }
+        title={confirmConfig.type === "year" ? "Xóa năm học" : "Xóa học kỳ"}
+        message={
+          confirmConfig.type === "year"
+            ? "Bạn có chắc chắn muốn xóa năm học này? Tất cả học kỳ thuộc năm học này phải được xóa trước."
+            : "Bạn có chắc chắn muốn xóa học kỳ này? Hệ thống sẽ kiểm tra các dữ liệu liên quan trước khi xóa."
+        }
+      />
     </div>
   );
 };

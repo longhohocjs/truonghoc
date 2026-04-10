@@ -44,43 +44,48 @@ class LichHocService
         $lopNgayBatDau = Carbon::parse($lopHocPhan->NgayBatDau);
         $lopNgayKetThuc = Carbon::parse($lopHocPhan->NgayKetThuc);
 
-        // Xóa tất cả lịch học cũ của lớp học phần này trước khi thêm mới (Sync logic)
-        LichHoc::where('LopHocPhanID', $lopHocPhanID)->delete();
+        return DB::transaction(function () use ($lopHocPhanID, $lichHocItems, $lopNgayBatDau, $lopNgayKetThuc) {
+            // Xóa tất cả lịch học cũ của lớp học phần này trước khi thêm mới (Sync logic)
+            LichHoc::where('LopHocPhanID', $lopHocPhanID)->delete();
 
-        foreach ($lichHocItems as $item) {
-            $dayOfWeekFrontend = $item['NgayHoc']; // Thứ trong tuần từ Frontend (2=Thứ 2, ..., 8=Chủ Nhật)
+            foreach ($lichHocItems as $item) {
+                $dayOfWeekFrontend = $item['NgayHoc']; // Thứ từ Frontend (2-8)
 
-            // Chuyển đổi thứ từ Frontend sang định dạng của Carbon (0=Chủ Nhật, 1=Thứ 2, ..., 6=Thứ 7)
-            $carbonDayOfWeek = ($dayOfWeekFrontend == 8) ? Carbon::SUNDAY : ($dayOfWeekFrontend - 1);
+                // Chuyển đổi thứ sang định dạng Carbon (0=Chủ Nhật, 1=Thứ 2)
+                $carbonDayOfWeek = ($dayOfWeekFrontend == 8) ? Carbon::SUNDAY : ($dayOfWeekFrontend - 1);
 
-            // Bắt đầu từ ngày bắt đầu của lớp học phần
-            $currentDate = $lopNgayBatDau->copy();
-
-            while ($currentDate->lte($lopNgayKetThuc)) {
-                // Tìm ngày đầu tiên của thứ mong muốn (dayOfWeekFrontend) trên hoặc sau currentDate
-                $dateToSave = $currentDate->copy()->next($carbonDayOfWeek);
-
-                // Nếu ngày tìm được vượt quá ngày kết thúc của lớp, dừng lại
-                if ($dateToSave->gt($lopNgayKetThuc)) {
-                    break;
+                // Tìm ngày đầu tiên của thứ này trong kỳ
+                $dateToSave = $lopNgayBatDau->copy();
+                while ($dateToSave->dayOfWeek !== $carbonDayOfWeek) {
+                    $dateToSave->addDay();
                 }
 
-                // Kiểm tra trùng lịch của sinh viên đã đăng ký cho ngày cụ thể này
-                $this->checkTrungLichSinhVien(
-                    $lopHocPhanID,
-                    $dateToSave->toDateString(), // Truyền ngày cụ thể
-                    $item['TietBatDau'],
-                    $item['SoTiet']
-                );
+                // Lặp qua từng tuần cho đến ngày kết thúc
+                while ($dateToSave->lte($lopNgayKetThuc)) {
+                    // Kiểm tra trùng lịch sinh viên
+                    $this->checkTrungLichSinhVien(
+                        $lopHocPhanID,
+                        $dateToSave->toDateString(),
+                        $item['TietBatDau'],
+                        $item['SoTiet']
+                    );
 
-                // Tạo bản ghi mới cho từng buổi học vào ngày cụ thể
-                LichHoc::create(array_merge($item, ['LopHocPhanID' => $lopHocPhanID, 'NgayHoc' => $dateToSave->toDateString()]));
+                    // Lưu bản ghi (Lưu ý: NgayHoc trong mảng $item sẽ bị ghi đè bởi ngày cụ thể)
+                    LichHoc::create([
+                        'LopHocPhanID' => $lopHocPhanID,
+                        'NgayHoc'      => $dateToSave->toDateString(),
+                        'Thu'          => $dayOfWeekFrontend,
+                        'TietBatDau'   => $item['TietBatDau'],
+                        'SoTiet'       => $item['SoTiet'],
+                        'PhongHoc'     => $item['PhongHoc'],
+                        'BuoiHoc'      => $item['BuoiHoc'] ?? ((int)$item['TietBatDau'] <= 6 ? "Sáng" : "Chiều")
+                    ]);
 
-                // Di chuyển đến ngày tiếp theo sau ngày đã lưu để tìm buổi học cùng thứ trong tuần kế tiếp
-                $currentDate = $dateToSave->addDay();
+                    $dateToSave->addWeek();
+                }
             }
-        }
-        return ['message' => 'Lịch học đã được cập nhật thành công.'];
+            return ['message' => 'Lịch học đã được cập nhật thành công.'];
+        });
     }
 
     public function updateLichHoc($id, array $data)

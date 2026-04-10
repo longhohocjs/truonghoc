@@ -3,8 +3,21 @@ import axiosClient from "@/api/axios";
 
 const LichHoc = () => {
   const [schedule, setSchedule] = useState({});
+  const [rawLichData, setRawLichData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hocKy, setHocKy] = useState("");
+
+  // Hàm lấy ngày Thứ 2 của tuần chứa ngày được chọn
+  const getStartOfWeek = (date) => {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(d.setDate(diff));
+  };
+
+  const [currentWeekStart, setCurrentWeekStart] = useState(
+    getStartOfWeek(new Date()),
+  );
 
   const daysOfWeek = [
     { label: "Thứ 2", value: 2 },
@@ -24,7 +37,8 @@ const LichHoc = () => {
         const response = await axiosClient.get("/sinh-vien/da-dang-ky");
         if (response.data) {
           setHocKy(response.hoc_ky);
-          processSchedule(response.data);
+          setRawLichData(response.data);
+          processSchedule(response.data, currentWeekStart);
         }
       } catch (error) {
         console.error("Lỗi khi tải lịch học:", error);
@@ -35,23 +49,51 @@ const LichHoc = () => {
     fetchLichHoc();
   }, []);
 
-  const processSchedule = (data) => {
+  // Chạy lại logic xử lý lịch mỗi khi đổi tuần
+  useEffect(() => {
+    if (rawLichData.length > 0) {
+      processSchedule(rawLichData, currentWeekStart);
+    }
+  }, [currentWeekStart, rawLichData]);
+
+  const processSchedule = (data, weekStart) => {
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+
     const mappedSchedule = {};
     data.forEach((item) => {
       const lop = item.lop_hoc_phan;
       lop.lich_hoc?.forEach((lich) => {
-        const key = `${lich.Thu}-${lich.TietBatDau}`;
-        mappedSchedule[key] = {
-          tenMon: lop.mon_hoc?.TenMon,
-          maLop: lop.MaLopHP,
-          phong: lich.PhongHoc || "Đang cập nhật",
-          giangVien: lop.giang_vien?.HoTen,
-          soTiet: lich.SoTiet,
-        };
+        const ngayHoc = new Date(lich.NgayHoc);
+
+        // Chỉ lấy các buổi học nằm trong khoảng từ Thứ 2 đến Chủ Nhật của tuần đang chọn
+        if (ngayHoc >= weekStart && ngayHoc <= weekEnd) {
+          let thuVal = ngayHoc.getDay();
+          thuVal = thuVal === 0 ? 8 : thuVal + 1;
+
+          const key = `${thuVal}-${lich.TietBatDau || lich.tiet_bat_dau}`;
+          mappedSchedule[key] = {
+            tenMon: lop.mon_hoc?.TenMon || lop.mon_hoc?.ten_mon,
+            maLop: lop.MaLopHP || lop.ma_lop_hp,
+            phong: lich.PhongHoc || lich.phong_hoc || "Đang cập nhật",
+            giangVien: lop.giang_vien?.HoTen || lop.giang_vien?.ho_ten,
+            soTiet: lich.SoTiet || lich.so_tiet,
+          };
+        }
       });
     });
     setSchedule(mappedSchedule);
   };
+
+  const changeWeek = (offset) => {
+    const newDate = new Date(currentWeekStart);
+    newDate.setDate(newDate.getDate() + offset * 7);
+    setCurrentWeekStart(newDate);
+  };
+
+  const weekEnd = new Date(currentWeekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
 
   if (loading)
     return <div className="p-10 text-center">Đang tải thời khóa biểu...</div>;
@@ -65,26 +107,45 @@ const LichHoc = () => {
           </h2>
           <p className="text-gray-500 text-sm">Học kỳ: {hocKy}</p>
         </div>
-        <button
-          onClick={() => window.print()}
-          className="bg-white border border-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-all shadow-sm flex items-center"
-        >
-          <svg
-            className="w-4 h-4 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <div className="flex items-center space-x-3">
+          <div className="flex bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+            <button
+              onClick={() => changeWeek(-1)}
+              className="px-3 py-2 hover:bg-gray-50 text-gray-600 border-r border-gray-200"
+            >
+              ◀
+            </button>
+            <div className="px-4 py-2 text-sm font-bold text-blue-600 bg-blue-50/50">
+              {currentWeekStart.toLocaleDateString("vi-VN")} -{" "}
+              {weekEnd.toLocaleDateString("vi-VN")}
+            </div>
+            <button
+              onClick={() => changeWeek(1)}
+              className="px-3 py-2 hover:bg-gray-50 text-gray-600"
+            >
+              ▶
+            </button>
+          </div>
+          <button
+            onClick={() => setCurrentWeekStart(getStartOfWeek(new Date()))}
+            className="bg-white border border-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
-            />
-          </svg>
-          In lịch học
-        </button>
+            Tuần này
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 shadow-sm"
+          >
+            In lịch
+          </button>
+        </div>
       </div>
+
+      {Object.keys(schedule).length === 0 && !loading && (
+        <div className="bg-blue-50 border border-blue-100 text-blue-600 p-4 rounded-xl text-center text-sm font-medium">
+          Bạn không có lịch học trong tuần này.
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
@@ -94,14 +155,21 @@ const LichHoc = () => {
                 <th className="w-20 py-4 border-b border-r border-gray-100 text-xs font-bold text-gray-400 uppercase">
                   Tiết
                 </th>
-                {daysOfWeek.map((day) => (
-                  <th
-                    key={day.value}
-                    className="py-4 border-b border-r border-gray-100 text-sm font-bold text-gray-700"
-                  >
-                    {day.label}
-                  </th>
-                ))}
+                {daysOfWeek.map((day, index) => {
+                  const dateLabel = new Date(currentWeekStart);
+                  dateLabel.setDate(dateLabel.getDate() + index);
+                  return (
+                    <th
+                      key={day.value}
+                      className="py-4 border-b border-r border-gray-100 text-sm font-bold text-gray-700"
+                    >
+                      <div>{day.label}</div>
+                      <div className="text-[10px] text-gray-400 font-normal mt-1">
+                        {dateLabel.getDate()}/{dateLabel.getMonth() + 1}
+                      </div>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
@@ -125,7 +193,7 @@ const LichHoc = () => {
                     const cellData = schedule[`${day.value}-${slot}`];
 
                     // Logic để gộp ô nếu môn học kéo dài nhiều tiết
-                    // Ở đây chúng ta kiểm tra xem tiết hiện tại có nằm trong khoảng của một môn học đã bắt đầu ở tiết trước không
+                    // Kiểm tra xem tiết hiện tại có thuộc khoảng thời gian của môn học đã bắt đầu ở tiết trước
                     let isInsideGroup = false;
                     for (let s = 1; s < slot; s++) {
                       const prevData = schedule[`${day.value}-${s}`];
@@ -141,7 +209,7 @@ const LichHoc = () => {
                       <td
                         key={`${day.value}-${slot}`}
                         rowSpan={cellData?.soTiet || 1}
-                        className={`p-2 border-b border-r border-gray-100 align-top transition-all ${
+                        className={`p-1.5 border-b border-r border-gray-100 align-top transition-all ${
                           cellData ? "bg-blue-50/50" : "hover:bg-gray-50/30"
                         }`}
                       >

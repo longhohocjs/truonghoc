@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from "react";
 import axiosClient from "@/api/axios";
 import toast from "react-hot-toast";
+import ConfirmModal from "@/components/ConfirmModal";
 
 const DotDangKyManager = () => {
   const [dots, setDots] = useState([]);
   const [hocKys, setHocKys] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [filter, setFilter] = useState({ HocKyID: "" }); // Filter cho danh sách đợt đăng ký
+
   const [showModal, setShowModal] = useState(false);
-  const [editingDot, setEditingDot] = useState(null);
+  const [confirmConfig, setConfirmConfig] = useState({
+    isOpen: false,
+    id: null,
+  });
   const [formData, setFormData] = useState({
     TenDot: "",
     HocKyID: "",
@@ -16,330 +22,417 @@ const DotDangKyManager = () => {
     TrangThai: 1,
   });
 
+  // States cho phần xem danh sách lớp học phần theo đợt
+  const [selectedDot, setSelectedDot] = useState(null); // Đợt đăng ký đang được chọn để xem học phần
+  const [lopHocPhans, setLopHocPhans] = useState([]);
+  const [khoas, setKhoas] = useState([]);
+  const [nganhs, setNganhs] = useState([]);
+  const [selectedKhoaId, setSelectedKhoaId] = useState("");
+  const [selectedNganhId, setSelectedNganhId] = useState("");
+  const [loadingLopHocPhans, setLoadingLopHocPhans] = useState(false);
+
   useEffect(() => {
-    fetchInitialData();
+    const init = async () => {
+      try {
+        const [resHk, resKhoa, resNganh] = await Promise.all([
+          axiosClient.get("/admin/hoc-ky"),
+          axiosClient.post("/admin/khoa/list"), // Lấy tất cả khoa
+          axiosClient.get("/admin/nganh/list"), // Lấy tất cả ngành
+        ]);
+        setHocKys(resHk.data || []);
+        setKhoas(resKhoa.data || []);
+        setNganhs(resNganh.data || []);
+      } catch (error) {
+        toast.error("Lỗi khi tải dữ liệu ban đầu.");
+        console.error(error);
+      }
+    };
+    init();
   }, []);
 
-  const fetchInitialData = async () => {
+  const fetchDots = async () => {
     setLoading(true);
     try {
-      // Lấy danh sách học kỳ để đổ vào dropdown
-      const hkRes = await axiosClient.get("/admin/hoc-ky");
-      setHocKys(hkRes.data || hkRes);
-
-      // Lấy danh sách các đợt đăng ký (sử dụng API filter)
-      const dotsRes = await axiosClient.post("/admin/dot-dang-ky/filter", {});
-      setDots(dotsRes.data || dotsRes);
+      const res = await axiosClient.post("/admin/dot-dang-ky/filter", filter);
+      setDots(res.data || []);
     } catch (error) {
-      console.error("Lỗi tải dữ liệu:", error);
+      toast.error("Lỗi khi tải danh sách đợt đăng ký");
     } finally {
       setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDots();
+  }, [filter.HocKyID]);
+
+  // Hàm lấy danh sách lớp học phần của đợt đã chọn
+  const fetchLopHocPhans = async () => {
+    if (!selectedDot) return;
+    setLoadingLopHocPhans(true);
+    try {
+      const res = await axiosClient.post(
+        "/admin/dot-dang-ky/lop-hoc-phan-list",
+        {
+          DotDangKyID: selectedDot.DotDangKyID,
+          KhoaID: selectedKhoaId || null,
+          NganhID: selectedNganhId || null,
+        },
+      );
+      setLopHocPhans(res.data || []);
+    } catch (error) {
+      toast.error("Lỗi khi tải danh sách lớp học phần.");
+    } finally {
+      setLoadingLopHocPhans(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedDot) {
+      fetchLopHocPhans();
+    } else {
+      setLopHocPhans([]); // Xóa danh sách khi không có đợt nào được chọn
+    }
+  }, [selectedDot, selectedKhoaId, selectedNganhId]);
+
+  const handleToggleStatus = async (dot) => {
+    try {
+      await axiosClient.put("/admin/dot-dang-ky/doi-trang-thai", {
+        DotDangKyID: dot.DotDangKyID,
+        TrangThai: dot.TrangThai === 1 ? 0 : 1,
+      });
+      toast.success("Cập nhật trạng thái thành công");
+      fetchDots();
+    } catch (error) {
+      toast.error("Không thể thay đổi trạng thái");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await axiosClient.delete(`/admin/dot-dang-ky/${id}`);
+      toast.success("Xóa đợt đăng ký thành công");
+      fetchDots();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Không thể xóa đợt đăng ký");
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      if (editingDot) {
-        await axiosClient.put("/admin/dot-dang-ky/cap-nhat", {
-          ...formData,
-          DotDangKyID: editingDot.DotDangKyID,
-        });
-        toast.success("Cập nhật đợt đăng ký thành công");
+      if (formData.DotDangKyID) {
+        await axiosClient.put("/admin/dot-dang-ky/cap-nhat", formData);
+        toast.success("Cập nhật thành công");
       } else {
         await axiosClient.post("/admin/dot-dang-ky", formData);
-        toast.success("Tạo mới đợt đăng ký thành công");
+        toast.success("Tạo đợt đăng ký mới thành công");
       }
       setShowModal(false);
-      setEditingDot(null);
-      setFormData({
-        TenDot: "",
-        HocKyID: "",
-        NgayBatDau: "",
-        NgayKetThuc: "",
-        TrangThai: 1,
-      });
-      fetchInitialData();
+      fetchDots();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Đã có lỗi xảy ra");
+      toast.error(error.response?.data?.message || "Lỗi xử lý dữ liệu");
     }
   };
 
-  const toggleStatus = async (dot) => {
-    try {
-      const newStatus = dot.TrangThai === 1 ? 0 : 1;
-      await axiosClient.put("/admin/dot-dang-ky/doi-trang-thai", {
-        DotDangKyID: dot.DotDangKyID,
-        TrangThai: newStatus,
-      });
-      toast.success(
-        `${newStatus === 1 ? "Mở" : "Đóng"} đợt đăng ký thành công`,
-      );
-      fetchInitialData();
-    } catch (error) {
-      toast.error("Không thể thay đổi trạng thái");
-    }
-  };
+  if (selectedDot) {
+    // Hiển thị giao diện xem lớp học phần
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border">
+          <h2 className="text-2xl font-bold text-gray-800">
+            Lớp học phần của đợt:{" "}
+            <span className="text-blue-600">{selectedDot.TenDot}</span>
+          </h2>
+          <button
+            onClick={() => setSelectedDot(null)}
+            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-bold"
+          >
+            ← Quay lại
+          </button>
+        </div>
 
-  const openEditModal = (dot) => {
-    setEditingDot(dot);
-    setFormData({
-      TenDot: dot.TenDot,
-      HocKyID: dot.HocKyID,
-      NgayBatDau: dot.NgayBatDau.split(" ")[0],
-      NgayKetThuc: dot.NgayKetThuc.split(" ")[0],
-      TrangThai: dot.TrangThai,
-    });
-    setShowModal(true);
-  };
+        <div className="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
+          <div className="flex gap-4">
+            <select
+              className="border p-2 rounded-lg text-sm"
+              value={selectedKhoaId}
+              onChange={(e) => setSelectedKhoaId(e.target.value)}
+            >
+              <option value="">Tất cả Khoa</option>
+              {khoas.map((khoa) => (
+                <option key={khoa.KhoaID} value={khoa.KhoaID}>
+                  {khoa.TenKhoa}
+                </option>
+              ))}
+            </select>
+            <select
+              className="border p-2 rounded-lg text-sm"
+              value={selectedNganhId}
+              onChange={(e) => setSelectedNganhId(e.target.value)}
+            >
+              <option value="">Tất cả Ngành</option>
+              {nganhs
+                .filter(
+                  (nganh) => !selectedKhoaId || nganh.KhoaID == selectedKhoaId,
+                )
+                .map((nganh) => (
+                  <option key={nganh.NganhID} value={nganh.NganhID}>
+                    {nganh.TenNganh}
+                  </option>
+                ))}
+            </select>
+          </div>
 
-  if (loading)
-    return <div className="p-8 text-center">Đang tải dữ liệu cấu hình...</div>;
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left">
+              <thead className="bg-gray-50 text-xs font-bold text-gray-500 uppercase">
+                <tr>
+                  <th className="px-6 py-3">Mã Lớp HP</th>
+                  <th className="px-6 py-3">Môn học</th>
+                  <th className="px-6 py-3">Tín chỉ</th>
+                  <th className="px-6 py-3">Giảng viên</th>
+                  <th className="px-6 py-3">Sĩ số (Hiện tại/Tối đa)</th>
+                  <th className="px-6 py-3">Ngày bắt đầu</th>
+                  <th className="px-6 py-3">Ngày kết thúc</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {loadingLopHocPhans ? (
+                  <tr>
+                    <td colSpan="7" className="p-4 text-center text-gray-500">
+                      Đang tải lớp học phần...
+                    </td>
+                  </tr>
+                ) : lopHocPhans.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan="7"
+                      className="p-4 text-center text-gray-500 italic"
+                    >
+                      Không tìm thấy lớp học phần nào.
+                    </td>
+                  </tr>
+                ) : (
+                  lopHocPhans.map((lop) => (
+                    <tr key={lop.LopHocPhanID}>
+                      <td className="px-6 py-4 font-bold text-blue-600">
+                        {lop.MaLopHP}
+                      </td>
+                      <td className="px-6 py-4">
+                        {lop.mon_hoc?.TenMon || "N/A"}
+                      </td>
+                      <td className="px-6 py-4">{lop.mon_hoc?.SoTinChi}</td>
+                      <td className="px-6 py-4">
+                        {lop.giang_vien?.HoTen || "Chưa phân công"}
+                      </td>
+                      <td className="px-6 py-4">
+                        {lop.dang_ky_hoc_phan_count || 0}/{lop.SoLuongToiDa}
+                      </td>
+                      <td className="px-6 py-4">{lop.NgayBatDau}</td>
+                      <td className="px-6 py-4">{lop.NgayKetThuc}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">
-          Quản lý Đợt đăng ký học phần
-        </h2>
+      <div className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border">
+        <div className="flex items-center gap-4">
+          <select
+            className="border p-2 rounded-lg text-sm"
+            onChange={(e) => setFilter({ ...filter, HocKyID: e.target.value })}
+          >
+            <option value="">Chọn Học kỳ để xem...</option>
+            {hocKys.map((hk) => (
+              <option key={hk.HocKyID} value={hk.HocKyID}>
+                {hk.nam_hoc?.TenNamHoc} - {hk.TenHocKy}
+              </option>
+            ))}
+          </select>
+        </div>
         <button
           onClick={() => {
-            setEditingDot(null);
             setFormData({
               TenDot: "",
-              HocKyID: "",
+              HocKyID: filter.HocKyID,
               NgayBatDau: "",
               NgayKetThuc: "",
               TrangThai: 1,
             });
             setShowModal(true);
           }}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold transition-all flex items-center shadow-lg shadow-blue-200"
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold"
         >
-          <svg
-            className="w-5 h-5 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-          Tạo đợt đăng ký mới
+          + Tạo Đợt đăng ký
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-gray-50 text-gray-600 text-xs uppercase font-bold">
-            <tr>
-              <th className="px-6 py-4">Tên đợt đăng ký</th>
-              <th className="px-6 py-4">Học kỳ</th>
-              <th className="px-6 py-4">Thời gian</th>
-              <th className="px-6 py-4 text-center">Trạng thái</th>
-              <th className="px-6 py-4 text-right">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {dots.map((dot) => (
-              <tr
-                key={dot.DotDangKyID}
-                className="hover:bg-gray-50 transition-colors"
-              >
-                <td className="px-6 py-4 font-semibold text-gray-800">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {loading ? (
+          <div className="col-span-full py-10 text-center text-gray-400 font-medium">
+            Đang tải danh sách đợt đăng ký...
+          </div>
+        ) : dots.length === 0 ? (
+          <div className="col-span-full py-10 text-center text-gray-400 italic bg-white rounded-2xl border border-dashed">
+            Không có đợt đăng ký nào được tìm thấy.
+          </div>
+        ) : (
+          dots.map((dot) => (
+            <div
+              key={dot.DotDangKyID}
+              className="bg-white p-6 rounded-2xl shadow-sm border space-y-3"
+            >
+              <div className="flex justify-between items-start">
+                <h3 className="font-bold text-lg text-blue-700">
                   {dot.TenDot}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-600">
-                  {dot.hoc_ky?.TenHocKy} ({dot.hoc_ky?.nam_hoc?.TenNamHoc})
-                </td>
-                <td className="px-6 py-4 text-sm">
-                  <div className="flex flex-col">
-                    <span className="text-green-600 font-medium">
-                      Bắt đầu:{" "}
-                      {new Date(dot.NgayBatDau).toLocaleDateString("vi-VN")}
-                    </span>
-                    <span className="text-red-600 font-medium">
-                      Kết thúc:{" "}
-                      {new Date(dot.NgayKetThuc).toLocaleDateString("vi-VN")}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-center">
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-bold ${
-                      dot.TrangThai === 1
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-700"
-                    }`}
-                  >
-                    {dot.TrangThai === 1 ? "Đang mở" : "Đã đóng"}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-right space-x-2">
-                  <button
-                    onClick={() => toggleStatus(dot)}
-                    className={`p-2 rounded-lg transition-colors ${
-                      dot.TrangThai === 1
-                        ? "text-orange-600 hover:bg-orange-50"
-                        : "text-green-600 hover:bg-green-50"
-                    }`}
-                    title={dot.TrangThai === 1 ? "Đóng đợt" : "Mở đợt"}
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => openEditModal(dot)}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                      />
-                    </svg>
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </h3>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-black ${dot.TrangThai === 1 ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"}`}
+                >
+                  {dot.TrangThai === 1 ? "ĐANG MỞ" : "ĐÃ ĐÓNG"}
+                </span>
+              </div>
+              <div className="text-sm text-gray-500">
+                <p>
+                  📅 {dot.NgayBatDau} - {dot.NgayKetThuc}
+                </p>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={() => handleToggleStatus(dot)}
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 py-2 rounded-lg text-xs font-bold"
+                >
+                  {dot.TrangThai === 1 ? "Đóng đợt" : "Mở đợt"}
+                </button>
+                <button
+                  onClick={() => setSelectedDot(dot)}
+                  className="flex-1 bg-green-50 text-green-600 py-2 rounded-lg text-xs font-bold hover:bg-green-100 transition-all"
+                >
+                  Xem học phần
+                </button>
+                <button
+                  onClick={() => {
+                    setFormData(dot);
+                    setShowModal(true);
+                  }}
+                  className="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg text-xs font-bold"
+                >
+                  Chỉnh sửa
+                </button>
+                <button
+                  onClick={() =>
+                    setConfirmConfig({
+                      isOpen: true,
+                      id: dot.DotDangKyID,
+                    })
+                  }
+                  className="flex-1 bg-red-50 text-red-600 py-2 rounded-lg text-xs font-bold hover:bg-red-100 transition-all"
+                >
+                  Xóa
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
-      {/* Modal Thêm/Sửa */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-              <h3 className="text-xl font-bold text-gray-800">
-                {editingDot ? "Cập nhật đợt đăng ký" : "Tạo đợt đăng ký mới"}
-              </h3>
-              <button
-                onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+          <form
+            onSubmit={handleSubmit}
+            className="bg-white p-6 rounded-3xl w-full max-w-md space-y-4"
+          >
+            <h3 className="text-xl font-black">
+              {formData.DotDangKyID ? "Cập nhật đợt" : "Tạo đợt đăng ký mới"}
+            </h3>
+            <div className="space-y-3">
+              <input
+                type="text"
+                placeholder="Tên đợt (Ví dụ: Đợt 1 - Học kỳ 2)"
+                className="w-full border p-2.5 rounded-xl"
+                value={formData.TenDot}
+                onChange={(e) =>
+                  setFormData({ ...formData, TenDot: e.target.value })
+                }
+                required
+              />
+              <select
+                className="w-full border p-2.5 rounded-xl"
+                value={formData.HocKyID}
+                onChange={(e) =>
+                  setFormData({ ...formData, HocKyID: e.target.value })
+                }
+                required
               >
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">
-                  Tên đợt đăng ký
-                </label>
-                <input
-                  type="text"
-                  required
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={formData.TenDot}
-                  onChange={(e) =>
-                    setFormData({ ...formData, TenDot: e.target.value })
-                  }
-                  placeholder="Ví dụ: Đợt đăng ký chính thức HK1"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">
-                  Học kỳ áp dụng
-                </label>
-                <select
-                  required
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={formData.HocKyID}
-                  onChange={(e) =>
-                    setFormData({ ...formData, HocKyID: e.target.value })
-                  }
-                >
-                  <option value="">-- Chọn học kỳ --</option>
-                  {hocKys.map((hk) => (
-                    <option key={hk.HocKyID} value={hk.HocKyID}>
-                      {hk.TenHocKy} ({hk.nam_hoc?.TenNamHoc})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+                <option value="">Chọn học kỳ...</option>
+                {hocKys.map((hk) => (
+                  <option key={hk.HocKyID} value={hk.HocKyID}>
+                    {hk.nam_hoc?.TenNamHoc} - {hk.TenHocKy}
+                  </option>
+                ))}
+              </select>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase">
                     Ngày bắt đầu
                   </label>
                   <input
-                    type="date"
-                    required
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                    value={formData.NgayBatDau}
+                    type="datetime-local"
+                    className="w-full border p-2 rounded-lg"
+                    value={formData.NgayBatDau.replace(" ", "T")}
                     onChange={(e) =>
                       setFormData({ ...formData, NgayBatDau: e.target.value })
                     }
+                    required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase">
                     Ngày kết thúc
                   </label>
                   <input
-                    type="date"
-                    required
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                    value={formData.NgayKetThuc}
+                    type="datetime-local"
+                    className="w-full border p-2 rounded-lg"
+                    value={formData.NgayKetThuc.replace(" ", "T")}
                     onChange={(e) =>
                       setFormData({ ...formData, NgayKetThuc: e.target.value })
                     }
+                    required
                   />
                 </div>
               </div>
-              <div className="pt-4 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-200 text-gray-600 rounded-lg font-bold hover:bg-gray-50"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 shadow-lg shadow-blue-100"
-                >
-                  {editingDot ? "Cập nhật" : "Tạo mới"}
-                </button>
-              </div>
-            </form>
-          </div>
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                className="px-4 py-2 font-bold text-gray-400"
+              >
+                Hủy
+              </button>
+              <button className="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold">
+                Lưu thông tin
+              </button>
+            </div>
+          </form>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        onClose={() => setConfirmConfig({ isOpen: false, id: null })}
+        onConfirm={() => handleDelete(confirmConfig.id)}
+        title="Xóa đợt đăng ký"
+        message="Bạn có chắc chắn muốn xóa đợt đăng ký này? Dữ liệu về các lớp đang mở trong đợt này có thể bị ảnh hưởng."
+      />
     </div>
   );
 };

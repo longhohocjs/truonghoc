@@ -43,6 +43,11 @@ const UserManagement = () => {
       }
 
       setUsers(dataArray);
+
+      // Debug: Kiểm tra cấu hình dữ liệu của sinh viên đầu tiên
+      if (dataArray.length > 0 && activeTab === "sinhvien") {
+        console.log("Dữ liệu mẫu sinh viên:", dataArray[0]);
+      }
     } catch (error) {
       console.error("Lỗi khi tải danh sách người dùng:", error);
       // Mock dữ liệu để demo giao diện nếu API chưa sẵn sàng
@@ -384,7 +389,12 @@ const UserManagement = () => {
                     {activeTab === "sinhvien" ? (
                       <>
                         <td className="px-6 py-4 text-indigo-600 font-medium">
-                          {item.ten_lop_sinh_hoat || "Chưa xếp lớp"}
+                          {item.TenLop ||
+                            item.MaLop ||
+                            item.ten_lop_sinh_hoat ||
+                            item.lop_sinh_hoat?.TenLop ||
+                            item.lop_sinh_hoat?.MaLop ||
+                            "Chưa xếp lớp"}
                         </td>
                         <td className="px-6 py-4">
                           {item.ten_nganh || item.khoahoc || item.KhoaHoc}

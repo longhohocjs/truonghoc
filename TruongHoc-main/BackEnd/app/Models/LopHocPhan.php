@@ -21,6 +21,19 @@ class LopHocPhan extends Model
         'NgayKetThuc'
     ];
 
+    // Đảm bảo các mối quan hệ luôn được thêm vào JSON/Array output
+    protected $appends = ['lich_hoc_details', 'lich_thi_details'];
+
+    // Accessor để trả về chi tiết lịch học
+    public function getLichHocDetailsAttribute() {
+        return $this->lichHoc;
+    }
+
+    // Accessor để trả về chi tiết lịch thi
+    public function getLichThiDetailsAttribute() {
+        return $this->lichThi;
+    }
+
 protected $casts = [
     'NgayBatDau' => 'date',
     'NgayKetThuc' => 'date',

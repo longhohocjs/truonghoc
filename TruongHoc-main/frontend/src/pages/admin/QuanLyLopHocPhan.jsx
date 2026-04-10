@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axiosClient from "@/api/axios";
+import toast from "react-hot-toast";
 import LopHocPhanModal from "./LopHocPhanModal";
 import LichHocModal from "./LichHocModal";
 import LichThiModal from "./LichThiModal";
@@ -76,10 +77,11 @@ const QuanLyLopHocPhan = () => {
 
   const handleSaveLich = async (lichHoc) => {
     try {
-      await axiosClient.post("/admin/lich-hoc/create", {
+      const res = await axiosClient.post("/admin/lich-hoc/create", {
         LopHocPhanID: selectedLopForLich.LopHocPhanID, // Backend yêu cầu ID lớp để gắn lịch
         lich_hoc: lichHoc,
       });
+      toast.success(res.message || "Cập nhật lịch học thành công");
       setIsLichModalOpen(false);
       fetchData();
     } catch (error) {
@@ -90,10 +92,11 @@ const QuanLyLopHocPhan = () => {
 
   const handleSaveThi = async (lichThi) => {
     try {
-      await axiosClient.post("/admin/lich-thi/create", {
+      const res = await axiosClient.post("/admin/lich-thi/create", {
         LopHocPhanID: selectedLopForThi.LopHocPhanID, // Backend yêu cầu ID lớp để gắn lịch thi
         lich_thi: lichThi,
       });
+      toast.success(res.message || "Cập nhật lịch thi thành công");
       setIsThiModalOpen(false);
       fetchData();
     } catch (error) {
@@ -126,6 +129,7 @@ const QuanLyLopHocPhan = () => {
             setEditingLop(null);
             setIsModalOpen(true);
           }}
+          type="button"
           className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-blue-700 shadow-md transition-all active:scale-95"
         >
           + Mở Lớp học phần
@@ -197,8 +201,39 @@ const QuanLyLopHocPhan = () => {
                     key={item.LopHocPhanID}
                     className="hover:bg-blue-50/30 transition-colors text-sm"
                   >
+                    {/* Debugging: Kiểm tra dữ liệu lich_hoc_details và lich_thi_details từ Backend */}
+                    {console.log(
+                      `LopHocPhanID: ${item.LopHocPhanID}, lich_hoc_details:`,
+                      item.lich_hoc_details,
+                    )}
+                    {console.log(
+                      `LopHocPhanID: ${item.LopHocPhanID}, lich_thi_details:`,
+                      item.lich_thi_details,
+                    )}
+
                     <td className="px-6 py-4 font-bold text-blue-600">
-                      {item.MaLopHP}
+                      <div className="flex flex-col">
+                        <span>{item.MaLopHP}</span>
+                        {item.lich_hoc && item.lich_hoc.length > 0 ? (
+                          <span className="text-[9px] font-black text-green-500 uppercase tracking-tighter">
+                            ● Đã xếp lịch
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-bold text-gray-300 uppercase tracking-tighter">
+                            ○ Chưa có lịch
+                          </span>
+                        )}
+                        {item.lich_thi_details &&
+                        item.lich_thi_details.length > 0 ? (
+                          <span className="text-[9px] font-black text-purple-500 uppercase tracking-tighter">
+                            ● Đã xếp thi
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-bold text-gray-300 uppercase tracking-tighter">
+                            ○ Chưa có lịch thi
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 font-semibold text-gray-800">
                       {item.mon_hoc?.TenMon}
@@ -234,6 +269,7 @@ const QuanLyLopHocPhan = () => {
                           setSelectedLopForThi(item);
                           setIsThiModalOpen(true);
                         }}
+                        type="button"
                         className="text-orange-600 hover:bg-orange-100 px-3 py-1.5 rounded-lg font-bold text-xs uppercase transition-all"
                       >
                         Lịch thi
@@ -243,6 +279,7 @@ const QuanLyLopHocPhan = () => {
                           setSelectedLopForLich(item);
                           setIsLichModalOpen(true);
                         }}
+                        type="button"
                         className="text-orange-600 hover:bg-orange-100 px-3 py-1.5 rounded-lg font-bold text-xs uppercase transition-all"
                       >
                         Lịch học
@@ -252,6 +289,7 @@ const QuanLyLopHocPhan = () => {
                           setEditingLop(item);
                           setIsModalOpen(true);
                         }}
+                        type="button"
                         className="text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-lg font-bold text-xs uppercase transition-all"
                       >
                         Sửa

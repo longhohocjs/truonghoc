@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axiosClient from "@/api/axios";
+import ConfirmModal from "@/components/ConfirmModal";
 
 const DangKyHocPhan = () => {
   const [lops, setLops] = useState([]);
@@ -8,6 +9,22 @@ const DangKyHocPhan = () => {
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState(null); // ID lớp đang đợi xử lý queue
   const [message, setMessage] = useState({ type: "", content: "" });
+  const [confirmConfig, setConfirmConfig] = useState({
+    isOpen: false,
+    id: null,
+  });
+
+  // Hàm tiện ích lấy Thứ từ ngày học
+  const getThuLabel = (lich) => {
+    if (lich.Thu) return `Thứ ${lich.Thu}`;
+    if (lich.NgayHoc) {
+      const date = new Date(lich.NgayHoc);
+      const day = date.getDay(); // 0: CN, 1: T2...
+      if (day === 0) return "Chủ Nhật";
+      return `Thứ ${day + 1}`;
+    }
+    return "N/A";
+  };
 
   // Lấy danh sách lớp mở và lớp đã đăng ký
   const fetchData = useCallback(async () => {
@@ -31,8 +48,10 @@ const DangKyHocPhan = () => {
       setDaDangKy(enrolledData);
       setHocKy(payload?.hoc_ky || "Học kỳ hiện tại");
     } catch (error) {
-      console.error("Lỗi tải dữ liệu:", error);
-      showMsg("error", "Không thể tải danh sách học phần.");
+      const errorMsg =
+        error.response?.data?.message || "Không thể tải danh sách học phần.";
+      console.error("Lỗi tải dữ liệu:", errorMsg);
+      showMsg("error", errorMsg);
     } finally {
       setLoading(false);
     }
@@ -87,7 +106,6 @@ const DangKyHocPhan = () => {
   };
 
   const handleHuyMon = async (dangKyID) => {
-    if (!window.confirm("Bạn có chắc chắn muốn hủy học phần này?")) return;
     try {
       const res = await axiosClient.post(`/sinh-vien/huy-mon/${dangKyID}`);
       showMsg("success", res.message);
@@ -152,20 +170,31 @@ const DangKyHocPhan = () => {
               {lops.map((lop) => (
                 <tr key={lop.LopHocPhanID} className="hover:bg-gray-50 text-sm">
                   <td className="px-6 py-4 font-bold text-blue-600">
-                    {lop.MaLopHP}
+                    {lop.MaLopHP || lop.ma_lop_hp}
                   </td>
                   <td className="px-6 py-4 font-medium">
-                    {lop.mon_hoc?.TenMon}
+                    {lop.mon_hoc?.TenMon || lop.mon_hoc?.ten_mon}
                   </td>
-                  <td className="px-6 py-4">{lop.mon_hoc?.SoTinChi}</td>
+                  <td className="px-6 py-4">
+                    {lop.mon_hoc?.SoTinChi || lop.mon_hoc?.so_tin_chi}
+                  </td>
                   <td className="px-6 py-4 text-gray-600">
-                    {lop.giang_vien?.HoTen}
+                    {lop.giang_vien?.HoTen ||
+                      lop.giang_vien?.ho_ten ||
+                      "Chưa phân công"}
                   </td>
                   <td className="px-6 py-4 text-xs">
-                    {lop.lich_hoc?.map((lh, i) => (
+                    {/* Lấy duy nhất lịch học theo thứ để tránh lặp lại các tuần */}
+                    {[
+                      ...new Map(
+                        lop.lich_hoc?.map((item) => [getThuLabel(item), item]),
+                      ).values(),
+                    ].map((lh, i) => (
                       <div key={i}>
-                        Thứ {lh.Thu}: T{lh.TietBatDau}-
-                        {lh.TietBatDau + lh.SoTiet - 1}
+                        {getThuLabel(lh)}: T{lh.TietBatDau || lh.tiet_bat_dau}-
+                        {(lh.TietBatDau || lh.tiet_bat_dau) +
+                          (lh.SoTiet || lh.so_tiet) -
+                          1}
                       </div>
                     ))}
                   </td>
@@ -263,7 +292,12 @@ const DangKyHocPhan = () => {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <button
-                        onClick={() => handleHuyMon(item.DangKyID)}
+                        onClick={() =>
+                          setConfirmConfig({
+                            isOpen: true,
+                            id: item.DangKyID,
+                          })
+                        }
                         className="text-red-500 hover:text-red-700 font-bold text-xs"
                       >
                         Hủy môn
@@ -301,6 +335,14 @@ const DangKyHocPhan = () => {
           </div>
         </div>
       </section>
+
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        onClose={() => setConfirmConfig({ isOpen: false, id: null })}
+        onConfirm={() => handleHuyMon(confirmConfig.id)}
+        title="Hủy học phần"
+        message="Bạn có chắc chắn muốn hủy đăng ký học phần này? Chỗ trống sẽ ngay lập tức được dành cho sinh viên khác."
+      />
     </div>
   );
 };

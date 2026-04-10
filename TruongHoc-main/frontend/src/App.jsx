@@ -14,9 +14,10 @@ import Dashboard from "@/pages/Dashboard";
 // Admin Pages
 import UserManagement from "@/pages/admin/UserManagement";
 import NamHocHocKy from "@/pages/admin/NamHocHocKy";
-import KhoaNganhManagement from "@/pages/admin/KhoaNganhManagement";
+import QuanLyKhoa from "./pages/admin/QuanLyKhoa";
 import MonHocManagement from "@/pages/admin/MonHocManagement";
 import QuanLyLopHocPhan from "@/pages/admin/QuanLyLopHocPhan";
+import LichHocManagementPage from "./pages/admin/LichHocManagementPage";
 import DotDangKyManager from "@/pages/admin/DotDangKyManager";
 import ThongBaoManager from "@/pages/admin/ThongBaoManager";
 import ChuongTrinhDaoTaoManager from "@/pages/admin/ChuongTrinhDaoTaoManager";
@@ -33,11 +34,14 @@ import LichGiangDay from "@/pages/giangvien/LichGiangDay";
 import LichCoiThi from "@/pages/giangvien/LichCoiThi";
 
 // Sinh Vien Pages
-import Profile from "@/pages/sinhvien/Profile";
+import StudentProfile from "@/pages/sinhvien/StudentProfile";
 import DangKyHocPhan from "@/pages/sinhvien/DangKyHocPhan";
 import KetQuaHocTap from "@/pages/sinhvien/KetQuaHocTap";
 import LichHoc from "@/pages/sinhvien/LichHoc";
 import LichThi from "@/pages/sinhvien/LichThi";
+import ChuongTrinhDaoTao from "@/pages/sinhvien/ChuongTrinhDaoTao";
+import MonDaHoanThanh from "@/pages/sinhvien/MonDaHoanThanh";
+import MonConThieu from "@/pages/sinhvien/MonConThieu";
 
 const Unauthorized = () => (
   <div className="p-10 text-center text-red-500 font-bold text-2xl">
@@ -70,15 +74,18 @@ function App() {
               <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
                 <Route path="/admin/users" element={<UserManagement />} />
                 <Route path="/admin/nam-hoc" element={<NamHocHocKy />} />
-                <Route
-                  path="/admin/khoa-nganh"
-                  element={<KhoaNganhManagement />}
-                />
+                {/* Hỗ trợ cả 2 đường dẫn để tránh lỗi điều hướng từ Sidebar cũ */}
+                <Route path="/admin/khoa-nganh" element={<QuanLyKhoa />} />
+                <Route path="/admin/khoa" element={<QuanLyKhoa />} />
                 <Route
                   path="/admin/dot-dang-ky"
                   element={<DotDangKyManager />}
                 />
                 <Route path="/admin/thong-bao" element={<ThongBaoManager />} />
+                <Route
+                  path="/admin/lich-hoc"
+                  element={<LichHocManagementPage />}
+                />
                 <Route path="/admin/mon-hoc" element={<MonHocManagement />} />
                 <Route
                   path="/admin/chuong-trinh-dao-tao"
@@ -123,9 +130,21 @@ function App() {
 
               {/* Nhóm chức năng cho SINH VIÊN */}
               <Route element={<ProtectedRoute allowedRoles={["sinhvien"]} />}>
-                <Route path="/sinh-vien/profile" element={<Profile />} />
+                <Route path="/sinh-vien/profile" element={<StudentProfile />} />
                 <Route path="/sinh-vien/dang-ky" element={<DangKyHocPhan />} />
+                <Route
+                  path="/sinh-vien/chuong-trinh"
+                  element={<ChuongTrinhDaoTao />}
+                />
                 <Route path="/sinh-vien/ket-qua" element={<KetQuaHocTap />} />
+                <Route
+                  path="/sinh-vien/mon-da-dat"
+                  element={<MonDaHoanThanh />}
+                />
+                <Route
+                  path="/sinh-vien/mon-con-thieu"
+                  element={<MonConThieu />}
+                />
                 <Route path="/sinh-vien/lich-hoc" element={<LichHoc />} />
                 <Route path="/sinh-vien/lich-thi" element={<LichThi />} />
               </Route>

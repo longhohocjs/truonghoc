@@ -175,26 +175,25 @@ class UserService
         return DB::transaction(function () use ($id, $data) {
             $sv = SinhVien::findOrFail($id);
             
-            // Nếu có thay đổi MaSV, cập nhật luôn Username trong bảng users
+            // Bảo mật: Nếu có thay đổi MaSV, cập nhật luôn Username trong bảng users (Chỉ Admin mới làm việc này)
             if (!empty($data['MaSV']) && $data['MaSV'] !== $sv->MaSV) {
                 User::where('UserID', $sv->UserID)->update([
                     'Username' => $data['MaSV']
                 ]);
             }
 
-            // Chuẩn bị dữ liệu để cập nhật, chuyển chuỗi rỗng thành null cho các trường nullable
-            $updateData = $data;
-            if (isset($updateData['email']) && $updateData['email'] === '') {
-                $updateData['email'] = null;
-            }
-            if (isset($updateData['sodienthoai']) && $updateData['sodienthoai'] === '') {
-                $updateData['sodienthoai'] = null;
+            // Xử lý các trường rỗng sang null để tránh lỗi Database
+            $fieldsToNull = ['email', 'sodienthoai', 'NgaySinh', 'QueQuan', 'DiaChi'];
+            foreach ($fieldsToNull as $field) {
+                if (isset($data[$field]) && $data[$field] === '') {
+                    $data[$field] = null;
+                }
             }
 
             $this->logService->write('UPDATE_USER', "Cập nhật hồ sơ SV: {$sv->MaSV}", 'sinhvien', $sv->SinhVienID);            
             
             // Chỉ lấy các trường có trong fillable của model để tránh gửi thừa dữ liệu gây lỗi trigger
-            $sv->update(array_intersect_key($updateData, array_flip($sv->getFillable())));
+            $sv->update(array_intersect_key($data, array_flip($sv->getFillable())));
             return $sv->fresh();
         });
     }

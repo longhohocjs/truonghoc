@@ -21,14 +21,15 @@ const MainLayout = () => {
       { path: "/admin/thong-bao", label: "Thông báo", icon: "📢" },
       { path: "/admin/nam-hoc", label: "Năm học & Học kỳ", icon: "📅" },
       { path: "/admin/khoa-nganh", label: "Khoa & Ngành", icon: "🏛️" },
-      { path: "/admin/dot-dang-ky", label: "Đợt đăng ký", icon: "🕒" },
+      { path: "/admin/dot-dang-ky", label: "Quản lý Đợt đăng ký", icon: "🕒" },
       { path: "/admin/mon-hoc", label: "Môn học", icon: "📚" },
       {
         path: "/admin/chuong-trinh-dao-tao",
-        label: "Chương trình ĐT",
+        label: "Chương trình đào tạo",
         icon: "📜",
       },
       { path: "/admin/lop-hoc-phan", label: "Lớp học phần", icon: "🏫" },
+      { path: "/admin/lich-hoc", label: "Phân lịch học", icon: "🗓️" }, // Thêm mục phân lịch học
       { path: "/admin/lop-sinh-hoat", label: "Lớp sinh hoạt", icon: "👥" },
       { path: "/admin/diem-so", label: "Quản lý Điểm", icon: "📝" },
       { path: "/admin/thong-ke", label: "Thống kê báo cáo", icon: "📈" },
@@ -47,6 +48,21 @@ const MainLayout = () => {
     sinhvien: [
       { path: "/dashboard", label: "Tổng quan", icon: "📊" },
       { path: "/sinh-vien/profile", label: "Thông tin cá nhân", icon: "👤" },
+      {
+        path: "/sinh-vien/chuong-trinh",
+        label: "Chương trình đào tạo",
+        icon: "📚",
+      },
+      {
+        path: "/sinh-vien/mon-da-dat",
+        label: "Môn đã hoàn thành",
+        icon: "✅",
+      },
+      {
+        path: "/sinh-vien/mon-con-thieu",
+        label: "Môn còn thiếu",
+        icon: "🚩",
+      },
       { path: "/sinh-vien/dang-ky", label: "Đăng ký học phần", icon: "📝" },
       { path: "/sinh-vien/ket-qua", label: "Kết quả học tập", icon: "🎓" },
       { path: "/sinh-vien/lich-hoc", label: "Lịch học", icon: "🗓️" },

@@ -3,22 +3,45 @@
 namespace App\Services;
 
 use App\Models\ChuongTrinhDaoTao;
-use App\Services\LogService;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
 
 class ChuongTrinhDaoTaoService
 {
-    protected $logService;
-
-    public function __construct(LogService $logService)
+    /**
+     * Lấy toàn bộ chương trình đào tạo của sinh viên dựa trên ngành
+     */
+    public function getProgramByStudent(User $user)
     {
-        $this->logService = $logService;
+        $sinhVien = $user->sinhVien;
+
+        if (!$sinhVien || !$sinhVien->NganhID) {
+            return [
+                'success' => false,
+                'message' => 'Sinh viên chưa được gán vào ngành học cụ thể.'
+            ];
+        }
+
+        $ctdt = ChuongTrinhDaoTao::with(['monHoc'])
+            ->where('NganhID', $sinhVien->NganhID)
+            ->orderBy('HocKyGoiY', 'asc')
+            ->get();
+
+        return [
+            'success' => true,
+            'data' => [
+                'nganh' => $sinhVien->nganh->TenNganh ?? 'N/A',
+                'chuong_trinh' => $ctdt
+            ]
+        ];
     }
 
-    public function layDanhSachCTDT(array $filters)
+    /**
+     * Lấy danh sách chương trình đào tạo cho Admin với bộ lọc và phân trang.
+     */
+    public function layDanhSachCTDT(array $filters = [])
     {
-        $query = ChuongTrinhDaoTao::with(['nganhDaoTao.khoa', 'monHoc']);
+        $query = ChuongTrinhDaoTao::with(['monHoc', 'nganhDaoTao.khoa']);
 
         if (!empty($filters['KhoaID'])) {
             $query->whereHas('nganhDaoTao', function ($q) use ($filters) {
@@ -37,86 +60,72 @@ class ChuongTrinhDaoTaoService
         if (!empty($filters['search'])) {
             $query->whereHas('monHoc', function ($q) use ($filters) {
                 $q->where('TenMon', 'like', '%' . $filters['search'] . '%')
-                ->orWhere('MaMon', 'like', '%' . $filters['search'] . '%');
+                  ->orWhere('MaMon', 'like', '%' . $filters['search'] . '%');
             });
         }
 
-        return $query->orderBy('ID', 'desc')->paginate($filters['per_page'] ?? 15);
+        $perPage = $filters['per_page'] ?? 10; // Default per_page
+        return $query->paginate($perPage);
     }
 
+    /**
+     * Thêm môn học vào chương trình đào tạo.
+     */
     public function themMonVaoCTDT(array $data): ChuongTrinhDaoTao
     {
+        // Kiểm tra xem môn học đã tồn tại trong CTDT của ngành này chưa
         $exists = ChuongTrinhDaoTao::where('NganhID', $data['NganhID'])
-            ->where('MonHocID', $data['MonHocID'])
-            ->exists();
-
+                                   ->where('MonHocID', $data['MonHocID'])
+                                   ->exists();
         if ($exists) {
-            throw new \Exception('Môn học này đã tồn tại trong chương trình đào tạo của ngành.');
+            throw new \Exception('Môn học này đã có trong chương trình đào tạo của ngành.');
         }
 
-        $ctdt = ChuongTrinhDaoTao::create([
-            'NganhID'     => $data['NganhID'],
-            'MonHocID'    => $data['MonHocID'],
-            'HocKyGoiY'   => $data['HocKyGoiY'],
-            'BatBuoc'     => $data['BatBuoc'],
-        ]);
-
-        $this->ghiLog('TAO_CTDT', "Thêm môn {$data['MonHocID']} vào CTĐT ngành {$data['NganhID']}");
-
-        return $ctdt;
+        return ChuongTrinhDaoTao::create($data);
     }
 
+    /**
+     * Cập nhật môn học trong chương trình đào tạo.
+     */
     public function capNhatMonTrongCTDT(ChuongTrinhDaoTao $ctdt, array $data): ChuongTrinhDaoTao
     {
-        $ctdt->update([
-            'HocKyGoiY' => $data['HocKyGoiY'] ?? $ctdt->HocKyGoiY,
-            'BatBuoc'   => $data['BatBuoc'] ?? $ctdt->BatBuoc,
-        ]);
-
-        $this->ghiLog('CAP_NHAT_CTDT', "Cập nhật môn {$ctdt->MonHocID} trong CTĐT ngành {$ctdt->NganhID}");
-
+        $ctdt->update($data);
         return $ctdt;
     }
 
+    /**
+     * Gán nhiều môn học vào chương trình đào tạo.
+     */
     public function ganNhieuMonVaoCTDT(array $data): int
     {
-        $inserted = 0;
-        $nganhID = $data['NganhID'];
-        $hocKy = $data['HocKyGoiY'];
-        $batBuoc = $data['BatBuoc'];
-
-        foreach ($data['MonHocIDs'] as $monID) {
-            $exists = ChuongTrinhDaoTao::where('NganhID', $nganhID)
-                ->where('MonHocID', $monID)
-                ->exists();
-
-            if (!$exists) {
-                ChuongTrinhDaoTao::create([
-                    'NganhID'     => $nganhID,
-                    'MonHocID'    => $monID,
-                    'HocKyGoiY'   => $hocKy,
-                    'BatBuoc'     => $batBuoc,
+        $insertedCount = 0;
+        foreach ($data['MonHocIDs'] as $monHocID) {
+            try {
+                $this->themMonVaoCTDT([
+                    'NganhID' => $data['NganhID'],
+                    'MonHocID' => $monHocID,
+                    'HocKyGoiY' => $data['HocKyGoiY'],
+                    'BatBuoc' => $data['BatBuoc'],
                 ]);
-                $inserted++;
+                $insertedCount++;
+            } catch (\Exception $e) {
+                // Bỏ qua nếu môn học đã tồn tại
+                continue;
             }
         }
-
-        if ($inserted > 0) {
-            $this->ghiLog('GAN_NHIEU_MON_CTDT', "Gán {$inserted} môn vào CTĐT ngành {$nganhID}");
-        }
-
-        return $inserted;
+        return $insertedCount;
     }
 
-    public function xoaMonKhoiCTDT(int $id): bool
+    /**
+     * Xóa môn học khỏi chương trình đào tạo.
+     */
+    public function xoaMonKhoiCTDT($id): void
     {
         $ctdt = ChuongTrinhDaoTao::findOrFail($id);
-        $this->ghiLog('XOA_CTDT', "Xóa môn {$ctdt->MonHocID} khỏi CTĐT ngành {$ctdt->NganhID}");
-        return $ctdt->delete();
-    }
-
-    private function ghiLog(string $hanhDong, string $moTa): void
-    {
-        $this->logService->write($hanhDong, $moTa, 'chuongtrinhdaotao');
+        // Có thể thêm kiểm tra ràng buộc ở đây nếu cần, ví dụ:
+        // if ($ctdt->lopHocPhan()->exists()) {
+        //     throw new \Exception('Không thể xóa môn học này vì đã có lớp học phần được mở.');
+        // }
+        $ctdt->delete();
     }
 }

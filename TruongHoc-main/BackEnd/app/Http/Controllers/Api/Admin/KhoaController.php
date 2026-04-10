@@ -44,14 +44,78 @@ class KhoaController extends Controller
     }
 
     /**
+     * Cập nhật thông tin khoa
+     */
+    public function update(Request $request, $id): JsonResponse
+    {
+        $khoa = Khoa::findOrFail($id);
+        
+        $validated = $request->validate([
+            'MaKhoa'  => 'required|string|max:20|unique:khoa,MaKhoa,' . $id . ',KhoaID',
+            'TenKhoa' => 'required|string|max:255',
+        ]);
+
+        $khoa->update($validated);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Cập nhật khoa thành công',
+            'data' => $khoa
+        ]);
+    }
+
+    /**
+     * Lưu thông tin ngành mới
+     */
+    public function storeNganh(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'KhoaID'  => 'required|integer|exists:khoa,KhoaID',
+            'MaNganh' => 'required|string|unique:nganhdaotao,MaNganh|max:20',
+            'TenNganh' => 'required|string|max:255',
+        ]);
+
+        $nganh = Nganh::create($validated);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $nganh
+        ], 201);
+    }
+
+    /**
+     * Cập nhật thông tin ngành
+     */
+    public function updateNganh(Request $request, $id): JsonResponse
+    {
+        $nganh = Nganh::findOrFail($id);
+        
+        $validated = $request->validate([
+            'KhoaID'  => 'required|integer|exists:khoa,KhoaID',
+            'MaNganh' => 'required|string|max:20|unique:nganhdaotao,MaNganh,' . $id . ',NganhID',
+            'TenNganh' => 'required|string|max:255',
+        ]);
+
+        $nganh->update($validated);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Cập nhật ngành thành công',
+            'data' => $nganh
+        ]);
+    }
+
+    /**
      * Lấy danh sách ngành thuộc một khoa cụ thể
      */
     public function getNganhByKhoa($id): JsonResponse
     {
         $khoa = Khoa::with('nganhs')->findOrFail($id);
         
-        // Trả về mảng các ngành thuộc khoa này
-        return $this->success($khoa->nganhs, "Lấy danh sách ngành thuộc khoa {$khoa->TenKhoa} thành công");
+        return response()->json([
+            'status' => 'success',
+            'data' => $khoa->nganhs
+        ]);
     }
 
     /**
@@ -59,15 +123,68 @@ class KhoaController extends Controller
      */
     public function destroy($id): JsonResponse
     {
-        $khoa = Khoa::findOrFail($id);
+        // Kiểm tra tất cả các ràng buộc liên quan đến Khoa
+        $khoa = Khoa::withCount(['nganhs', 'monHocs', 'giangViens', 'lopSinhHoats'])->findOrFail($id);
         
-        // Có thể thêm kiểm tra nếu khoa còn ngành thì không cho xóa
-        $khoa->delete();
+        $errors = [];
+        if ($khoa->nganhs_count > 0) $errors[] = "còn {$khoa->nganhs_count} ngành đào tạo";
+        if ($khoa->mon_hocs_count > 0) $errors[] = "còn {$khoa->mon_hocs_count} môn học";
+        if ($khoa->giang_viens_count > 0) $errors[] = "còn {$khoa->giang_viens_count} giảng viên";
+        if ($khoa->lop_sinh_hoats_count > 0) $errors[] = "còn {$khoa->lop_sinh_hoats_count} lớp sinh hoạt";
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Xóa khoa thành công'
-        ]);
+        if (!empty($errors)) {
+            $message = "Không thể xóa khoa {$khoa->TenKhoa} vì: " . implode(', ', $errors) . ".";
+            return response()->json([
+                'status' => 'error',
+                'message' => $message
+            ], 400);
+        }
+
+        try {
+            $khoa->delete();
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Xóa khoa thành công'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Lỗi hệ thống khi xóa khoa: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Xóa ngành
+     */
+    public function destroyNganh($id): JsonResponse
+    {
+        $nganh = Nganh::withCount(['chuongTrinhDaoTao', 'sinhViens'])->findOrFail($id);
+        
+        $errors = [];
+        if ($nganh->chuong_trinh_dao_tao_count > 0) $errors[] = "còn {$nganh->chuong_trinh_dao_tao_count} chương trình đào tạo";
+        if ($nganh->sinh_viens_count > 0) $errors[] = "còn {$nganh->sinh_viens_count} sinh viên";
+
+        if (!empty($errors)) {
+            $message = "Không thể xóa ngành {$nganh->TenNganh} vì: " . implode(', ', $errors) . ".";
+            return response()->json([
+                'status' => 'error',
+                'message' => $message
+            ], 400);
+        }
+
+        try {
+            $nganh->delete();
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Xóa ngành thành công'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Lỗi hệ thống khi xóa ngành: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
