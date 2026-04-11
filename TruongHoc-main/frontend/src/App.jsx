@@ -18,6 +18,7 @@ import QuanLyKhoa from "./pages/admin/QuanLyKhoa";
 import MonHocManagement from "@/pages/admin/MonHocManagement";
 import QuanLyLopHocPhan from "@/pages/admin/QuanLyLopHocPhan";
 import LichHocManagementPage from "./pages/admin/LichHocManagementPage";
+import LichThiManagementPage from "./pages/admin/LichThiManagementPage";
 import DotDangKyManager from "@/pages/admin/DotDangKyManager";
 import ThongBaoManager from "@/pages/admin/ThongBaoManager";
 import ChuongTrinhDaoTaoManager from "@/pages/admin/ChuongTrinhDaoTaoManager";
@@ -85,6 +86,10 @@ function App() {
                 <Route
                   path="/admin/lich-hoc"
                   element={<LichHocManagementPage />}
+                />
+                <Route
+                  path="/admin/lich-thi"
+                  element={<LichThiManagementPage />}
                 />
                 <Route path="/admin/mon-hoc" element={<MonHocManagement />} />
                 <Route

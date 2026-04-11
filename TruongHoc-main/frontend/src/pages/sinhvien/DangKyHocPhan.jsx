@@ -160,6 +160,8 @@ const DangKyHocPhan = () => {
                 <th className="px-6 py-4">Mã Lớp HP</th>
                 <th className="px-6 py-4">Tên Môn Học</th>
                 <th className="px-6 py-4">Tín chỉ</th>
+                <th className="px-6 py-4">Tiên quyết</th>
+                <th className="px-6 py-4">Song hành</th>
                 <th className="px-6 py-4">Giảng viên</th>
                 <th className="px-6 py-4">Lịch học</th>
                 <th className="px-6 py-4">Sĩ số</th>
@@ -177,6 +179,18 @@ const DangKyHocPhan = () => {
                   </td>
                   <td className="px-6 py-4">
                     {lop.mon_hoc?.SoTinChi || lop.mon_hoc?.so_tin_chi}
+                  </td>
+                  <td
+                    className="px-6 py-4 text-[10px] text-red-600 italic font-medium max-w-[120px] truncate"
+                    title={lop.MonTienQuyet}
+                  >
+                    {lop.MonTienQuyet || "Không có"}
+                  </td>
+                  <td
+                    className="px-6 py-4 text-[10px] text-purple-600 italic font-medium max-w-[120px] truncate"
+                    title={lop.MonSongHanh}
+                  >
+                    {lop.MonSongHanh || "Không có"}
                   </td>
                   <td className="px-6 py-4 text-gray-600">
                     {lop.giang_vien?.HoTen ||

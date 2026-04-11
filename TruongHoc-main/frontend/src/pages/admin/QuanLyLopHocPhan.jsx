@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import LopHocPhanModal from "./LopHocPhanModal";
 import LichHocModal from "./LichHocModal";
 import LichThiModal from "./LichThiModal";
+import ConfirmModal from "@/components/ConfirmModal";
 
 const QuanLyLopHocPhan = () => {
   const [lops, setLops] = useState([]);
@@ -15,6 +16,10 @@ const QuanLyLopHocPhan = () => {
   const [selectedLopForLich, setSelectedLopForLich] = useState(null);
   const [selectedLopForThi, setSelectedLopForThi] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [confirmConfig, setConfirmConfig] = useState({
+    isOpen: false,
+    id: null,
+  });
   const [dropdownData, setDropdownData] = useState({
     monHocs: [],
     giangViens: [],
@@ -104,6 +109,16 @@ const QuanLyLopHocPhan = () => {
         error.response?.data?.message ||
         "Lỗi khi lưu lịch thi. Có thể do trùng lịch phòng hoặc giảng viên.";
       alert(errorMsg);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      const res = await axiosClient.delete(`/admin/lop-hoc-phan/${id}`);
+      toast.success(res.message || "Xóa lớp học phần thành công");
+      fetchData();
+    } catch (error) {
+      console.error("Lỗi khi xóa lớp:", error);
     }
   };
 
@@ -294,6 +309,18 @@ const QuanLyLopHocPhan = () => {
                       >
                         Sửa
                       </button>
+                      <button
+                        onClick={() =>
+                          setConfirmConfig({
+                            isOpen: true,
+                            id: item.LopHocPhanID,
+                          })
+                        }
+                        type="button"
+                        className="text-red-500 hover:bg-red-100 px-3 py-1.5 rounded-lg font-bold text-xs uppercase transition-all"
+                      >
+                        Xóa
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -323,6 +350,14 @@ const QuanLyLopHocPhan = () => {
         onClose={() => setIsThiModalOpen(false)}
         onSave={handleSaveThi}
         lopHocPhan={selectedLopForThi}
+      />
+
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        onClose={() => setConfirmConfig({ isOpen: false, id: null })}
+        onConfirm={() => handleDelete(confirmConfig.id)}
+        title="Xóa lớp học phần"
+        message="Bạn có chắc chắn muốn xóa lớp học phần này? Hệ thống sẽ ngăn chặn việc xóa nếu đã có sinh viên đăng ký học."
       />
     </div>
   );

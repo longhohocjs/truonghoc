@@ -108,7 +108,7 @@ const LopHocPhanModal = ({
 
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-              Môn học học
+              Môn học
             </label>
             <select
               required

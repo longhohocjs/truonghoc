@@ -19,7 +19,7 @@ class LopHocPhanController extends Controller
     public function index()
     {
         // Lấy toàn bộ danh sách lớp học phần kèm các quan hệ để hiển thị ở Frontend
-        $lops = LopHocPhan::with(['monHoc', 'hocKy', 'giangVien'])->get();
+        $lops = LopHocPhan::with(['monHoc', 'hocKy', 'giangVien', 'lichHoc', 'lichThi'])->get();
 
         return response()->json([
             'success' => true,
@@ -107,5 +107,36 @@ class LopHocPhanController extends Controller
             'message' => 'Cập nhật sĩ số tối đa thành công',
             'data'    => $lop
         ]);
+    }
+
+    /**
+     * Xóa lớp học phần
+     */
+    public function destroy($id)
+    {
+        // Sử dụng withCount để kiểm tra xem đã có sinh viên đăng ký chưa
+        $lop = LopHocPhan::withCount(['dangKyHocPhan'])->findOrFail($id);
+
+        if ($lop->dang_ky_hoc_phan_count > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => "Không thể xóa lớp này vì đã có {$lop->dang_ky_hoc_phan_count} sinh viên đăng ký học phần."
+            ], 400);
+        }
+
+        try {
+            // Tự động xóa các dữ liệu liên quan như lịch học, lịch thi nếu cần (tùy thuộc vào thiết lập DB)
+            $lop->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Xóa lớp học phần thành công'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi hệ thống khi xóa lớp: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

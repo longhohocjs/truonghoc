@@ -2,19 +2,20 @@
 
 namespace App\Jobs;
 
+
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Log;
 use App\Models\DangKyHocPhan;
 use App\Models\LopHocPhan;
 use App\Models\SinhVien;
 use App\Services\DangKyHocPhanService;
 use Throwable;
+use Illuminate\Support\Facades\Cache;
 
 class ProcessDangKyHocPhan implements ShouldQueue
 {
@@ -46,7 +47,7 @@ class ProcessDangKyHocPhan implements ShouldQueue
                     ->exists();
 
                 if ($exists) {
-                    Redis::set($statusKey, 'Bạn đã đăng ký môn học này rồi.', 'EX', 300);
+                    Cache::put($statusKey, 'Bạn đã đăng ký môn học này rồi.', 300);
                     return;
                 }
 
@@ -78,11 +79,11 @@ class ProcessDangKyHocPhan implements ShouldQueue
                     'TrangThai'      => 'DaDangKy', 
                 ]);
 
-                if (Redis::exists($slotsKey)) {
-                    Redis::decr($slotsKey);
+                if (Cache::has($slotsKey)) {
+                    Cache::decrement($slotsKey);
                 }
 
-                Redis::set($statusKey, 'success', 'EX', 600);
+                Cache::put($statusKey, 'success', 600);
             }, 5);
 
         } catch (Throwable $e) {
@@ -92,7 +93,12 @@ class ProcessDangKyHocPhan implements ShouldQueue
 
     protected function handleJobError(Throwable $e, string $statusKey): void
     {
-        $userErrors = ['lớp đã đầy', 'trùng lịch', 'tiên quyết', 'không tồn tại', 'đã đăng ký'];
+        // Mở rộng các từ khóa nhận diện lỗi nghiệp vụ
+        $userErrors = [
+            'lớp đã đầy', 'trùng lịch', 'tiên quyết', 'không tồn tại', 
+            'đã đăng ký', 'khóa', 'song hành', 'thời gian', 'thông tin'
+        ];
+
         $isUserError = false;
         $message = mb_strtolower($e->getMessage());
 
@@ -104,18 +110,21 @@ class ProcessDangKyHocPhan implements ShouldQueue
         }
 
         if ($isUserError) {
-            Redis::set($statusKey, $e->getMessage(), 'EX', 300);
+            Cache::put($statusKey, $e->getMessage(), 300);
             Log::warning("Registration logic error: " . $e->getMessage());
         } else {
-            Log::error("System error in Job: " . $e->getMessage());
-            Redis::set($statusKey, 'Hệ thống đang bận, vui lòng thử lại sau.', 'EX', 60);
-            throw $e; 
+            // Trong quá trình dev, cho phép hiển thị lỗi hệ thống để dễ debug
+            $systemErrorMessage = "Lỗi hệ thống: " . $e->getMessage();
+            Log::error($systemErrorMessage);
+            Cache::put($statusKey, $systemErrorMessage, 60);
+            // Không throw $e để tránh Queue tự động retry 3 lần gây chậm
         }
     }
 
     public function failed(Throwable $exception): void
     {
         $statusKey = "registration_status:{$this->sinhVienID}:{$this->lopHocPhanID}";
-        Redis::set($statusKey, 'Đăng ký thất bại hệ thống. Vui lòng thử lại.', 'EX', 300);
+        Cache::put($statusKey, $exception->getMessage(), 3600);
+        
     }
 }

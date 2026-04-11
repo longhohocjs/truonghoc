@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\SinhVien;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Cache;
 use App\Models\LopHocPhan;
 use App\Models\DotDangKy;
@@ -26,11 +25,23 @@ class DangKyHocPhanController extends Controller
             return response()->json(['message' => 'Ngoài thời gian đăng ký'], 400);
         }
 
-        $lops = LopHocPhan::with(['monHoc', 'giangVien', 'lichHoc'])
+        $lops = LopHocPhan::with([
+            'monHoc.monTienQuyet' => fn($q) => $q->wherePivot('Loai', 1),
+            'monHoc.monSongHanh' => fn($q) => $q->wherePivot('Loai', 2),
+            'giangVien', 
+            'lichHoc'
+        ])
             ->whereIn('HocKyID', $dotMo)
             ->get();
 
-        return response()->json($lops);
+        // Map dữ liệu để thêm chuỗi tên môn tiên quyết/song hành cho sinh viên dễ xem
+        $data = $lops->map(function ($lop) {
+            $lop->MonTienQuyet = $lop->monHoc->monTienQuyet->pluck('TenMon')->implode(', ') ?: 'Không có';
+            $lop->MonSongHanh = $lop->monHoc->monSongHanh->pluck('TenMon')->implode(', ') ?: 'Không có';
+            return $lop;
+        });
+
+        return response()->json($data);
     }
 
     public function dangKy(Request $request)
@@ -47,40 +58,42 @@ class DangKyHocPhanController extends Controller
             return response()->json(['message' => 'Không tìm thấy thông tin sinh viên.'], 404);
         }
 
-        // Tránh lỗi 500 nếu Redis chưa được cấu hình hoặc chưa chạy
-        $statusKey = "registration_status:{$sinhVien->SinhVienID}:{$lopHocPhanID}";
         try {
-            if (config('database.redis.client')) {
-                Redis::del($statusKey);
+            $statusKey = "registration_status:{$sinhVien->SinhVienID}:{$lopHocPhanID}";
+            
+            // Xóa trạng thái cũ (Dùng Cache::forget để linh hoạt driver)
+            Cache::forget($statusKey);
+
+            $lockKey = "lock:lophocphan:{$lopHocPhanID}:reserve";
+            $lock = Cache::lock($lockKey, 10);
+
+            if (!$lock->get()) {
+                return response()->json([
+                    'status'  => 'failed',
+                    'message' => 'Lớp đang được nhiều bạn đăng ký cùng lúc. Vui lòng thử lại sau 5-10 giây.'
+                ], 429);
             }
-        } catch (\Exception $e) {
-            // Log lỗi nhưng không làm crash request
-            \Illuminate\Support\Facades\Log::error("Redis Error: " . $e->getMessage());
-        }
 
-        $lockKey = "lock:lophocphan:{$lopHocPhanID}:reserve";
-        $lock = Cache::lock($lockKey, 10);
-
-        if (!$lock->get()) {
-            return response()->json([
-                'status'  => 'failed',
-                'message' => 'Lớp đang được nhiều bạn đăng ký cùng lúc. Vui lòng thử lại sau 5-10 giây.'
-            ], 429);
-        }
-
-        try {
             ProcessDangKyHocPhan::dispatch(
                 $user->UserID,
                 $sinhVien->SinhVienID,
                 $lopHocPhanID
-            )->onQueue('registration');
+            )->onQueue('registration')
+             ->afterCommit(); // Chỉ đẩy vào queue sau khi các DB logic trước đó thành công
 
             return response()->json([
                 'status'  => 'processing',
                 'message' => 'Yêu cầu đăng ký đã được gửi. Hệ thống đang xử lý... Kết quả sẽ có trong vài giây.'
             ]);
+        } catch (\Exception $e) {
+            // Bắt mọi lỗi liên quan đến kết nối Redis/Cache/Queue
+            \Illuminate\Support\Facades\Log::error("Lỗi đăng ký học phần (Redis/Queue): " . $e->getMessage());
+            return response()->json([
+                'status'  => 'failed',
+                'message' => 'Dịch vụ đăng ký tạm thời gián đoạn (Lỗi kết nối máy chủ xử lý). Vui lòng thử lại sau.'
+            ], 503);
         } finally {
-            $lock->release();
+            if (isset($lock)) $lock->release();
         }
     }
 
@@ -95,26 +108,33 @@ class DangKyHocPhanController extends Controller
         $svID = $sinhVien->SinhVienID;
         $statusKey = "registration_status:{$svID}:{$lhpID}";
 
-        $status = Redis::get($statusKey);
+        try {
+            $status = Cache::get($statusKey);
 
-        if (!$status) {
+            if (!$status) {
+                return response()->json([
+                    'status'  => 'processing',
+                    'message' => 'Yêu cầu đang được xếp hàng xử lý...'
+                ]);
+            }
+
+            if ($status === 'success') {
+                return response()->json([
+                    'status'  => 'success',
+                    'message' => 'Chúc mừng! Bạn đã đăng ký học phần thành công.'
+                ]);
+            }
+
             return response()->json([
-                'status'  => 'processing',
-                'message' => 'Yêu cầu đang được xếp hàng xử lý...'
+                'status'  => 'failed',
+                'message' => $status
             ]);
-        }
-
-        if ($status === 'success') {
+        } catch (\Exception $e) {
             return response()->json([
-                'status'  => 'success',
-                'message' => 'Chúc mừng! Bạn đã đăng ký học phần thành công.'
-            ]);
+                'status' => 'error',
+                'message' => 'Không thể kiểm tra trạng thái lúc này.'
+            ], 500);
         }
-
-        return response()->json([
-            'status'  => 'failed',
-            'message' => $status
-        ]);
     }
 
     public function huyMon(Request $request, $dangKyID)
@@ -133,7 +153,7 @@ class DangKyHocPhanController extends Controller
                 if ($lop) {
                     $currentCount = DangKyHocPhan::where('LopHocPhanID', $lopId)->count();
                     $remaining = $lop->SoLuongToiDa - $currentCount;
-                    Redis::set("lophocphan:{$lopId}:slots", max(0, $remaining));
+                    Cache::put("lophocphan:{$lopId}:slots", max(0, $remaining), 3600);
                 }
             }
 

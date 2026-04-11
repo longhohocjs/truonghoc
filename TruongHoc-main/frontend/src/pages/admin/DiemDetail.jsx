@@ -32,6 +32,14 @@ const DiemDetail = () => {
       });
       const data = getArray(res);
 
+      // Log để kiểm tra xem Backend có trả về IsLocked không
+      if (data.length > 0) {
+        console.log("Dữ liệu bản ghi đầu tiên từ Backend:", data[0]);
+      }
+
+      // CẬP NHẬT: Thêm dòng này để đưa dữ liệu vào state students
+      setStudents(data);
+
       // Lấy thông tin lớp từ bản ghi đầu tiên
       if (data.length > 0) {
         // Map đầy đủ các trường từ View (PascalCase)
@@ -40,6 +48,9 @@ const DiemDetail = () => {
           TenMon: data[0].TenMon,
           HoTenGV: data[0].HoTenGV || "Chưa phân công",
           TenHocKy: data[0].TenHocKy,
+          IsLocked: Number(data[0].IsLocked ?? data[0].is_locked ?? 0),
+          MonTienQuyet: data[0].MonTienQuyet,
+          MonSongHanh: data[0].MonSongHanh,
         });
       }
     } catch (error) {
@@ -93,9 +104,14 @@ const DiemDetail = () => {
       ? "/admin/diem-so/khoa-diem"
       : "/admin/diem-so/mo-khoa-diem";
     try {
-      await axiosClient.post(endpoint, { LopHocPhanID: id });
+      const res = await axiosClient.post(endpoint, { LopHocPhanID: id });
       toast.success(isLock ? "Đã khóa bảng điểm" : "Đã mở khóa bảng điểm");
-      fetchData();
+
+      // Cập nhật state local ngay lập tức
+      setInfo((prev) => (prev ? { ...prev, IsLocked: isLock ? 1 : 0 } : null));
+
+      // Tùy chọn: Đợi 500ms trước khi fetch để DB kịp cập nhật nếu là View
+      setTimeout(() => fetchData(), 500);
     } catch (error) {
       toast.error("Thao tác thất bại");
     }
@@ -134,21 +150,38 @@ const DiemDetail = () => {
                 </span>
               )}
             </p>
+            {(info?.MonTienQuyet || info?.MonSongHanh) && (
+              <div className="text-[10px] mt-1 flex space-x-4 text-gray-400">
+                {info.MonTienQuyet && info.MonTienQuyet !== "Không có" && (
+                  <span>
+                    <strong>Môn tiên quyết:</strong> {info.MonTienQuyet}
+                  </span>
+                )}
+                {info.MonSongHanh && info.MonSongHanh !== "Không có" && (
+                  <span>
+                    <strong>Môn song hành:</strong> {info.MonSongHanh}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
         <div className="space-x-3">
-          <button
-            onClick={() => toggleLock(false)}
-            className="px-4 py-2 border border-green-600 text-green-600 rounded-lg text-sm font-bold hover:bg-green-50"
-          >
-            MỞ KHÓA
-          </button>
-          <button
-            onClick={() => toggleLock(true)}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700"
-          >
-            KHÓA ĐIỂM
-          </button>
+          {info?.IsLocked == 1 ? (
+            <button
+              onClick={() => toggleLock(false)}
+              className="px-4 py-2 bg-green-100 text-green-700 border border-green-200 rounded-lg text-sm font-bold hover:bg-green-200 transition-all"
+            >
+              🔓 MỞ KHÓA NHẬP ĐIỂM
+            </button>
+          ) : (
+            <button
+              onClick={() => toggleLock(true)}
+              className="px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg text-sm font-bold hover:bg-red-100 transition-all"
+            >
+              🔒 KHÓA BẢNG ĐIỂM
+            </button>
+          )}
         </div>
       </div>
 
@@ -160,7 +193,9 @@ const DiemDetail = () => {
               <th className="px-4 py-4 text-center w-24">Chuyên cần (10%)</th>
               <th className="px-4 py-4 text-center w-24">Giữa kỳ (30%)</th>
               <th className="px-4 py-4 text-center w-24">Cuối kỳ (60%)</th>
-              <th className="px-4 py-4 text-center w-24">Tổng kết</th>
+              <th className="px-4 py-4 text-center w-24 font-bold text-blue-600">
+                Tổng kết
+              </th>
               <th className="px-6 py-4 text-right">Thao tác</th>
             </tr>
           </thead>
@@ -173,18 +208,26 @@ const DiemDetail = () => {
               </tr>
             ) : students.length > 0 ? (
               students.map((sv) => (
-                <tr key={sv.SinhVienID} className="hover:bg-gray-50 text-sm">
+                <tr
+                  key={sv.DangKyID || sv.SinhVienID}
+                  className="hover:bg-gray-50 text-sm"
+                >
                   <td className="px-6 py-4">
-                    <div className="font-bold text-gray-800">{sv.HoTen}</div>
-                    <div className="text-xs text-gray-400">{sv.MaSV}</div>
+                    <div className="font-bold text-gray-800">
+                      {sv.HoTen || sv.ho_ten}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {sv.MaSV || sv.ma_sv}
+                    </div>
                   </td>
                   <td className="px-4 py-4">
                     <input
                       type="number"
+                      disabled={info?.IsLocked == 1}
                       step="0.1"
                       min="0"
                       max="10"
-                      className="w-full p-1.5 border border-gray-200 rounded text-center outline-none focus:ring-1 focus:ring-blue-500"
+                      className={`w-full p-1.5 border border-gray-200 rounded text-center outline-none focus:ring-1 focus:ring-blue-500 ${info?.IsLocked == 1 ? "bg-gray-50 text-gray-400 cursor-not-allowed" : ""}`}
                       value={sv.DiemChuyenCan ?? ""}
                       onChange={(e) =>
                         handleGradeChange(
@@ -198,10 +241,11 @@ const DiemDetail = () => {
                   <td className="px-4 py-4">
                     <input
                       type="number"
+                      disabled={info?.IsLocked == 1}
                       step="0.1"
                       min="0"
                       max="10"
-                      className="w-full p-1.5 border border-gray-200 rounded text-center outline-none focus:ring-1 focus:ring-blue-500"
+                      className={`w-full p-1.5 border border-gray-200 rounded text-center outline-none focus:ring-1 focus:ring-blue-500 ${info?.IsLocked == 1 ? "bg-gray-50 text-gray-400 cursor-not-allowed" : ""}`}
                       value={sv.DiemGiuaKy ?? ""}
                       onChange={(e) =>
                         handleGradeChange(
@@ -215,10 +259,11 @@ const DiemDetail = () => {
                   <td className="px-4 py-4">
                     <input
                       type="number"
+                      disabled={info?.IsLocked == 1}
                       step="0.1"
                       min="0"
                       max="10"
-                      className="w-full p-1.5 border border-gray-200 rounded text-center outline-none focus:ring-1 focus:ring-blue-500"
+                      className={`w-full p-1.5 border border-gray-200 rounded text-center outline-none focus:ring-1 focus:ring-blue-500 ${info?.IsLocked == 1 ? "bg-gray-50 text-gray-400 cursor-not-allowed" : ""}`}
                       value={sv.DiemThi ?? ""}
                       onChange={(e) =>
                         handleGradeChange(
@@ -237,13 +282,15 @@ const DiemDetail = () => {
                     )}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => saveGrade(sv)}
-                      disabled={saving}
-                      className="text-blue-600 hover:text-blue-800 font-bold text-xs uppercase"
-                    >
-                      LƯU
-                    </button>
+                    {info?.IsLocked != 1 && (
+                      <button
+                        onClick={() => saveGrade(sv)}
+                        disabled={saving}
+                        className="text-blue-600 hover:text-blue-800 font-bold text-xs uppercase"
+                      >
+                        LƯU
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))

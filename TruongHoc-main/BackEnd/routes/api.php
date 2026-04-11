@@ -132,6 +132,7 @@ Route::middleware(['auth:api', \App\Http\Middleware\CheckActiveUser::class])->gr
         Route::get('lop-hoc-phan', [AdminLopHocPhanController::class, 'index']);
         Route::post('lop-hoc-phan', [AdminLopHocPhanController::class, 'store']);
         Route::patch('lop-hoc-phan/update', [AdminLopHocPhanController::class, 'update']);
+        Route::delete('lop-hoc-phan/{id}', [AdminLopHocPhanController::class, 'destroy']);
         Route::patch('lop-hoc-phan/giang-vien', [AdminLopHocPhanController::class, 'assignGiangVien']);
         Route::patch('lop-hoc-phan/si-so', [AdminLopHocPhanController::class, 'setSiSo']);
         

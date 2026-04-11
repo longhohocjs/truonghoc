@@ -33,21 +33,52 @@ class DiemSoService
 
     public function getBangDiemLopHP(array $filters)
     {
-        return VBangDiemLopHocPhan::query()
-            ->when($filters['LopHocPhanID'] ?? null, function($q, $id) {
-                return $q->where('LopHocPhanID', $id);
-            })
-            ->get();
+        $model = new VBangDiemLopHocPhan();
+        $tableName = $model->getTable();
+        $query = $model->newQuery();
+
+        // Thực hiện join với bảng lophocphan để lấy trạng thái khóa nhập điểm (TrangThaiNhapDiem)
+        // Chúng ta đặt alias là 'IsLocked' để đồng bộ với cách gọi thuộc tính ở Frontend
+        $query->join('lophocphan', "$tableName.LopHocPhanID", '=', 'lophocphan.LopHocPhanID')
+              ->select("$tableName.*", 'lophocphan.TrangThaiNhapDiem as IsLocked', 'lophocphan.MonHocID');
+
+        $results = $query->when($filters['LopHocPhanID'] ?? null, function($q, $id) use ($tableName) {
+            return $q->where("$tableName.LopHocPhanID", $id);
+        })->get();
+
+        if ($results->isEmpty()) return $results;
+
+        // Lấy danh sách tên môn điều kiện (Tiên quyết/Song hành) để hiển thị
+        $monHocIds = $results->pluck('MonHocID')->unique();
+        $requirements = DB::table('dieukienmonhoc as dk')
+            ->join('monhoc as m', 'dk.MonTienQuyetID', '=', 'm.MonHocID')
+            ->whereIn('dk.MonHocID', $monHocIds)
+            ->select('dk.MonHocID', 'm.TenMon', 'dk.Loai')
+            ->get()
+            ->groupBy('MonHocID');
+
+        return $results->map(function($item) use ($requirements) {
+            $req = $requirements->get($item->MonHocID);
+            $item->MonTienQuyet = $req ? $req->where('Loai', 1)->pluck('TenMon')->implode(', ') : 'Không có';
+            $item->MonSongHanh = $req ? $req->where('Loai', 2)->pluck('TenMon')->implode(', ') : 'Không có';
+            return $item;
+        });
     }
 
     public function getDiemRenLuyen(array $filters)
     {
-        return VDiemRenLuyenSinhVien::query()
-            ->when($filters['HocKyID'] ?? null, function($q, $id) {
-                return $q->where('HocKyID', $id);
+        $model = new VDiemRenLuyenSinhVien();
+        $tableName = $model->getTable();
+
+        $query = $model->newQuery()
+            ->join('sinhvien', "$tableName.SinhVienID", '=', 'sinhvien.SinhVienID')
+            ->select("$tableName.*", 'sinhvien.HoTen', 'sinhvien.MaSV');
+
+        return $query->when($filters['HocKyID'] ?? null, function($q, $id) use ($tableName) {
+                return $q->where("$tableName.HocKyID", $id);
             })
-            ->when($filters['LopSinhHoatID'] ?? null, function($q, $id) {
-                return $q->whereIn('SinhVienID', function($sub) use ($id) {
+            ->when($filters['LopSinhHoatID'] ?? null, function($q, $id) use ($tableName) {
+                return $q->whereIn("$tableName.SinhVienID", function($sub) use ($id) {
                     $sub->select('SinhVienID')->from('sinhvien')->where('LopSinhHoatID', $id);
                 });
             })

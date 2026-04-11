@@ -30,6 +30,7 @@ const MainLayout = () => {
       },
       { path: "/admin/lop-hoc-phan", label: "Lớp học phần", icon: "🏫" },
       { path: "/admin/lich-hoc", label: "Phân lịch học", icon: "🗓️" }, // Thêm mục phân lịch học
+      { path: "/admin/lich-thi", label: "Phân lịch thi", icon: "✍️" },
       { path: "/admin/lop-sinh-hoat", label: "Lớp sinh hoạt", icon: "👥" },
       { path: "/admin/diem-so", label: "Quản lý Điểm", icon: "📝" },
       { path: "/admin/thong-ke", label: "Thống kê báo cáo", icon: "📈" },

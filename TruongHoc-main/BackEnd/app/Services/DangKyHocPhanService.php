@@ -15,13 +15,18 @@ class DangKyHocPhanService
 {
     public function validateAll(SinhVien $sinhVien, int $lopHocPhanID): array
     {
-        $lop = LopHocPhan::with([
-            'monHoc.monTienQuyet',
-            'monHoc.monSongHanh',
-            'lichHoc',
-            'lichThi',
-            'hocKy'
-        ])->findOrFail($lopHocPhanID);
+        try {
+            $lop = LopHocPhan::with([
+                'monHoc.monTienQuyet' => fn($q) => $q->wherePivot('Loai', 1),
+                'monHoc.monSongHanh' => fn($q) => $q->wherePivot('Loai', 2),
+                'lichHoc',
+                'lichThi',
+                'hocKy'
+            ])->findOrFail($lopHocPhanID);
+        } catch (\Exception $e) {
+            Log::error("Lỗi khi tải thông tin lớp học phần và các quan hệ (LopHocPhanID: {$lopHocPhanID}): " . $e->getMessage() . " Stack: " . $e->getTraceAsString());
+            throw new \Exception("Không thể tải thông tin lớp học phần (ID: {$lopHocPhanID}). Vui lòng kiểm tra cấu hình hoặc dữ liệu. Chi tiết: " . $e->getMessage());
+        }
 
         $dot = DotDangKy::where('HocKyID', $lop->HocKyID)
             ->where('TrangThai', 1)
@@ -39,12 +44,14 @@ class DangKyHocPhanService
             throw new Exception('Lớp học phần đã đầy sĩ số.');
         }
 
-        if (!$this->checkMonTienQuyet($sinhVien->SinhVienID, $lop->monHoc)) {
-            throw new Exception('Bạn chưa hoàn thành môn tiên quyết cho môn này.');
+        $missingTienQuyet = $this->getMissingTienQuyet($sinhVien->SinhVienID, $lop->monHoc);
+        if (!empty($missingTienQuyet)) {
+            throw new Exception('Bạn chưa hoàn thành các môn tiên quyết bắt buộc: ' . implode(', ', $missingTienQuyet));
         }
 
-        if (!$this->checkMonSongHanh($sinhVien->SinhVienID, $lop->monHoc)) {
-            throw new Exception('Bạn cần đăng ký đồng thời môn song hành.');
+        $missingSongHanh = $this->getMissingSongHanh($sinhVien->SinhVienID, $lop->monHoc);
+        if (!empty($missingSongHanh)) {
+            throw new Exception('Bạn cần phải đăng ký (hoặc đã học) các môn song hành: ' . implode(', ', $missingSongHanh));
         }
 
         if ($this->checkTrungLich($sinhVien, $lop)) {
@@ -66,23 +73,13 @@ class DangKyHocPhanService
 
     private function daDangKyMonTrongHocKy(int $sinhVienID, int $monHocID, int $hocKyID): bool
     {
-        try {
-            return DB::table('v_dangkyhocphan_hien_tai')
-                ->where('SinhVienID', $sinhVienID)
-                ->where('MaMon', function ($q) use ($monHocID) {
-                    $q->select('MaMon')->from('monhoc')->where('MonHocID', $monHocID);
-                })
-                ->exists();
-        } catch (\Exception $e) {
-            Log::warning("View v_dangkyhocphan_hien_tai lỗi, fallback query: " . $e->getMessage());
-
-            return DangKyHocPhan::where('SinhVienID', $sinhVienID)
-                ->whereHas('lopHocPhan', function ($q) use ($monHocID, $hocKyID) {
-                    $q->where('MonHocID', $monHocID)
-                        ->where('HocKyID', $hocKyID);
-                })
-                ->exists();
-        }
+        // Thay thế việc dùng View bằng truy vấn trực tiếp vào bảng đăng ký và lớp học phần
+        return DangKyHocPhan::where('SinhVienID', $sinhVienID)
+            ->whereHas('lopHocPhan', function ($q) use ($monHocID, $hocKyID) {
+                $q->where('MonHocID', $monHocID)
+                  ->where('HocKyID', $hocKyID);
+            })
+            ->exists();
     }
 
     private function checkSiSo(LopHocPhan $lop): bool
@@ -91,64 +88,91 @@ class DangKyHocPhanService
         return $daDangKy < $lop->SoLuongToiDa;
     }
 
-    private function checkMonTienQuyet(int $sinhVienID, $monHoc): bool
+    private function getMissingTienQuyet(int $sinhVienID, $monHoc): array
     {
-        $tienQuyetIDs = $monHoc->monTienQuyet->pluck('MonHocID');
-
-        if ($tienQuyetIDs->isEmpty()) {
-            return true;
+        $tienQuyet = $monHoc->monTienQuyet;
+        if ($tienQuyet->isEmpty()) {
+            return [];
         }
 
-        try {
-            return DB::table('trangthai_monhoc_sinhvien')
-                ->where('SinhVienID', $sinhVienID)
-                ->whereIn('MonHocID', $tienQuyetIDs)
-                ->where('TrangThai', 'Đã đạt')
-                ->count() === $tienQuyetIDs->count();
-        } catch (\Exception $e) {
-            Log::error("Lỗi khi kiểm tra môn tiên quyết từ view 'trangthai_monhoc_sinhvien': " . $e->getMessage());
-            // Fallback hoặc trả về false để ngăn đăng ký nếu không thể xác định trạng thái tiên quyết
-            return false; 
-        }
+        $tienQuyetIDs = $tienQuyet->pluck('MonHocID')->toArray();
+
+        // Lấy danh sách ID các môn tiên quyết mà sinh viên đã đạt (điểm >= 4.0)
+        $passedIDs = DB::table('dangkyhocphan')
+            ->join('lophocphan', 'dangkyhocphan.LopHocPhanID', '=', 'lophocphan.LopHocPhanID')
+            ->join('diemso', 'dangkyhocphan.DangKyID', '=', 'diemso.DangKyID')
+            ->where('dangkyhocphan.SinhVienID', $sinhVienID)
+            ->whereIn('lophocphan.MonHocID', $tienQuyetIDs)
+            ->where('diemso.DiemTongKet', '>=', 4.0)
+            ->pluck('lophocphan.MonHocID')
+            ->toArray();
+
+        // Lọc ra những môn nằm trong danh sách tiên quyết nhưng chưa nằm trong danh sách đã đạt
+        $missing = $tienQuyet->filter(fn($m) => !in_array($m->MonHocID, $passedIDs));
+
+        return $missing->map(fn($m) => "{$m->TenMon} ({$m->MaMon})")->toArray();
     }
 
-    private function checkMonSongHanh(int $sinhVienID, $monHoc): bool
+    private function getMissingSongHanh(int $sinhVienID, $monHoc): array
     {
-        $songHanhIDs = $monHoc->monSongHanh->pluck('MonHocID');
-
-        if ($songHanhIDs->isEmpty()) {
-            return true;
+        $songHanh = $monHoc->monSongHanh;
+        if ($songHanh->isEmpty()) {
+            return [];
         }
 
-        return DangKyHocPhan::where('SinhVienID', $sinhVienID)
-            ->whereHas('lopHocPhan', fn($q) => $q->whereIn('MonHocID', $songHanhIDs))
-            ->exists();
+        $songHanhIDs = $songHanh->pluck('MonHocID')->toArray();
+
+        // Kiểm tra xem sinh viên đã đăng ký các môn song hành này chưa (trong bất kỳ học kỳ nào)
+        $registeredIDs = DangKyHocPhan::join('lophocphan', 'dangkyhocphan.LopHocPhanID', '=', 'lophocphan.LopHocPhanID')
+            ->where('dangkyhocphan.SinhVienID', $sinhVienID)
+            ->whereIn('lophocphan.MonHocID', $songHanhIDs)
+            ->pluck('lophocphan.MonHocID')
+            ->toArray();
+
+        $missing = $songHanh->filter(fn($m) => !in_array($m->MonHocID, $registeredIDs));
+
+        return $missing->map(fn($m) => "{$m->TenMon} ({$m->MaMon})")->toArray();
     }
 
     private function checkTrungLich(SinhVien $sinhVien, LopHocPhan $lopMoi): bool
     {
-        $dangKyHienTai = $sinhVien->dangKyHocPhan()
-            ->with(['lopHocPhan.lichHoc', 'lopHocPhan.lichThi'])
-            ->get();
+        $lichHocMoi = $lopMoi->lichHoc;
+        if ($lichHocMoi->isEmpty()) return false;
 
-        foreach ($dangKyHienTai as $dk) {
-            $lopCu = $dk->lopHocPhan;
-
-            foreach ($lopMoi->lichHoc as $lhMoi) {
-                foreach ($lopCu->lichHoc as $lhCu) {
-                    if ($this->trungLich($lhMoi, $lhCu)) {
-                        return true;
-                    }
+        // Kiểm tra trùng lịch học bằng 1 truy vấn SQL duy nhất
+        $existsLichHoc = DB::table('lichhoc as lh_cu')
+            ->join('dangkyhocphan as dk', 'lh_cu.LopHocPhanID', '=', 'dk.LopHocPhanID')
+            ->where('dk.SinhVienID', '=', $sinhVien->SinhVienID)
+            ->where(function ($query) use ($lichHocMoi) {
+                foreach ($lichHocMoi as $lm) {
+                    $query->orWhere(function ($sub) use ($lm) {
+                        $tietKT = $lm->TietBatDau + $lm->SoTiet - 1;
+                        $sub->where('lh_cu.NgayHoc', $lm->NgayHoc)
+                            ->where(function ($inner) use ($lm, $tietKT) {
+                                $inner->whereRaw('? BETWEEN lh_cu.TietBatDau AND (lh_cu.TietBatDau + lh_cu.SoTiet - 1)', [$lm->TietBatDau])
+                                      ->orWhereRaw('lh_cu.TietBatDau BETWEEN ? AND ?', [$lm->TietBatDau, $tietKT]);
+                            });
+                    });
                 }
-            }
+            })->exists();
 
-            foreach ($lopMoi->lichThi as $ltMoi) {
-                foreach ($lopCu->lichThi as $ltCu) {
-                    if ($this->trungLichThi($ltMoi, $ltCu)) {
-                        return true;
-                    }
-                }
-            }
+        if ($existsLichHoc) return true;
+
+        // Kiểm tra trùng lịch thi
+        $lichThiMoi = $lopMoi->lichThi;
+        if ($lichThiMoi->isEmpty()) return false;
+
+        foreach ($lichThiMoi as $ltMoi) {
+            $existsLichThi = DB::table('lichthi as lt_cu')
+                ->join('dangkyhocphan as dk', 'lt_cu.LopHocPhanID', '=', 'dk.LopHocPhanID')
+                ->where('dk.SinhVienID', '=', $sinhVien->SinhVienID)
+                ->where('lt_cu.NgayThi', $ltMoi->NgayThi)
+                ->where(function ($q) use ($ltMoi) {
+                    $q->where('lt_cu.GioBatDau', '<', $ltMoi->GioKetThuc)
+                      ->where('lt_cu.GioKetThuc', '>', $ltMoi->GioBatDau);
+                })->exists();
+
+            if ($existsLichThi) return true;
         }
 
         return false;

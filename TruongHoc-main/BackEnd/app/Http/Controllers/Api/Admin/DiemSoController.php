@@ -26,13 +26,19 @@ class DiemSoController extends Controller
 
         // Truyền mảng chứa ID chuẩn cho Service
         $data = $this->diemSoService->getBangDiemLopHP(['LopHocPhanID' => $lopHocPhanID]);
-        return response()->json(['success' => true, 'data' => $data]);
+        return response()->json([
+            'status' => 'success',
+            'data' => $data
+        ]);
     }
 
     public function indexRenLuyen(Request $request)
     {
         $data = $this->diemSoService->getDiemRenLuyen($request->all());
-        return response()->json(['success' => true, 'data' => $data]);
+        return response()->json([
+            'status' => 'success',
+            'data' => $data
+        ]);
     }
 
     public function updateDiem(Request $request)
@@ -40,9 +46,9 @@ class DiemSoController extends Controller
         try {
             $userID = Auth::id() ?: 1; // Ưu tiên Auth ID, fallback về admin hệ thống
             $this->diemSoService->capNhatDiemLopHP($request->all(), $userID);
-            return response()->json(['success' => true, 'message' => 'Cập nhật điểm thành công']);
+            return response()->json(['status' => 'success', 'message' => 'Cập nhật điểm thành công']);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
     }
 
@@ -50,21 +56,21 @@ class DiemSoController extends Controller
     {
         try {
             $this->diemSoService->capNhatDiemRenLuyen($request->all());
-            return response()->json(['success' => true, 'message' => 'Cập nhật điểm rèn luyện thành công']);
+            return response()->json(['status' => 'success', 'message' => 'Cập nhật điểm rèn luyện thành công']);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
     }
 
     public function lockDiem(Request $request)
     {
         $this->diemSoService->setLockStatus($request->input('LopHocPhanID'), 1);
-        return response()->json(['success' => true, 'message' => 'Đã khóa nhập điểm']);
+        return response()->json(['status' => 'success', 'message' => 'Đã khóa nhập điểm']);
     }
 
     public function unlockDiem(Request $request)
     {
         $this->diemSoService->setLockStatus($request->input('LopHocPhanID'), 0);
-        return response()->json(['success' => true, 'message' => 'Đã mở khóa nhập điểm']);
+        return response()->json(['status' => 'success', 'message' => 'Đã mở khóa nhập điểm']);
     }
 }
