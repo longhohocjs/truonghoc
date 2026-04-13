@@ -33,6 +33,7 @@ import GiangVienProfile from "@/pages/giangvien/GiangVienProfile";
 import LopPhanCong from "@/pages/giangvien/LopPhanCong";
 import LichGiangDay from "@/pages/giangvien/LichGiangDay";
 import LichCoiThi from "@/pages/giangvien/LichCoiThi";
+import LopSinhHoatList from "@/pages/giangvien/LopSinhHoatList";
 import TeacherClassStudentList from "@/pages/giangvien/TeacherClassStudentList";
 import AdvisorClass from "@/pages/giangvien/AdvisorClass";
 
@@ -145,6 +146,10 @@ function App() {
                 />
                 <Route
                   path="/giang-vien/lop-sinh-hoat"
+                  element={<LopSinhHoatList />}
+                />
+                <Route
+                  path="/giang-vien/lop-sinh-hoat/:id"
                   element={<AdvisorClass />}
                 />
               </Route>

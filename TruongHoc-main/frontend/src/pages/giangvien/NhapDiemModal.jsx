@@ -19,7 +19,10 @@ const NhapDiemModal = ({ isOpen, onClose, lop }) => {
       const res = await axiosClient.post("/giang-vien/lop/sinh-vien", {
         lopHocPhanID: lop.lop_hoc_phan_id,
       });
-      setSinhViens(res.success ? res.data : res.data || []);
+
+      // Laravel success helper trả về { success: true, data: [...] }
+      // Axios client của bạn bóc tách lớp đầu nên res chính là object chứa { success, data }
+      setSinhViens(res.data || []);
     } catch (error) {
       console.error("Lỗi lấy danh sách SV:", error);
     } finally {

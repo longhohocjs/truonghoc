@@ -74,8 +74,8 @@ Route::middleware(['auth:api', \App\Http\Middleware\CheckActiveUser::class])->gr
         
         // Lớp học phần & Sinh viên
         Route::get('lop-hoc-phan', [LopHocPhanController::class, 'index']);
-        Route::get('lop-hoc-phan/{id}/sinh-vien', [LopHocPhanController::class, 'showSinhVien']);
-        Route::get('lop-hoc-phan/{id}/print', [LopHocPhanController::class, 'exportPrintData']);
+        Route::get('lop-hoc-phan/{id}/sinh-vien', [LopHocPhanGiangVienController::class, 'getSinhVienTrongLop']);
+        Route::get('lop-hoc-phan/{id}/print', [LopHocPhanGiangVienController::class, 'getDanhSachIn']);
         
         // Phân công & Lịch dạy
         Route::get('lop-phan-cong', [LopHocPhanGiangVienController::class, 'getLopPhanCong']);
@@ -83,6 +83,7 @@ Route::middleware(['auth:api', \App\Http\Middleware\CheckActiveUser::class])->gr
         Route::get('lich-giang-day', [LichGiangDayController::class, 'getLichGiangDay']);
         Route::get('lich-coi-thi', [LichCoiThiController::class, 'getLichCoiThi']);
 
+        Route::get('hoc-ky', [NamHocController::class, 'getDanhSachHocKy']);
         Route::post('nhap-diem', [LopHocPhanGiangVienController::class, 'updateDiem']);
         // Xuất Excel mẫu để nhập điểm
         Route::get('lop-hoc-phan/{id}/export-diem', [LopHocPhanGiangVienController::class, 'exportDiemTemplate']);

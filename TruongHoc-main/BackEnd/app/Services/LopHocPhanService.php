@@ -55,24 +55,33 @@ class LopHocPhanService
         $lop = LopHocPhan::with(['hocKy.namHoc'])->findOrFail($lopHocPhanID);
         $namHoc = $lop->hocKy->namHoc->TenNamHoc ?? 'Chưa có';
 
-        return VSinhVienTrongLopHocPhan::where('LopHocPhanID', $lopHocPhanID)
-            ->orderBy('HoTenSinhVien', 'asc')
+        // Truy vấn trực tiếp từ bảng đăng ký kết hợp với bảng sinh viên và bảng điểm
+        // Điều này đảm bảo dữ liệu "Sống" và chính xác 100% so với những gì sinh viên thấy
+        return DB::table('dangkyhocphan as dk')
+            ->join('sinhvien as sv', 'dk.SinhVienID', '=', 'sv.SinhVienID')
+            ->leftJoin('diemso as d', 'dk.DangKyID', '=', 'd.DangKyID')
+            ->where('dk.LopHocPhanID', $lopHocPhanID)
+            ->where('dk.TrangThai', 'ThanhCong')
+            ->select([
+                'sv.SinhVienID as sinh_vien_id',
+                'sv.MaSV as ma_sv',
+                'sv.HoTen as ho_ten',
+                'sv.Email as email',
+                'sv.SoDienThoai as so_dien_thoai',
+                'dk.ThoiGianDangKy as thoi_gian_dang_ky',
+                'dk.TrangThai as trang_thai',
+                'd.DiemChuyenCan as diem_cc',
+                'd.DiemGiuaKy as diem_gk',
+                'd.DiemThi as diem_thi',
+                'd.DiemTongKet as diem_tk'
+            ])
+            ->orderBy('sv.HoTen', 'asc')
             ->get()
-            ->map(fn($item) => [
-                'sinh_vien_id'      => $item->SinhVienID,
-                'ma_sv'             => $item->MaSV,
-                'ho_ten'            => $item->HoTenSinhVien,
-                'email'             => $item->Email,
-                'so_dien_thoai'     => $item->SoDienThoai,
-                'thoi_gian_dang_ky' => $item->ThoiGianDangKy,
-                'trang_thai'        => $item->TrangThai,
-                'nam_hoc'           => $namHoc,
-                // Bổ sung các trường điểm để hiển thị trên giao diện
-                'diem_cc'           => $item->DiemChuyenCan,
-                'diem_gk'           => $item->DiemGiuaKy,
-                'diem_thi'          => $item->DiemThi,
-                'diem_tk'           => $item->DiemTongKet,
-            ]);
+            ->map(function($item) use ($namHoc) {
+                $data = (array)$item;
+                $data['nam_hoc'] = $namHoc;
+                return $data;
+            });
     }
 
     public function getDanhSachIn($lopHocPhanID): array

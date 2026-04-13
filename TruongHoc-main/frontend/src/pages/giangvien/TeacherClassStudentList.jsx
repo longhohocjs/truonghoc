@@ -19,8 +19,11 @@ const TeacherClassStudentList = () => {
         const res = await axiosClient.get(
           `/giang-vien/lop-hoc-phan/${id}/print`,
         );
-        setStudents(res.data?.danh_sach || []);
-        setClassInfo(res.data?.meta || null);
+
+        // Đảm bảo bóc tách đúng cấu trúc { success, data: { meta, danh_sach } }
+        const payload = res.data || res;
+        setStudents(payload.danh_sach || []);
+        setClassInfo(payload.meta || null);
       } catch (error) {
         toast.error("Không thể tải danh sách sinh viên");
       } finally {
@@ -87,7 +90,7 @@ const TeacherClassStudentList = () => {
               {students.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="6"
+                    colSpan="8"
                     className="px-6 py-20 text-center text-gray-400 italic"
                   >
                     Chưa có sinh viên nào đăng ký lớp học này.
@@ -96,7 +99,7 @@ const TeacherClassStudentList = () => {
               ) : (
                 students.map((sv, index) => (
                   <tr
-                    key={index}
+                    key={sv.sinh_vien_id || index}
                     className="hover:bg-indigo-50/10 transition-colors group"
                   >
                     <td className="px-6 py-4 text-gray-400 text-sm font-medium">
@@ -108,20 +111,27 @@ const TeacherClassStudentList = () => {
                     <td className="px-6 py-4 font-bold text-gray-800 text-sm">
                       {sv.ho_ten}
                     </td>
-                    <td className="px-6 py-4 text-gray-500 text-sm lowercase">
-                      <div className="flex items-center gap-2">
-                        <Mail size={12} /> {sv.email || "N/A"}
-                      </div>
+                    <td className="px-6 py-4 text-center text-sm font-medium text-gray-600">
+                      {sv.diem_cc ?? "-"}
                     </td>
-                    <td className="px-6 py-4 text-gray-500 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Phone size={12} className="text-gray-300" />{" "}
-                        {sv.so_dien_thoai || "N/A"}
-                      </div>
+                    <td className="px-6 py-4 text-center text-sm font-medium text-gray-600">
+                      {sv.diem_gk ?? "-"}
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm font-bold text-indigo-600">
+                      {sv.diem_thi ?? "-"}
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className="bg-green-50 text-green-600 px-2 py-1 rounded-lg text-[10px] font-black uppercase border border-green-100">
-                        Thành công
+                      <span
+                        className={`font-black text-sm ${parseFloat(sv.diem_tk) >= 5 ? "text-green-600" : "text-red-500"}`}
+                      >
+                        {sv.diem_tk ?? "-"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <span
+                        className={`text-[10px] font-black uppercase px-2 py-1 rounded ${parseFloat(sv.diem_tk) >= 4 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                      >
+                        {parseFloat(sv.diem_tk) >= 4 ? "Đạt" : "Học lại"}
                       </span>
                     </td>
                   </tr>

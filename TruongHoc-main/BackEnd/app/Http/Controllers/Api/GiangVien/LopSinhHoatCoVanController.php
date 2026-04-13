@@ -103,44 +103,35 @@ class LopSinhHoatCoVanController extends Controller
     {
         $validated = $request->validate([
             'lopSinhHoatID' => 'required|integer|exists:lopsinhhoat,LopSinhHoatID',
-            'sinhVienID'    => 'required|integer|exists:sinhvien,SinhVienID',
             'hocKyID'       => 'required|integer|exists:hocky,HocKyID',
-            'tongDiem'      => 'required|numeric|min:0|max:100',
-            'xepLoai'       => 'nullable|string|in:XuatSac,Gioi,Kha,TrungBinh,Yeu,Kem',
+            'danhSachDRL'   => 'required|array',
+            'danhSachDRL.*.sinhVienID' => 'required|integer|exists:sinhvien,SinhVienID',
+            'danhSachDRL.*.tongDiem'   => 'required|numeric|min:0|max:100',
+            'danhSachDRL.*.xepLoai'    => 'required|string',
         ]);
 
         $giangVien = $request->user()?->giangVien;
-        $currentUserId = $request->user()?->id;
+        if (!$giangVien) return response()->json(['message' => 'Unauthorized'], 403);
 
-        if (!$giangVien || !$currentUserId) {
-            return response()->json(['success' => false, 'message' => 'Không thể xác thực người dùng'], 403);
-        }
-
-        $lop = LopSinhHoat::where('LopSinhHoatID', $validated['lopSinhHoatID'])
+        // Kiểm tra quyền quản lý lớp
+        $isOwner = LopSinhHoat::where('LopSinhHoatID', $validated['lopSinhHoatID'])
             ->where('GiangVienID', $giangVien->GiangVienID)
             ->exists();
 
-        if (!$lop) {
-            return response()->json(['success' => false, 'message' => 'Lớp sinh hoạt không thuộc quyền của bạn'], 403);
+        if (!$isOwner) return response()->json(['message' => 'Forbidden'], 403);
+
+        // Sử dụng service để lưu hàng loạt (Tận dụng logic DiemSoService đã có)
+        foreach ($validated['danhSachDRL'] as $item) {
+            $this->service->capNhatDiemRenLuyen(
+                $item['sinhVienID'],
+                $validated['hocKyID'],
+                $item['tongDiem'],
+                $item['xepLoai'],
+                $giangVien->GiangVienID,
+                $request->user()->id
+            );
         }
 
-        $isInLop = VSinhVienLopSinhHoat::where('LopSinhHoatID', $validated['lopSinhHoatID'])
-            ->where('SinhVienID', $validated['sinhVienID'])
-            ->exists();
-
-        if (!$isInLop) {
-            return response()->json(['success' => false, 'message' => 'Sinh viên không thuộc lớp sinh hoạt này'], 403);
-        }
-
-        $result = $this->service->capNhatDiemRenLuyen(
-            $validated['sinhVienID'],
-            $validated['hocKyID'],
-            $validated['tongDiem'],
-            $validated['xepLoai'] ?? null,
-            $giangVien->GiangVienID,
-            $currentUserId
-        );
-
-        return response()->json($result);
+        return response()->json(['success' => true, 'message' => 'Cập nhật điểm rèn luyện thành công']);
     }
 }
