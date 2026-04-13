@@ -55,7 +55,9 @@ const LichThi = () => {
                 <th className="px-6 py-4">Mã môn</th>
                 <th className="px-6 py-4">Tên môn học</th>
                 <th className="px-6 py-4">Ngày thi</th>
-                <th className="px-6 py-4 text-center">Giờ thi</th>
+                <th className="px-6 py-4 text-center whitespace-nowrap">
+                  Giờ thi
+                </th>
                 <th className="px-6 py-4">Phòng thi</th>
                 <th className="px-6 py-4 text-center">Số báo danh</th>
               </tr>
@@ -83,12 +85,12 @@ const LichThi = () => {
                     <td className="px-6 py-4 font-semibold text-gray-800">
                       {item.ten_mon || item.lop_hoc_phan?.mon_hoc?.TenMon}
                     </td>
-                    <td className="px-6 py-4 font-medium">
+                    <td className="px-6 py-4 font-medium ">
                       {item.ngay_thi || item.NgayThi}
                     </td>
-                    <td className="px-6 py-4 text-center text-orange-600 font-bold">
-                      {item.gio_bat_dau || item.GioBatDau} -{" "}
-                      {item.gio_ket_thuc || item.GioKetThuc}
+                    <td className="px-6 py-4 text-center text-orange-600 font-bold whitespace-nowrap min-w-[120px]">
+                      {item.gio_thi ||
+                        `${item.gio_bat_dau} - ${item.gio_ket_thuc}`}
                     </td>
                     <td className="px-6 py-4 font-medium text-gray-700">
                       {item.phong_thi || item.PhongHoc || "Đang cập nhật"}

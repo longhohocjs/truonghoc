@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\SinhVien;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use App\Models\LopHocPhan;
 use App\Models\DotDangKy;
 use App\Models\DangKyHocPhan;
@@ -25,7 +26,10 @@ class DangKyHocPhanController extends Controller
             return response()->json(['message' => 'Ngoài thời gian đăng ký'], 400);
         }
 
-        $lops = LopHocPhan::with([
+        $lops = LopHocPhan::withCount(['dangKyHocPhan as SoLuongHienTai' => function($query) {
+            $query->where('TrangThai', 'ThanhCong');
+        }])
+        ->with([
             'monHoc.monTienQuyet' => fn($q) => $q->wherePivot('Loai', 1),
             'monHoc.monSongHanh' => fn($q) => $q->wherePivot('Loai', 2),
             'giangVien', 
@@ -141,26 +145,50 @@ class DangKyHocPhanController extends Controller
     {
         $service = app(HuyDangKyHocPhanService::class);
         $user = $request->user();
+        $sinhVien = $user->sinhVien;
 
-        $result = $service->huyDangKy($dangKyID, $user->UserID);
-
-        if ($result['success']) {
-            $dangKy = DangKyHocPhan::find($dangKyID);
-            if ($dangKy) {
-                $lopId = $dangKy->LopHocPhanID;
-                $lop = LopHocPhan::find($lopId);
-
-                if ($lop) {
-                    $currentCount = DangKyHocPhan::where('LopHocPhanID', $lopId)->count();
-                    $remaining = $lop->SoLuongToiDa - $currentCount;
-                    Cache::put("lophocphan:{$lopId}:slots", max(0, $remaining), 3600);
-                }
-            }
-
-            return response()->json(['message' => $result['message']]);
+        // Lấy thông tin đăng ký trước khi hủy để có LopHocPhanID cập nhật sĩ số sau khi xóa
+        $dangKy = DangKyHocPhan::where('DangKyID', $dangKyID)->first();
+        
+        if (!$dangKy) {
+            return response()->json(['message' => 'Thông tin đăng ký không tồn tại hoặc đã được hủy trước đó.'], 404);
         }
 
-        return response()->json(['message' => $result['message']], 400);
+        if ($dangKy->SinhVienID !== $sinhVien->SinhVienID) {
+            return response()->json(['message' => 'Bạn không có quyền hủy học phần của sinh viên khác.'], 403);
+        }
+
+        return DB::transaction(function () use ($service, $dangKy, $dangKyID, $user) {
+            try {
+                $lopId = $dangKy->LopHocPhanID;
+
+                // 1. Xóa bản ghi điểm rỗng
+                DB::table('diemso')->where('DangKyID', $dangKyID)->delete();
+
+                // 2. Ép trạng thái về chuẩn 'ThanhCong' để Procedure SELECT được dữ liệu
+                DB::table('dangkyhocphan')
+                    ->where('DangKyID', $dangKyID)
+                    ->update(['TrangThai' => 'ThanhCong']);
+
+                // 3. Gọi Service hủy
+                $result = $service->huyDangKy((int)$dangKyID, (int)$user->UserID);
+
+                if ($result['success']) {
+                    // Cập nhật lại cache sĩ số lớp học phần
+                    $lop = LopHocPhan::find($lopId);
+                    if ($lop) {
+                        $currentCount = DangKyHocPhan::where('LopHocPhanID', $lopId)->where('TrangThai', 'ThanhCong')->count();
+                        $remaining = max(0, $lop->SoLuongToiDa - $currentCount);
+                        Cache::put("lophocphan:{$lopId}:slots", $remaining, 3600);
+                    }
+                    return response()->json(['message' => $result['message']]);
+                }
+
+                return response()->json(['message' => $result['message']], 400);
+            } catch (\Exception $innerEx) {
+                return response()->json(['message' => 'Lỗi logic hủy: ' . $innerEx->getMessage()], 400);
+            }
+        });
     }
 
     public function getDaDangKy(Request $request)
@@ -175,6 +203,7 @@ class DangKyHocPhanController extends Controller
         }
 
         $danhSach = DangKyHocPhan::where('SinhVienID', $sinhVien->SinhVienID)
+            ->where('TrangThai', 'ThanhCong')
             ->whereHas('lopHocPhan', function ($query) use ($dot) {
                 $query->where('HocKyID', $dot->HocKyID);
             })

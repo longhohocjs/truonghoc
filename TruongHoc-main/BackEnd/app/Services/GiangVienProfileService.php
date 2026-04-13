@@ -16,11 +16,18 @@ class GiangVienProfileService
     public function updateContactInfo($giangVienID, array $data)
     {
         $giangVien = GiangVien::findOrFail($giangVienID);
-        $giangVien->update([
-            'email' => $data['Email'] ?? $giangVien->email,
-            'sodienthoai' => $data['SoDienThoai'] ?? $giangVien->sodienthoai,
-        ]);
-        return $giangVien;
+
+        $updateData = [];
+        if (array_key_exists('email', $data)) {
+            $updateData['email'] = $data['email'] ?: null;
+        }
+        if (array_key_exists('sodienthoai', $data)) {
+            $updateData['sodienthoai'] = $data['sodienthoai'] ?: null;
+        }
+
+        $giangVien->update($updateData);
+        // Nạp lại các quan hệ để Frontend hiển thị đầy đủ thông tin sau khi cập nhật
+        return $giangVien->load(['khoa', 'user']);
     }
 
     public function changePassword($user, $oldPassword, $newPassword)

@@ -19,7 +19,11 @@ class LopHocPhanController extends Controller
     public function index()
     {
         // Lấy toàn bộ danh sách lớp học phần kèm các quan hệ để hiển thị ở Frontend
-        $lops = LopHocPhan::with(['monHoc', 'hocKy', 'giangVien', 'lichHoc', 'lichThi'])->get();
+        // Thêm withCount để đếm sĩ số thực tế dựa trên trạng thái 'ThanhCong'
+        $lops = LopHocPhan::withCount(['dangKyHocPhan as SoLuongHienTai' => function($query) {
+            $query->where('TrangThai', 'ThanhCong');
+        }])
+        ->with(['monHoc', 'hocKy', 'giangVien', 'lichHoc', 'lichThi'])->get();
 
         return response()->json([
             'success' => true,

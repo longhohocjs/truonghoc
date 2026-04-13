@@ -108,10 +108,13 @@ const DangKyHocPhan = () => {
   const handleHuyMon = async (dangKyID) => {
     try {
       const res = await axiosClient.post(`/sinh-vien/huy-mon/${dangKyID}`);
-      showMsg("success", res.message);
+      const msg = res.message || res.data?.message || "Hủy môn thành công";
+      showMsg("success", msg);
       fetchData();
     } catch (error) {
-      showMsg("error", "Không thể hủy môn học.");
+      const errorMsg =
+        error.response?.data?.message || "Không thể hủy môn học lúc này.";
+      showMsg("error", errorMsg);
     }
   };
 
@@ -209,6 +212,9 @@ const DangKyHocPhan = () => {
                         {(lh.TietBatDau || lh.tiet_bat_dau) +
                           (lh.SoTiet || lh.so_tiet) -
                           1}
+                        {lh.PhongHoc || lh.phong_hoc
+                          ? ` - P.${lh.PhongHoc || lh.phong_hoc}`
+                          : ""}
                       </div>
                     ))}
                   </td>

@@ -39,6 +39,7 @@ const MainLayout = () => {
       { path: "/dashboard", label: "Tổng quan", icon: "📊" },
       { path: "/giang-vien/profile", label: "Hồ sơ cá nhân", icon: "👤" },
       { path: "/giang-vien/lop-phan-cong", label: "Lớp giảng dạy", icon: "📝" },
+      { path: "/giang-vien/lop-sinh-hoat", label: "Lớp sinh hoạt", icon: "👥" },
       {
         path: "/giang-vien/lich-giang-day",
         label: "Lịch giảng dạy",
@@ -71,9 +72,15 @@ const MainLayout = () => {
     ],
   };
 
-  // Lấy danh sách menu dựa trên role của user (lowercase để tránh sai lệch)
-  const currentRole = user?.role?.toLowerCase() || "";
-  const currentMenu = menuItems[currentRole] || [];
+  // Chuẩn hóa role để khớp với key trong menuItems (xử lý cả giangvien và giang_vien)
+  const getMenu = () => {
+    const role = user?.role?.toLowerCase() || "";
+    if (role.includes("giang") || role.includes("giảng"))
+      return menuItems.giangvien;
+    return menuItems[role] || [];
+  };
+
+  const currentMenu = getMenu();
 
   return (
     <div className="flex h-screen bg-gray-100">

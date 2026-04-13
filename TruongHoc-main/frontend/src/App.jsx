@@ -33,6 +33,8 @@ import GiangVienProfile from "@/pages/giangvien/GiangVienProfile";
 import LopPhanCong from "@/pages/giangvien/LopPhanCong";
 import LichGiangDay from "@/pages/giangvien/LichGiangDay";
 import LichCoiThi from "@/pages/giangvien/LichCoiThi";
+import TeacherClassStudentList from "@/pages/giangvien/TeacherClassStudentList";
+import AdvisorClass from "@/pages/giangvien/AdvisorClass";
 
 // Sinh Vien Pages
 import StudentProfile from "@/pages/sinhvien/StudentProfile";
@@ -114,7 +116,13 @@ function App() {
               </Route>
 
               {/* Nhóm chức năng cho GIẢNG VIÊN */}
-              <Route element={<ProtectedRoute allowedRoles={["giangvien"]} />}>
+              <Route
+                element={
+                  <ProtectedRoute
+                    allowedRoles={["giangvien", "giang_vien", "giảng viên"]}
+                  />
+                }
+              >
                 <Route
                   path="/giang-vien/profile"
                   element={<GiangVienProfile />}
@@ -130,6 +138,14 @@ function App() {
                 <Route
                   path="/giang-vien/lich-coi-thi"
                   element={<LichCoiThi />}
+                />
+                <Route
+                  path="/giang-vien/lop/:id/sinh-vien"
+                  element={<TeacherClassStudentList />}
+                />
+                <Route
+                  path="/giang-vien/lop-sinh-hoat"
+                  element={<AdvisorClass />}
                 />
               </Route>
 

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\LopHocPhan;
 use App\Models\Khoa;
 use App\Models\View\VBangDiemLopHocPhan;
 use App\Models\View\VGpaHocKy;
@@ -27,11 +28,21 @@ class ThongKeService
 
     public function thongKeSiSoLop(array $filters)
     {
-        return VDanhSachLopGiangVien::query()
+        // Truy vấn trực tiếp từ Model LopHocPhan và đếm động thay vì dùng View
+        return LopHocPhan::withCount(['dangKyHocPhan as SoSinhVien' => function($q) {
+                $q->where('TrangThai', 'ThanhCong');
+            }])
             ->when($filters['HocKyID'] ?? null, function($q, $id) {
                 return $q->where('HocKyID', $id);
             })
-            ->get(['MaLopHP', 'TenMon', 'SoLuongToiDa', 'SoSinhVien']);
+            ->with('monHoc')
+            ->get()
+            ->map(fn($l) => [
+                'MaLopHP' => $l->MaLopHP,
+                'TenMon' => $l->monHoc->TenMon ?? 'N/A',
+                'SoLuongToiDa' => $l->SoLuongToiDa,
+                'SoSinhVien' => $l->SoSinhVien
+            ]);
     }
 
     public function thongKeTyLeDauRot(int $lopHocPhanID)

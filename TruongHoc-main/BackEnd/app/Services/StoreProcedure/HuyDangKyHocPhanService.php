@@ -27,11 +27,11 @@ class HuyDangKyHocPhanService
                 'message' => $ketQua,
                 'error'   => null
             ];
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             return [
                 'success' => false,
-                'message' => 'Lỗi khi hủy đăng ký',
-                'error'   => $e->getMessage()
+                'message' => 'Lỗi hệ thống: ' . $e->getMessage(),
+                'error'   => $e->getTraceAsString()
             ];
         }
     }

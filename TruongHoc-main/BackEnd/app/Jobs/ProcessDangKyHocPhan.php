@@ -42,11 +42,11 @@ class ProcessDangKyHocPhan implements ShouldQueue
         try {
             DB::transaction(function () use ($dangKyService, $statusKey, $slotsKey) {
                 
-                $exists = DangKyHocPhan::where('SinhVienID', $this->sinhVienID)
+                $existingRecord = DangKyHocPhan::where('SinhVienID', $this->sinhVienID)
                     ->where('LopHocPhanID', $this->lopHocPhanID)
-                    ->exists();
+                    ->first();
 
-                if ($exists) {
+                if ($existingRecord && $existingRecord->TrangThai === 'ThanhCong') {
                     Cache::put($statusKey, 'Bạn đã đăng ký môn học này rồi.', 300);
                     return;
                 }
@@ -59,7 +59,7 @@ class ProcessDangKyHocPhan implements ShouldQueue
                     throw new \Exception('Lớp học phần không tồn tại.');
                 }
 
-                $currentCount = DangKyHocPhan::where('LopHocPhanID', $this->lopHocPhanID)->count();
+                $currentCount = DangKyHocPhan::where('LopHocPhanID', $this->lopHocPhanID)->where('TrangThai', 'ThanhCong')->count();
                 if ($currentCount >= $lop->SoLuongToiDa) {
                     throw new \Exception('Lớp đã đầy sĩ số.');
                 }
@@ -71,13 +71,22 @@ class ProcessDangKyHocPhan implements ShouldQueue
                     throw new \Exception($validation['message']);
                 }
 
-                DangKyHocPhan::create([
-                    'SinhVienID'     => $this->sinhVienID,
-                    'LopHocPhanID'   => $this->lopHocPhanID,
-                    'UserID'         => $this->userId,
-                    'ThoiGianDangKy' => now(),
-                    'TrangThai'      => 'DaDangKy', 
-                ]);
+                if ($existingRecord) {
+                    // Nếu đã từng đăng ký và hủy, thì cập nhật lại trạng thái
+                    $existingRecord->update([
+                        'UserID'         => $this->userId,
+                        'ThoiGianDangKy' => now(),
+                        'TrangThai'      => 'ThanhCong',
+                    ]);
+                } else {
+                    DangKyHocPhan::create([
+                        'SinhVienID'     => $this->sinhVienID,
+                        'LopHocPhanID'   => $this->lopHocPhanID,
+                        'UserID'         => $this->userId,
+                        'ThoiGianDangKy' => now(),
+                        'TrangThai'      => 'ThanhCong',
+                    ]);
+                }
 
                 if (Cache::has($slotsKey)) {
                     Cache::decrement($slotsKey);

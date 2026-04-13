@@ -41,27 +41,50 @@ class ProfileController extends Controller
      */
     public function update(Request $request)
     {
-        $giangVienID = $request->user()->giangVien->GiangVienID;
+        $user = $request->user();
+        $giangVien = $user->giangVien;
 
-        $validator = Validator::make($request->all(), [
-            'Email' => 'email|unique:giangvien,Email,' . $giangVienID . ',GiangVienID',
-            'SoDienThoai' => 'string|max:15'
+        if (!$giangVien) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Không tìm thấy hồ sơ giảng viên liên kết với tài khoản này.'
+            ], 404);
+        }
+
+        $giangVienID = $giangVien->GiangVienID;
+
+        // Chuẩn hóa dữ liệu: chấp nhận cả email/sodienthoai và Email/SoDienThoai
+        $input = [
+            'email'       => $request->input('email') ?? $request->input('Email'),
+            'sodienthoai' => $request->input('sodienthoai') ?? $request->input('SoDienThoai'),
+        ];
+
+        $validator = Validator::make($input, [
+            'email' => 'nullable|email|max:255|unique:giangvien,email,' . $giangVienID . ',GiangVienID',
+            'sodienthoai' => 'nullable|string|max:15'
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $updatedProfile = $this->profileService->updateContactInfo(
-            $giangVienID, 
-            $request->only(['Email', 'SoDienThoai'])
-        );
+        try {
+            $updatedProfile = $this->profileService->updateContactInfo(
+                $giangVienID, 
+                $input
+            );
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Cập nhật thông tin thành công.',
-            'data' => $updatedProfile
-        ], 200);
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Cập nhật thông tin liên lạc thành công.',
+                'data' => $updatedProfile
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Lỗi hệ thống khi cập nhật: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -69,6 +92,15 @@ class ProfileController extends Controller
      */
     public function changePassword(Request $request)
     {
+        $user = $request->user();
+        
+        if (!$user->giangVien) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Không tìm thấy hồ sơ giảng viên để thực hiện thao tác này.'
+            ], 404);
+        }
+
         $validator = Validator::make($request->all(), [
             'old_password' => 'required',
             'new_password' => 'required|min:6|confirmed', // Cần trường new_password_confirmation

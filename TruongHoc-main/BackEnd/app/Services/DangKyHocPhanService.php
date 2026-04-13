@@ -75,6 +75,7 @@ class DangKyHocPhanService
     {
         // Thay thế việc dùng View bằng truy vấn trực tiếp vào bảng đăng ký và lớp học phần
         return DangKyHocPhan::where('SinhVienID', $sinhVienID)
+            ->where('TrangThai', 'ThanhCong')
             ->whereHas('lopHocPhan', function ($q) use ($monHocID, $hocKyID) {
                 $q->where('MonHocID', $monHocID)
                   ->where('HocKyID', $hocKyID);
@@ -84,7 +85,7 @@ class DangKyHocPhanService
 
     private function checkSiSo(LopHocPhan $lop): bool
     {
-        $daDangKy = $lop->dangKyHocPhan()->count();
+        $daDangKy = $lop->dangKyHocPhan()->where('TrangThai', 'ThanhCong')->count();
         return $daDangKy < $lop->SoLuongToiDa;
     }
 
@@ -125,6 +126,7 @@ class DangKyHocPhanService
         // Kiểm tra xem sinh viên đã đăng ký các môn song hành này chưa (trong bất kỳ học kỳ nào)
         $registeredIDs = DangKyHocPhan::join('lophocphan', 'dangkyhocphan.LopHocPhanID', '=', 'lophocphan.LopHocPhanID')
             ->where('dangkyhocphan.SinhVienID', $sinhVienID)
+            ->where('dangkyhocphan.TrangThai', 'ThanhCong')
             ->whereIn('lophocphan.MonHocID', $songHanhIDs)
             ->pluck('lophocphan.MonHocID')
             ->toArray();
@@ -143,6 +145,7 @@ class DangKyHocPhanService
         $existsLichHoc = DB::table('lichhoc as lh_cu')
             ->join('dangkyhocphan as dk', 'lh_cu.LopHocPhanID', '=', 'dk.LopHocPhanID')
             ->where('dk.SinhVienID', '=', $sinhVien->SinhVienID)
+            ->where('dk.TrangThai', '=', 'ThanhCong')
             ->where(function ($query) use ($lichHocMoi) {
                 foreach ($lichHocMoi as $lm) {
                     $query->orWhere(function ($sub) use ($lm) {
@@ -166,6 +169,7 @@ class DangKyHocPhanService
             $existsLichThi = DB::table('lichthi as lt_cu')
                 ->join('dangkyhocphan as dk', 'lt_cu.LopHocPhanID', '=', 'dk.LopHocPhanID')
                 ->where('dk.SinhVienID', '=', $sinhVien->SinhVienID)
+                ->where('dk.TrangThai', '=', 'ThanhCong')
                 ->where('lt_cu.NgayThi', $ltMoi->NgayThi)
                 ->where(function ($q) use ($ltMoi) {
                     $q->where('lt_cu.GioBatDau', '<', $ltMoi->GioKetThuc)

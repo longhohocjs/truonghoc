@@ -47,7 +47,7 @@ class LopSinhHoatCoVanController extends Controller
             return response()->json(['success' => false, 'message' => 'Không tìm thấy thông tin giảng viên'], 403);
         }
 
-        $lop = LopSinhHoat::where('LopHocPhanID', $validated['lopSinhHoatID']) // Hoặc LopSinhHoatID tùy DB của bạn
+        $lop = LopSinhHoat::where('LopSinhHoatID', $validated['lopSinhHoatID'])
             ->where('GiangVienID', $giangVien->GiangVienID)
             ->first();
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axiosClient from "@/api/axios";
+import toast from "react-hot-toast";
 
 const NhapDiemModal = ({ isOpen, onClose, lop }) => {
   const [sinhViens, setSinhViens] = useState([]);
@@ -37,15 +38,19 @@ const NhapDiemModal = ({ isOpen, onClose, lop }) => {
         diem_thi: field === "diem_thi" ? value : sv.diem_thi,
       };
 
-      await axiosClient.post("/giang-vien/nhap-diem", payload);
+      const res = await axiosClient.post("/giang-vien/nhap-diem", payload);
+      toast.success(`Đã lưu điểm cho SV ${sv.ho_ten}`);
+
       // Cập nhật state local
       setSinhViens((prev) =>
         prev.map((s) =>
-          s.sinh_vien_id === svId ? { ...s, [field]: value } : s,
+          s.sinh_vien_id === svId
+            ? { ...s, [field]: value, diem_tk: res.diem_tk || s.diem_tk }
+            : s,
         ),
       );
     } catch (error) {
-      alert("Lỗi khi cập nhật điểm!");
+      toast.error("Lỗi khi cập nhật điểm!");
     }
   };
 
@@ -139,7 +144,7 @@ const NhapDiemModal = ({ isOpen, onClose, lop }) => {
                         max="10"
                         step="0.1"
                         className="w-full p-2 border border-gray-200 rounded text-center text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                        value={sv.diem_cc || ""}
+                        value={sv.diem_cc ?? ""}
                         onBlur={(e) =>
                           handleUpdateDiem(
                             sv.sinh_vien_id,
@@ -165,7 +170,7 @@ const NhapDiemModal = ({ isOpen, onClose, lop }) => {
                         max="10"
                         step="0.1"
                         className="w-full p-2 border border-gray-200 rounded text-center text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                        value={sv.diem_gk || ""}
+                        value={sv.diem_gk ?? ""}
                         onBlur={(e) =>
                           handleUpdateDiem(
                             sv.sinh_vien_id,
@@ -191,7 +196,7 @@ const NhapDiemModal = ({ isOpen, onClose, lop }) => {
                         max="10"
                         step="0.1"
                         className="w-full p-2 border border-gray-200 rounded text-center text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                        value={sv.diem_thi || ""}
+                        value={sv.diem_thi ?? ""}
                         onBlur={(e) =>
                           handleUpdateDiem(
                             sv.sinh_vien_id,

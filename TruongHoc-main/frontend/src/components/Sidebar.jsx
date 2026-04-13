@@ -17,8 +17,9 @@ const Sidebar = () => {
     ],
     giangvien: [
       { title: "Hồ sơ cá nhân", path: "/giang-vien/profile" },
-      { title: "Lớp phân công", path: "/giang-vien/lop-phan-cong" },
-      { title: "Lịch giảng dạy", path: "/giang-vien/lich-giang-day" },
+      { title: "Lớp học phần giảng dạy", path: "/giang-vien/lop-phan-cong" },
+      { title: "Lớp sinh hoạt (Cố vấn)", path: "/giang-vien/lop-sinh-hoat" },
+      { title: "Thời khóa biểu dạy", path: "/giang-vien/lich-giang-day" },
       { title: "Lịch coi thi", path: "/giang-vien/lich-coi-thi" },
     ],
     sinhvien: [
@@ -32,7 +33,18 @@ const Sidebar = () => {
     ],
   };
 
-  const currentMenu = menuItems[user?.role] || [];
+  // Chuẩn hóa logic nhận diện Role để hiển thị Menu chính xác
+  const getMenu = () => {
+    const role = user?.role?.toLowerCase() || "";
+    if (role === "admin") return menuItems.admin;
+    if (role === "sinhvien" || role === "sinh_vien") return menuItems.sinhvien;
+    // Hỗ trợ "giangvien", "giang_vien" và "giảng viên"
+    if (role.includes("giang") || role.includes("giảng"))
+      return menuItems.giangvien;
+    return [];
+  };
+
+  const currentMenu = getMenu();
 
   return (
     <div className="w-64 h-screen bg-gray-900 text-white flex flex-col fixed left-0 top-0">

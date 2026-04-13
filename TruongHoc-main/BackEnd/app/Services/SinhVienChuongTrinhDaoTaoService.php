@@ -47,6 +47,7 @@ class SinhVienChuongTrinhDaoTaoService
         }
 
         $dangKy = $sv->dangKyHocPhan()
+            ->where('TrangThai', 'ThanhCong')
             ->with(['lopHocPhan.monHoc', 'diemSo'])
             ->get();
 

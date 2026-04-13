@@ -36,12 +36,12 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::middleware(['auth:api', \App\Http\Middleware\CheckActiveUser::class])->group(function () {
 
     Route::get('/me', [AuthController::class, 'me']);
-    Route::post('/change-password', [AuthController::class, 'changePasswordHash']);
+    Route::post('/change-password', [AuthController::class, 'changePassword']);
     Route::post('/logout', [AuthController::class, 'logout']);
+   
 
     // --- SINH VIÊN ---
-    // --- SINH VIÊN (Các chức năng chung) ---
-    Route::middleware(['auth:api', 'check.active', 'check.sinhvien'])->prefix('sinh-vien')->group(function () {
+    Route::middleware(['check.sinhvien'])->prefix('sinh-vien')->group(function () {
         Route::get('profile', [SinhVienProfile::class, 'show']);
         Route::put('profile/contact', [SinhVienProfile::class, 'updateContact']);
         Route::get('study-info', [SinhVienProfile::class, 'studyInfo']);
@@ -70,7 +70,7 @@ Route::middleware(['auth:api', \App\Http\Middleware\CheckActiveUser::class])->gr
         // Profile & Account
         Route::get('profile', [GiangVienProfile::class, 'show']);
         Route::put('profile/update', [GiangVienProfile::class, 'update']);
-        Route::post('/change-password', [GiangVienProfile::class, 'changePassword']);
+        Route::post('profile/change-password', [GiangVienProfile::class, 'changePassword']);
         
         // Lớp học phần & Sinh viên
         Route::get('lop-hoc-phan', [LopHocPhanController::class, 'index']);
@@ -82,7 +82,6 @@ Route::middleware(['auth:api', \App\Http\Middleware\CheckActiveUser::class])->gr
         Route::post('lop/sinh-vien', [LopHocPhanGiangVienController::class, 'getSinhVienTrongLop']);
         Route::get('lich-giang-day', [LichGiangDayController::class, 'getLichGiangDay']);
         Route::get('lich-coi-thi', [LichCoiThiController::class, 'getLichCoiThi']);
-        Route::get('lop-hoc-phan/sinh-vien', [LopHocPhanGiangVienController::class, 'getSinhVienTrongLop']);
 
         Route::post('nhap-diem', [LopHocPhanGiangVienController::class, 'updateDiem']);
         // Xuất Excel mẫu để nhập điểm

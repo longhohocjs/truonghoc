@@ -4,6 +4,7 @@ namespace App\Services;
 class SinhVienDiemService {
     public function getBangDiemTongHop($user) {
         return $user->sinhVien->dangKyHocPhan()
+            ->where('TrangThai', 'ThanhCong')
             ->with(['lopHocPhan.monHoc', 'lopHocPhan.hocKy', 'diemSo'])
             ->get();
     }

@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\DangKyHocPhan;
 use App\Models\User;
-use App\Models\View\VDiemHocKySinhVien;
 use App\Models\View\VGpaHocKy;
 
 class KetQuaHocTapService
@@ -15,33 +15,42 @@ class KetQuaHocTapService
             return ['success' => false, 'data' => null, 'message' => 'Không tìm thấy sinh viên'];
         }
 
-        $query = VDiemHocKySinhVien::where('SinhVienID', $sv->SinhVienID);
+        // Sử dụng DangKyHocPhan model để đảm bảo cột TrangThai tồn tại
+        $query = DangKyHocPhan::where('SinhVienID', $sv->SinhVienID)
+            ->where('TrangThai', 'ThanhCong')
+            ->with(['lopHocPhan.monHoc', 'lopHocPhan.hocKy', 'diemSo']);
+
         if ($hocKyId) {
-            $query->where('HocKyID', $hocKyId);
+            $query->whereHas('lopHocPhan', fn($q) => $q->where('HocKyID', $hocKyId));
         }
 
         $diemChiTiet = $query->get()->map(function($item) {
-            $diem10 = $item->DiemTongKet ?? $item->diem_tong_ket;
+            $diem10 = $item->diemSo->DiemTongKet ?? $item->diemSo->diem_tong_ket ?? null;
             $info4 = $this->quyDoiHe4($diem10);
             
             return [
-                'ten_hoc_ky'   => $item->TenHocKy,
-                'ma_mon'       => $item->MaMon,
-                'ten_mon'      => $item->TenMon,
-                'so_tin_chi'   => $item->SoTinChi,
-                'diem_cc'      => $item->DiemChuyenCan ?? $item->diem_chuyen_can,
-                'diem_gk'      => $item->DiemGiuaKy ?? $item->diem_giua_ky,
-                'diem_thi'     => $item->DiemThi ?? $item->diem_thi,
+                'ten_hoc_ky'   => $item->lopHocPhan->hocKy->TenHocKy ?? 'N/A',
+                'ma_mon'       => $item->lopHocPhan->monHoc->MaMon ?? 'N/A',
+                'ten_mon'      => $item->lopHocPhan->monHoc->TenMon ?? 'N/A',
+                'so_tin_chi'   => $item->lopHocPhan->monHoc->SoTinChi ?? 0,
+                'diem_cc'      => $item->diemSo->DiemChuyenCan ?? $item->diemSo->diem_chuyen_can ?? null,
+                'diem_gk'      => $item->diemSo->DiemGiuaKy ?? $item->diemSo->diem_giua_ky ?? null,
+                'diem_thi'     => $item->diemSo->DiemThi ?? $item->diemSo->diem_thi ?? null,
                 'diem_tk'      => $diem10,
                 'diem_chu'     => $info4['chu'],
                 'diem_he_4'    => $info4['so'],
             ];
         });
 
-        $gpa = VGpaHocKy::where('SinhVienID', $sv->SinhVienID)
-            ->when($hocKyId, fn($q) => $q->where('HocKyID', $hocKyId))
-            ->orderBy('HocKyID', 'desc') // Lấy GPA của học kỳ mới nhất nếu không chọn cụ thể
-            ->first();
+        // Đối với GPA, ta vẫn dùng View nhưng bọc trong try-catch để tránh crash nếu View lỗi
+        try {
+            $gpa = VGpaHocKy::where('SinhVienID', $sv->SinhVienID)
+                ->when($hocKyId, fn($q) => $q->where('HocKyID', $hocKyId))
+                ->orderBy('HocKyID', 'desc')
+                ->first();
+        } catch (\Exception $e) {
+            $gpa = null;
+        }
 
         return [
             'success' => true,
@@ -51,7 +60,7 @@ class KetQuaHocTapService
                     'ten_hoc_ky'     => $gpa->TenHocKy,
                     'so_mon'         => $gpa->SoMon,
                     'tong_tin_chi'   => $gpa->TongTinChi,
-                    'gpa'            => round($gpa->GPA_HocKy_TamTinh, 2),
+                    'gpa'            => round((float)($gpa->GPA_HocKy_TamTinh ?? 0), 2),
                     'gpa_he_4'       => $this->tinhGpaHe4($diemChiTiet),
                 ] : null,
             ],

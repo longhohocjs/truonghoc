@@ -39,8 +39,10 @@ class LopHocPhanService
                 'nam_hoc'         => $item->NamHoc ?? 'Chưa có',
                 'ten_hoc_ky'      => $item->TenHocKy,
                 'so_luong_toi_da' => $item->SoLuongToiDa,
-                'so_sinh_vien'    => $item->SoSinhVien,
-                'si_so'           => $item->SiSo, 
+                'so_sinh_vien'    => $currentCount = \App\Models\DangKyHocPhan::where('LopHocPhanID', $item->LopHocPhanID)
+                                    ->where('TrangThai', 'ThanhCong')
+                                    ->count(),
+                'si_so'           => $currentCount . '/' . $item->SoLuongToiDa, 
                 'giang_vien'      => [
                     'ho_ten' => $item->TenGiangVien,
                     'hoc_vi' => $item->HocVi,
@@ -65,6 +67,11 @@ class LopHocPhanService
                 'thoi_gian_dang_ky' => $item->ThoiGianDangKy,
                 'trang_thai'        => $item->TrangThai,
                 'nam_hoc'           => $namHoc,
+                // Bổ sung các trường điểm để hiển thị trên giao diện
+                'diem_cc'           => $item->DiemChuyenCan,
+                'diem_gk'           => $item->DiemGiuaKy,
+                'diem_thi'          => $item->DiemThi,
+                'diem_tk'           => $item->DiemTongKet,
             ]);
     }
 
@@ -110,14 +117,19 @@ class LopHocPhanService
             return $resNhapDiem;
         }
 
+        $diemTK = null;
         if (isset($data['diem_thi'])) {
             $tinhDiemService = app(TinhDiemTongKetService::class);
             $tinhDiemService->tinhDiem($dangKy->DangKyID, $userID);
+
+            // Lấy lại điểm tổng kết vừa được procedure tính toán xong
+            $diemTK = DB::table('diemso')->where('DangKyID', $dangKy->DangKyID)->value('DiemTongKet');
         }
 
         return [
             'success' => true,
             'message' => 'Cập nhật điểm thành công và đã tính toán lại tổng kết.',
+            'diem_tk' => $diemTK
         ];
     }
 
