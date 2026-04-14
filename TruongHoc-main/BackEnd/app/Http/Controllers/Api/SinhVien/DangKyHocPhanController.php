@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\LopHocPhan;
 use App\Models\DotDangKy;
 use App\Models\DangKyHocPhan;
+use App\Models\YeuCauMoLop;
 use App\Models\LichThi;
 use App\Services\StoreProcedure\HuyDangKyHocPhanService;
 use App\Jobs\ProcessDangKyHocPhan;
@@ -219,7 +220,37 @@ class DangKyHocPhanController extends Controller
             'data'   => $danhSach
         ]);
     }
-    
+
+    public function getDanhSachYeuCau(Request $request) {
+        $sinhVien = $request->user()->sinhVien;
+        if (!$sinhVien) return response()->json([], 404);
+
+        $data = YeuCauMoLop::with('mon_hoc')
+            ->where('SinhVienID', $sinhVien->SinhVienID)
+            ->orderBy('created_at', 'desc')
+            ->get();
+        return response()->json($data);
+    }
+
+    public function guiYeuCauMoLop(Request $request) {
+        $validated = $request->validate([
+            'monHocID' => 'required|integer|exists:monhoc,MonHocID',
+            'lyDo'     => 'required|string|max:1000',
+        ]);
+
+        $sinhVien = $request->user()->sinhVien;
+        if (!$sinhVien) return response()->json(['message' => 'Không tìm thấy SV'], 404);
+
+        YeuCauMoLop::create([
+            'SinhVienID' => $sinhVien->SinhVienID,
+            'MonHocID'   => $validated['monHocID'],
+            'LyDo'       => $validated['lyDo'],
+            'TrangThai'  => 0,
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Gửi yêu cầu thành công']);
+    }
+
     private function trungLichThi(LichThi $lt1, LichThi $lt2): bool
     {
         // Nếu ngày thi khác nhau → không trùng

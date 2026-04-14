@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { Inbox, Send } from "lucide-react";
 
 const MainLayout = () => {
   const { user, logout } = useAuth();
@@ -34,6 +35,11 @@ const MainLayout = () => {
       { path: "/admin/lop-sinh-hoat", label: "Lớp sinh hoạt", icon: "👥" },
       { path: "/admin/diem-so", label: "Quản lý Điểm", icon: "📝" },
       { path: "/admin/thong-ke", label: "Thống kê báo cáo", icon: "📈" },
+      {
+        path: "/admin/yeu-cau-mo-lop",
+        label: "Yêu cầu mở lớp",
+        icon: <Inbox size={20} />,
+      },
     ],
     giangvien: [
       { path: "/dashboard", label: "Tổng quan", icon: "📊" },
@@ -69,6 +75,11 @@ const MainLayout = () => {
       { path: "/sinh-vien/ket-qua", label: "Kết quả học tập", icon: "🎓" },
       { path: "/sinh-vien/lich-hoc", label: "Lịch học", icon: "🗓️" },
       { path: "/sinh-vien/lich-thi", label: "Lịch thi", icon: "✍️" },
+      {
+        path: "/sinh-vien/xin-mo-lop",
+        label: "Xin mở lớp",
+        icon: <Send size={20} />,
+      },
     ],
   };
 

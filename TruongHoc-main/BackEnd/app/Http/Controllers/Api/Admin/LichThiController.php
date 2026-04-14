@@ -25,6 +25,7 @@ class LichThiController extends Controller
                 'lich_thi.*.GioBatDau' => 'required|date_format:H:i:s',
                 'lich_thi.*.GioKetThuc' => 'required|date_format:H:i:s|after:lich_thi.*.GioBatDau',
                 'lich_thi.*.PhongThi' => 'required|string|max:50',
+                'lich_thi.*.HinhThucThi' => 'required|string|in:Tự luận,Trắc nghiệm,Báo cáo',
             ]);
 
             // Truyền nguyên mảng validated bao gồm cả LopHocPhanID và mảng lich_thi

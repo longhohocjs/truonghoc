@@ -27,6 +27,7 @@ import LopSinhHoatDetail from "@/pages/admin/LopSinhHoatDetail";
 import DiemManagement from "@/pages/admin/DiemManagement";
 import DiemDetail from "@/pages/admin/DiemDetail";
 import ThongKeBaoCao from "@/pages/admin/ThongKeBaoCao";
+import AdminManageClassRequests from "@/pages/admin/AdminManageClassRequests";
 
 // Giang Vien Pages
 import GiangVienProfile from "@/pages/giangvien/GiangVienProfile";
@@ -43,6 +44,7 @@ import DangKyHocPhan from "@/pages/sinhvien/DangKyHocPhan";
 import KetQuaHocTap from "@/pages/sinhvien/KetQuaHocTap";
 import LichHoc from "@/pages/sinhvien/LichHoc";
 import LichThi from "@/pages/sinhvien/LichThi";
+import StudentRequestClass from "@/pages/sinhvien/StudentRequestClass";
 import ChuongTrinhDaoTao from "@/pages/sinhvien/ChuongTrinhDaoTao";
 import MonDaHoanThanh from "@/pages/sinhvien/MonDaHoanThanh";
 import MonConThieu from "@/pages/sinhvien/MonConThieu";
@@ -113,6 +115,10 @@ function App() {
                   path="/admin/lop-hoc-phan"
                   element={<QuanLyLopHocPhan />}
                 />
+                <Route
+                  path="/admin/yeu-cau-mo-lop"
+                  element={<AdminManageClassRequests />}
+                />
                 <Route path="/admin/thong-ke" element={<ThongKeBaoCao />} />
               </Route>
 
@@ -158,6 +164,10 @@ function App() {
               <Route element={<ProtectedRoute allowedRoles={["sinhvien"]} />}>
                 <Route path="/sinh-vien/profile" element={<StudentProfile />} />
                 <Route path="/sinh-vien/dang-ky" element={<DangKyHocPhan />} />
+                <Route
+                  path="/sinh-vien/xin-mo-lop"
+                  element={<StudentRequestClass />}
+                />
                 <Route
                   path="/sinh-vien/chuong-trinh"
                   element={<ChuongTrinhDaoTao />}

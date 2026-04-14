@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\LopHocPhan;
 use App\Services\LopHocPhanService;
+use App\Models\YeuCauMoLop;
 use Illuminate\Http\Request;
 
 class LopHocPhanController extends Controller
@@ -142,5 +143,26 @@ class LopHocPhanController extends Controller
                 'message' => 'Lỗi hệ thống khi xóa lớp: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function getDanhSachYeuCau()
+    {
+        $data = YeuCauMoLop::with(['sinh_vien', 'mon_hoc'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+        return response()->json($data);
+    }
+
+    public function updateStatusYeuCau(Request $request, $id)
+    {
+        $yeuCau = YeuCauMoLop::findOrFail($id);
+        $yeuCau->update(['TrangThai' => $request->status]);
+        return response()->json(['success' => true]);
+    }
+
+    public function xoaYeuCau($id)
+    {
+        YeuCauMoLop::destroy($id);
+        return response()->json(['success' => true]);
     }
 }

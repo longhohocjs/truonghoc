@@ -63,6 +63,10 @@ Route::middleware(['auth:api', \App\Http\Middleware\CheckActiveUser::class])->gr
             Route::post('dang-ky', [DangKyHocPhanController::class, 'dangKy']);
             Route::get('check-status/{lhpID}', [DangKyHocPhanController::class, 'checkStatus']);
         });
+
+        // Chức năng Xin mở lớp
+        Route::get('yeu-cau-mo-lop', [DangKyHocPhanController::class, 'getDanhSachYeuCau']);
+        Route::post('yeu-cau-mo-lop', [DangKyHocPhanController::class, 'guiYeuCauMoLop']);
     });
 
     // --- GIẢNG VIÊN ---
@@ -196,5 +200,10 @@ Route::middleware(['auth:api', \App\Http\Middleware\CheckActiveUser::class])->gr
         
         // Thêm route tổng hợp cho dashboard thống kê
         Route::post('thong-ke-dang-ky', [ThongKeController::class, 'index']);
+
+        // Quản lý yêu cầu mở lớp
+        Route::get('yeu-cau-mo-lop', [AdminLopHocPhanController::class, 'getDanhSachYeuCau']);
+        Route::patch('yeu-cau-mo-lop/{id}/status', [AdminLopHocPhanController::class, 'updateStatusYeuCau']);
+        Route::delete('yeu-cau-mo-lop/{id}', [AdminLopHocPhanController::class, 'xoaYeuCau']);
     });
 });
