@@ -94,6 +94,7 @@ Route::middleware(['auth:api', \App\Http\Middleware\CheckActiveUser::class])->gr
         // Import điểm từ Excel
         Route::post('lop-hoc-phan/{id}/import-diem', [LopHocPhanGiangVienController::class, 'importDiemFromExcel']);
     
+        Route::patch('lich-thi/update', [LopHocPhanGiangVienController::class, 'updateLichThi']);
         Route::get('lop-sinh-hoat/phan-cong', [LopSinhHoatCoVanController::class, 'getLopPhanCong']);
         Route::post('lop-sinh-hoat/sinh-vien', [LopSinhHoatCoVanController::class, 'getSinhVienTrongLop']);
         Route::post('lop-sinh-hoat/diem-ren-luyen', [LopSinhHoatCoVanController::class, 'getDiemRenLuyen']);

@@ -14,6 +14,7 @@ const LichThiModal = ({ isOpen, onClose, lopHocPhan, onSave }) => {
         GioBatDau: item.GioBatDau || item.gio_bat_dau || "07:30",
         GioKetThuc: item.GioKetThuc || item.gio_ket_thuc || "09:00",
         PhongThi: item.PhongThi || item.phong_thi || "",
+        HinhThucThi: item.HinhThucThi || item.hinh_thuc || "Tự luận",
       }));
       setLichThi(normalizedLich);
     }
@@ -25,7 +26,13 @@ const LichThiModal = ({ isOpen, onClose, lopHocPhan, onSave }) => {
   const handleAddRow = () => {
     setLichThi([
       ...lichThi,
-      { NgayThi: "", GioBatDau: "07:30", GioKetThuc: "09:00", PhongThi: "" },
+      {
+        NgayThi: "",
+        GioBatDau: "07:30",
+        GioKetThuc: "09:00",
+        PhongThi: "",
+        HinhThucThi: "Tự luận",
+      },
     ]);
   };
 
@@ -82,6 +89,7 @@ const LichThiModal = ({ isOpen, onClose, lopHocPhan, onSave }) => {
     const formattedLichThi = lichThi.map((item) => ({
       NgayThi: item.NgayThi,
       PhongThi: item.PhongThi || item.PhongHoc, // Đảm bảo không bị null
+      HinhThucThi: item.HinhThucThi,
       GioBatDau:
         item.GioBatDau?.length === 5 ? `${item.GioBatDau}:00` : item.GioBatDau,
       GioKetThuc:
@@ -174,6 +182,7 @@ const LichThiModal = ({ isOpen, onClose, lopHocPhan, onSave }) => {
                     <th className="pb-2 px-2">Giờ bắt đầu</th>
                     <th className="pb-2 px-2">Giờ kết thúc</th>
                     <th className="pb-2 px-2">Phòng thi</th>
+                    <th className="pb-2 px-2">Hình thức</th>
                     <th className="pb-2 px-2 text-right"></th>
                   </tr>
                 </thead>
@@ -220,6 +229,19 @@ const LichThiModal = ({ isOpen, onClose, lopHocPhan, onSave }) => {
                             handleChange(index, "PhongThi", e.target.value)
                           }
                         />
+                      </td>
+                      <td className="py-2 px-1">
+                        <select
+                          className="w-full p-2 bg-gray-50 border-none rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500"
+                          value={item.HinhThucThi || "Tự luận"}
+                          onChange={(e) =>
+                            handleChange(index, "HinhThucThi", e.target.value)
+                          }
+                        >
+                          <option value="Tự luận">Tự luận</option>
+                          <option value="Trắc nghiệm">Trắc nghiệm</option>
+                          <option value="Báo cáo">Báo cáo</option>
+                        </select>
                       </td>
                       <td className="py-2 px-1 text-right">
                         <button

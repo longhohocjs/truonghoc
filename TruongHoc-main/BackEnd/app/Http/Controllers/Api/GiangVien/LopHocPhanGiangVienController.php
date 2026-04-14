@@ -123,4 +123,32 @@ class LopHocPhanGiangVienController extends Controller
 
         return response()->json($result);
     }
+
+    /**
+     * Giảng viên cập nhật hình thức thi và thông tin lịch thi
+     */
+    public function updateLichThi(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'LichThiID'   => 'required|exists:lichthi,LichThiID',
+            'HinhThucThi' => 'required|string|in:Tự luận,Trắc nghiệm,Báo cáo',
+            'PhongThi'    => 'sometimes|string|max:50',
+            'GhiChu'      => 'nullable|string'
+        ]);
+
+        $giangVien = $request->user()->giangVien;
+        
+        // Kiểm tra xem lịch thi này có thuộc lớp của giảng viên này không
+        $lichThi = \App\Models\LichThi::whereHas('lopHocPhan', function($q) use ($giangVien) {
+            $q->where('GiangVienID', $giangVien->GiangVienID);
+        })->find($validated['LichThiID']);
+
+        if (!$lichThi) {
+            return response()->json(['message' => 'Bạn không có quyền chỉnh sửa lịch thi này'], 403);
+        }
+
+        $lichThi->update($request->only(['HinhThucThi', 'PhongThi', 'GhiChu']));
+
+        return response()->json(['success' => true, 'message' => 'Cập nhật hình thức thi thành công']);
+    }
 }

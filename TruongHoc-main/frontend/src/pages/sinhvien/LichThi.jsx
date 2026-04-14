@@ -59,6 +59,7 @@ const LichThi = () => {
                   Giờ thi
                 </th>
                 <th className="px-6 py-4">Phòng thi</th>
+                <th className="px-6 py-4 text-center">Hình thức</th>
                 <th className="px-6 py-4 text-center">Số báo danh</th>
               </tr>
             </thead>
@@ -66,7 +67,7 @@ const LichThi = () => {
               {lichThi.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="7"
+                    colSpan="8"
                     className="px-6 py-10 text-center text-gray-400 italic"
                   >
                     Hiện chưa có lịch thi nào được sắp xếp.
@@ -94,6 +95,21 @@ const LichThi = () => {
                     </td>
                     <td className="px-6 py-4 font-medium text-gray-700">
                       {item.phong_thi || item.PhongHoc || "Đang cập nhật"}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span
+                        className={`px-2 py-1 rounded-md text-[10px] font-black uppercase ${
+                          item.hinh_thuc === "Tự luận"
+                            ? "bg-blue-100 text-blue-600"
+                            : item.hinh_thuc === "Trắc nghiệm"
+                              ? "bg-purple-100 text-purple-600"
+                              : item.hinh_thuc === "Báo cáo"
+                                ? "bg-orange-100 text-orange-600"
+                                : "bg-gray-100 text-gray-500"
+                        }`}
+                      >
+                        {item.hinh_thuc || "Tập trung"}
+                      </span>
                     </td>
                     <td className="px-6 py-4 text-center font-mono font-bold text-indigo-600">
                       {item.sbd || item.SBD || "--"}

@@ -54,7 +54,6 @@ const MainLayout = () => {
       { path: "/giang-vien/lich-coi-thi", label: "Lịch coi thi", icon: "✍️" },
     ],
     sinhvien: [
-      { path: "/dashboard", label: "Tổng quan", icon: "📊" },
       { path: "/sinh-vien/profile", label: "Thông tin cá nhân", icon: "👤" },
       {
         path: "/sinh-vien/chuong-trinh",

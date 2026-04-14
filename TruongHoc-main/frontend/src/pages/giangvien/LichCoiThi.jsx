@@ -135,10 +135,18 @@ const LichCoiThi = () => {
                       </td>
                       <td className="px-6 py-4 text-center">
                         {infoThi ? (
-                          <span className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border border-indigo-100">
-                            {infoThi.hinh_thuc === "TracNghiem"
-                              ? "Trắc nghiệm"
-                              : infoThi.hinh_thuc}
+                          <span
+                            className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border ${
+                              infoThi.hinh_thuc === "Tự luận"
+                                ? "bg-blue-50 text-blue-600 border-blue-100"
+                                : infoThi.hinh_thuc === "Trắc nghiệm"
+                                  ? "bg-purple-50 text-purple-600 border-purple-100"
+                                  : infoThi.hinh_thuc === "Báo cáo"
+                                    ? "bg-orange-50 text-orange-600 border-orange-100"
+                                    : "bg-indigo-50 text-indigo-600 border-indigo-100"
+                            }`}
+                          >
+                            {infoThi.hinh_thuc}
                           </span>
                         ) : (
                           <div

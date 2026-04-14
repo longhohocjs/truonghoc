@@ -74,10 +74,9 @@ function App() {
           {/* Tuyến đường yêu cầu Đăng nhập (Dùng chung cho tất cả role) */}
           <Route element={<ProtectedRoute />}>
             <Route element={<MainLayout />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-
               {/* Nhóm chức năng cho ADMIN */}
               <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+                <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/admin/users" element={<UserManagement />} />
                 <Route path="/admin/nam-hoc" element={<NamHocHocKy />} />
                 {/* Hỗ trợ cả 2 đường dẫn để tránh lỗi điều hướng từ Sidebar cũ */}
@@ -130,6 +129,7 @@ function App() {
                   />
                 }
               >
+                <Route path="/dashboard" element={<Dashboard />} />
                 <Route
                   path="/giang-vien/profile"
                   element={<GiangVienProfile />}

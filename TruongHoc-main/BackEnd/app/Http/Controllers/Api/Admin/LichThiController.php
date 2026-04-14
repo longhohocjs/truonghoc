@@ -38,13 +38,20 @@ class LichThiController extends Controller
     }
 
     public function update(Request $request) {
-        $id = $request->input('LichThiID');
-        if (!$id) {
-            return response()->json(['error' => 'LichThiID is required in JSON body'], 400);
-        }
-
         try {
-            $res = $this->service->updateLichThi($id, $request->all());
+            $validatedData = $request->validate([
+                'LichThiID'   => 'required|exists:lichthi,LichThiID',
+                'NgayThi'     => 'sometimes|required|date',
+                'GioBatDau'   => 'sometimes|required|date_format:H:i:s',
+                'GioKetThuc'  => 'sometimes|required|date_format:H:i:s|after:GioBatDau',
+                'PhongThi'    => 'sometimes|required|string|max:50',
+                'HinhThucThi' => 'sometimes|required|string|in:Tự luận,Trắc nghiệm,Báo cáo',
+                'GhiChu'      => 'nullable|string|max:255',
+            ]);
+
+            $id = $validatedData['LichThiID'];
+            $res = $this->service->updateLichThi($id, $validatedData);
+            
             return response()->json($res);
         } catch (\Throwable $e) {
             return response()->json(['error' => $e->getMessage()], 422);

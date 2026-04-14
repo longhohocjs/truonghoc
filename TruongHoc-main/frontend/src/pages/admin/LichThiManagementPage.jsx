@@ -75,6 +75,9 @@ const LichThiManagementPage = () => {
                 <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">
                   Phòng thi
                 </th>
+                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">
+                  Hình thức
+                </th>
                 <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">
                   Học kỳ
                 </th>
@@ -84,7 +87,7 @@ const LichThiManagementPage = () => {
               {loading ? (
                 <tr>
                   <td
-                    colSpan="5"
+                    colSpan="6"
                     className="px-6 py-12 text-center text-gray-400 font-bold uppercase text-[10px] tracking-widest"
                   >
                     Đang tổng hợp dữ liệu...
@@ -93,7 +96,7 @@ const LichThiManagementPage = () => {
               ) : schedules.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="5"
+                    colSpan="6"
                     className="px-6 py-12 text-center text-gray-400 font-bold uppercase text-[10px] tracking-widest"
                   >
                     Chưa có lịch thi nào được phân công
@@ -147,6 +150,21 @@ const LichThiManagementPage = () => {
                       <td className="px-6 py-4">
                         <span className="px-2 py-1 bg-gray-100 rounded-lg text-[10px] font-black text-gray-500 border border-gray-200 uppercase">
                           {item.PhongThi || item.phong_thi || "N/A"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span
+                          className={`px-2 py-1 rounded-md text-[10px] font-black uppercase ${
+                            item.HinhThucThi === "Tự luận"
+                              ? "bg-blue-100 text-blue-600"
+                              : item.HinhThucThi === "Trắc nghiệm"
+                                ? "bg-purple-100 text-purple-600"
+                                : item.HinhThucThi === "Báo cáo"
+                                  ? "bg-orange-100 text-orange-600"
+                                  : "bg-gray-100 text-gray-500"
+                          }`}
+                        >
+                          {item.HinhThucThi || "Tập trung"}
                         </span>
                       </td>
                       <td className="px-6 py-4">
