@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axiosClient from "@/api/axios";
+import { CalendarDays, ChevronLeft, ChevronRight, Printer } from "lucide-react";
 
 const LichHoc = () => {
   const [schedule, setSchedule] = useState({});
@@ -99,72 +100,88 @@ const LichHoc = () => {
     return <div className="p-10 text-center">Đang tải thời khóa biểu...</div>;
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">
-            Thời khóa biểu cá nhân
-          </h2>
-          <p className="text-gray-500 text-sm">Học kỳ: {hocKy}</p>
-        </div>
-        <div className="flex items-center space-x-3">
-          <div className="flex bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-            <button
-              onClick={() => changeWeek(-1)}
-              className="px-3 py-2 hover:bg-gray-50 text-gray-600 border-r border-gray-200"
-            >
-              ◀
-            </button>
-            <div className="px-4 py-2 text-sm font-bold text-blue-600 bg-blue-50/50">
-              {currentWeekStart.toLocaleDateString("vi-VN")} -{" "}
-              {weekEnd.toLocaleDateString("vi-VN")}
+    <div className="max-w-6xl mx-auto space-y-8 animate-fadeIn pb-10">
+      {/* Unified Header Section */}
+      <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-50/40 rounded-full -mr-20 -mt-20 blur-3xl" />
+        <div className="absolute bottom-0 left-20 w-40 h-40 bg-blue-50/30 rounded-full -mb-10 blur-2xl" />
+
+        <div className="relative flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-6">
+            <CalendarDays size={42} className="text-indigo-600 shrink-0" />
+            <div>
+              <h2 className="text-2xl font-black text-gray-900 tracking-tight">
+                Thời khóa biểu cá nhân
+              </h2>
+              <p className="text-gray-500 text-sm font-medium">
+                Học kỳ: {hocKy || "Đang cập nhật"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+              <button
+                onClick={() => changeWeek(-1)}
+                className="px-3 py-2 hover:bg-gray-50 text-gray-600 border-r border-gray-200 transition-colors"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <div className="px-4 py-2 text-sm font-bold text-indigo-600 bg-indigo-50/50">
+                {currentWeekStart.toLocaleDateString("vi-VN")} -{" "}
+                {weekEnd.toLocaleDateString("vi-VN")}
+              </div>
+              <button
+                onClick={() => changeWeek(1)}
+                className="px-3 py-2 hover:bg-gray-50 text-gray-600 transition-colors"
+              >
+                <ChevronRight size={16} />
+              </button>
             </div>
             <button
-              onClick={() => changeWeek(1)}
-              className="px-3 py-2 hover:bg-gray-50 text-gray-600"
+              onClick={() => setCurrentWeekStart(getStartOfWeek(new Date()))}
+              className="px-4 py-2 bg-gray-50 text-gray-600 rounded-xl text-xs font-bold hover:bg-gray-100 transition-all border border-gray-100"
             >
-              ▶
+              Tuần này
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-md shadow-blue-100 transition-all flex items-center gap-2"
+            >
+              <Printer size={14} /> In lịch
             </button>
           </div>
-          <button
-            onClick={() => setCurrentWeekStart(getStartOfWeek(new Date()))}
-            className="bg-white border border-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50"
-          >
-            Tuần này
-          </button>
-          <button
-            onClick={() => window.print()}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 shadow-sm"
-          >
-            In lịch
-          </button>
         </div>
       </div>
 
       {Object.keys(schedule).length === 0 && !loading && (
-        <div className="bg-blue-50 border border-blue-100 text-blue-600 p-4 rounded-xl text-center text-sm font-medium">
+        <div className="bg-white p-16 rounded-[2.5rem] text-center text-gray-400 border border-dashed border-gray-200 shadow-sm">
           Bạn không có lịch học trong tuần này.
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse table-fixed min-w-[800px]">
             <thead>
-              <tr className="bg-gray-50">
-                <th className="w-20 py-4 border-b border-r border-gray-100 text-xs font-bold text-gray-400 uppercase">
+              <tr className="bg-gray-50/50">
+                <th className="w-20 py-4 border-b border-r border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-widest">
                   Tiết
                 </th>
                 {daysOfWeek.map((day, index) => {
                   const dateLabel = new Date(currentWeekStart);
                   dateLabel.setDate(dateLabel.getDate() + index);
+                  const isToday =
+                    dateLabel.toDateString() === new Date().toDateString();
                   return (
                     <th
                       key={day.value}
-                      className="py-4 border-b border-r border-gray-100 text-sm font-bold text-gray-700"
+                      className={`py-4 border-b border-r border-gray-100 text-sm font-bold ${isToday ? "bg-indigo-50 text-indigo-700" : "text-gray-700"}`}
                     >
                       <div>{day.label}</div>
-                      <div className="text-[10px] text-gray-400 font-normal mt-1">
+                      <div
+                        className={`text-[10px] ${isToday ? "text-indigo-500" : "text-gray-400"} font-normal mt-1`}
+                      >
                         {dateLabel.getDate()}/{dateLabel.getMonth() + 1}
                       </div>
                     </th>
@@ -175,8 +192,8 @@ const LichHoc = () => {
             <tbody>
               {timeSlots.map((slot) => (
                 <tr key={slot} className="h-20">
-                  <td className="text-center border-b border-r border-gray-100 bg-gray-50/50">
-                    <span className="text-xs font-bold text-gray-500">
+                  <td className="text-center border-b border-r border-gray-100 bg-gray-50/30">
+                    <span className="text-xs font-black text-gray-500">
                       Tiết {slot}
                     </span>
                     <div className="text-[10px] text-gray-400 mt-1">
@@ -209,16 +226,16 @@ const LichHoc = () => {
                       <td
                         key={`${day.value}-${slot}`}
                         rowSpan={cellData?.soTiet || 1}
-                        className={`p-1.5 border-b border-r border-gray-100 align-top transition-all ${
-                          cellData ? "bg-blue-50/50" : "hover:bg-gray-50/30"
+                        className={`p-1.5 border-b border-r border-gray-100 align-top transition-all duration-200 ${
+                          cellData ? "bg-indigo-50/50" : "hover:bg-gray-50/30"
                         }`}
                       >
                         {cellData && (
-                          <div className="h-full bg-blue-100/50 border-l-4 border-blue-500 p-2 rounded-r-lg shadow-sm">
-                            <div className="text-xs font-bold text-blue-800 leading-tight mb-1">
+                          <div className="h-full bg-indigo-100/50 border-l-4 border-indigo-500 p-2 rounded-r-lg shadow-sm">
+                            <div className="text-xs font-black text-indigo-800 leading-tight mb-1">
                               {cellData.tenMon}
                             </div>
-                            <div className="text-[10px] text-blue-600 font-medium">
+                            <div className="text-[10px] text-indigo-600 font-medium">
                               📍 {cellData.phong}
                             </div>
                             <div className="text-[10px] text-gray-500 mt-1 truncate">

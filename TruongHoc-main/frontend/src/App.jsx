@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
 // Context & Auth
-import { AuthProvider } from "@/context/AuthContext";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Login from "@/pages/auth/Login";
 
@@ -55,6 +55,19 @@ const Unauthorized = () => (
   </div>
 );
 
+const RoleBasedDashboard = () => {
+  const { user } = useAuth();
+  const role = user?.role?.toLowerCase() || "";
+
+  if (role === "sinhvien" || role === "sinh_vien") {
+    return <Navigate to="/sinh-vien/profile" replace />;
+  }
+  if (role === "giangvien" || role === "giang_vien" || role === "giảng viên") {
+    return <Navigate to="/giang-vien/profile" replace />;
+  }
+  return <Dashboard />;
+};
+
 function App() {
   return (
     <AuthProvider>
@@ -74,9 +87,11 @@ function App() {
           {/* Tuyến đường yêu cầu Đăng nhập (Dùng chung cho tất cả role) */}
           <Route element={<ProtectedRoute />}>
             <Route element={<MainLayout />}>
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<RoleBasedDashboard />} />
+
               {/* Nhóm chức năng cho ADMIN */}
               <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
-                <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/admin/users" element={<UserManagement />} />
                 <Route path="/admin/nam-hoc" element={<NamHocHocKy />} />
                 {/* Hỗ trợ cả 2 đường dẫn để tránh lỗi điều hướng từ Sidebar cũ */}
@@ -129,7 +144,6 @@ function App() {
                   />
                 }
               >
-                <Route path="/dashboard" element={<Dashboard />} />
                 <Route
                   path="/giang-vien/profile"
                   element={<GiangVienProfile />}

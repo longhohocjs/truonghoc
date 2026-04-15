@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axiosClient from "@/api/axios";
+import { TrendingUp, Award, BookOpen, PieChart, Activity } from "lucide-react";
 
 const KetQuaHocTap = () => {
   const [data, setData] = useState(null);
@@ -87,24 +88,45 @@ const KetQuaHocTap = () => {
   }, {});
 
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">Kết quả học tập</h2>
-          <p className="text-gray-500 text-sm">
-            Tra cứu điểm chi tiết và tiến độ học tập qua các học kỳ
-          </p>
+    <div className="max-w-6xl mx-auto space-y-8 animate-fadeIn pb-10">
+      {/* Unified Header Section */}
+      <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-50/40 rounded-full -mr-20 -mt-20 blur-3xl" />
+        <div className="absolute bottom-0 left-20 w-40 h-40 bg-blue-50/30 rounded-full -mb-10 blur-2xl" />
+
+        <div className="relative flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-6">
+            <TrendingUp size={42} className="text-indigo-600 shrink-0" />
+            <div>
+              <h2 className="text-2xl font-black text-gray-900 tracking-tight">
+                Kết quả học tập
+              </h2>
+              <p className="text-gray-500 text-sm font-medium">
+                Tra cứu điểm chi tiết và tiến độ học tập qua các học kỳ
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-4">
+            <div className="px-5 py-2 bg-indigo-50 rounded-xl border border-indigo-100/50">
+              <p className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest">
+                Trạng thái
+              </p>
+              <p className="text-xs font-black text-indigo-600">Bình thường</p>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Tóm tắt GPA hiện tại */}
       {(gpa_hoc_ky || diem_chi_tiet.length > 0) && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
           <SummaryCard
             title="GPA Hệ 10"
             value={gpa_hệ_10}
             subValue="Học kỳ hiện tại"
-            color="text-blue-600"
+            color="text-indigo-600"
+            icon={<PieChart size={16} />}
           />
           <SummaryCard
             title="GPA Hệ 4"
@@ -112,13 +134,15 @@ const KetQuaHocTap = () => {
               gpa_hoc_ky?.gpa_he_4 || (parseFloat(gpa_hệ_10) * 0.4).toFixed(2)
             }
             subValue="Quy đổi"
-            color="text-indigo-600"
+            color="text-blue-600"
+            icon={<Activity size={16} />}
           />
           <SummaryCard
             title="Số tín chỉ đạt"
             value={tong_tin_chi}
             subValue="Tích lũy học kỳ"
-            color="text-green-600"
+            color="text-emerald-600"
+            icon={<Award size={16} />}
           />
           <SummaryCard
             title="Số môn học"
@@ -127,71 +151,76 @@ const KetQuaHocTap = () => {
             }
             subValue="Đã hoàn thành"
             color="text-orange-600"
+            icon={<BookOpen size={16} />}
           />
         </div>
       )}
 
       {/* Hiển thị bảng điểm theo từng học kỳ */}
       {Object.keys(groupedBySemester).length === 0 ? (
-        <div className="bg-white p-10 rounded-xl text-center text-gray-400 border border-dashed border-gray-300">
+        <div className="bg-white p-16 rounded-[2.5rem] text-center text-gray-400 border border-dashed border-gray-200 shadow-sm">
           Chưa có dữ liệu điểm học phần.
         </div>
       ) : (
         Object.entries(groupedBySemester).map(([tenHocKy, dsDiem]) => (
           <div
             key={tenHocKy}
-            className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
+            className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden"
           >
-            <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-              <h3 className="font-bold text-gray-800">{tenHocKy}</h3>
+            <div className="bg-gray-50/50 px-8 py-5 border-b border-gray-100 flex justify-between items-center">
+              <h3 className="font-black text-gray-800 tracking-tight">
+                {tenHocKy}
+              </h3>
               <span className="text-xs text-gray-500 font-medium italic">
                 Bảng điểm chính thức
               </span>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="text-gray-500 uppercase font-bold text-xs">
+              <table className="w-full text-left">
+                <thead className="bg-gray-50/30 text-gray-400 uppercase text-[11px] font-bold tracking-widest border-b border-gray-100">
                   <tr>
-                    <th className="px-6 py-4">Mã môn</th>
-                    <th className="px-6 py-4">Tên môn học</th>
-                    <th className="px-2 py-4 text-center">Tín chỉ</th>
-                    <th className="px-2 py-4 text-center">CC</th>
-                    <th className="px-2 py-4 text-center">GK</th>
-                    <th className="px-2 py-4 text-center">Thi</th>
-                    <th className="px-2 py-4 text-center">TK (10)</th>
-                    <th className="px-2 py-4 text-center">Điểm Chữ</th>
+                    <th className="px-8 py-4">Mã môn</th>
+                    <th className="px-8 py-4">Tên môn học</th>
+                    <th className="px-4 py-4 text-center">Tín chỉ</th>
+                    <th className="px-4 py-4 text-center">CC</th>
+                    <th className="px-4 py-4 text-center">GK</th>
+                    <th className="px-4 py-4 text-center">Thi</th>
+                    <th className="px-4 py-4 text-center">TK (10)</th>
+                    <th className="px-8 py-4 text-center">Điểm Chữ</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-gray-50">
                   {dsDiem.map((item, idx) => (
                     <tr
                       key={idx}
-                      className="hover:bg-blue-50/30 transition-colors"
+                      className="hover:bg-gray-50/50 transition-all group border-b border-gray-50 last:border-0"
                     >
-                      <td className="px-6 py-4 font-medium text-gray-600">
+                      <td className="px-8 py-5 font-bold text-indigo-600 text-sm">
                         {item.ma_mon || item.MaMon}
                       </td>
-                      <td className="px-6 py-4 font-semibold text-gray-800">
-                        {item.ten_mon || item.TenMon}
+                      <td className="px-8 py-5">
+                        <span className="font-bold text-gray-800 text-sm group-hover:text-indigo-600 transition-colors">
+                          {item.ten_mon || item.TenMon}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-4 py-5 text-center font-bold text-gray-600 text-sm">
                         {item.so_tin_chi || item.SoTinChi}
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-4 py-5 text-center text-gray-500 font-medium text-sm">
                         {item.diem_cc || item.DiemChuyenCan || "-"}
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-4 py-5 text-center text-gray-500 font-medium text-sm">
                         {item.diem_gk || item.DiemGiuaKy || "-"}
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-4 py-5 text-center text-gray-500 font-medium text-sm">
                         {item.diem_thi || item.DiemThi || "-"}
                       </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className="font-bold text-gray-700">
+                      <td className="px-4 py-5 text-center">
+                        <span className="inline-block min-w-[40px] font-black text-gray-900 bg-gray-100 px-2 py-1 rounded-lg text-sm">
                           {item.diem_tk || item.DiemTongKet || "-"}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-8 py-5 text-center">
                         {(() => {
                           const diemChu =
                             item.diem_chu ||
@@ -199,7 +228,11 @@ const KetQuaHocTap = () => {
                             quyDoiDiemChu(item.diem_tk || item.DiemTongKet);
                           return (
                             <span
-                              className={`font-bold px-2 py-1 rounded ${diemChu === "F" ? "text-red-500" : "text-blue-600"}`}
+                              className={`font-black px-3 py-1.5 rounded-xl text-xs shadow-sm border ${
+                                diemChu === "F"
+                                  ? "bg-rose-50 text-rose-600 border-rose-100"
+                                  : "bg-indigo-50 text-indigo-600 border-indigo-100"
+                              }`}
                             >
                               {diemChu}
                             </span>
@@ -218,13 +251,18 @@ const KetQuaHocTap = () => {
   );
 };
 
-const SummaryCard = ({ title, value, subValue, color }) => (
-  <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-    <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">
-      {title}
+const SummaryCard = ({ title, value, subValue, color, icon }) => (
+  <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+    <div className="flex justify-between items-start">
+      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+        {title}
+      </p>
+      <div className={`${color} opacity-60`}>{icon}</div>
+    </div>
+    <div className={`text-2xl font-black mt-2 ${color}`}>{value}</div>
+    <p className="text-[10px] text-gray-400 mt-1 font-bold uppercase tracking-tighter opacity-70">
+      {subValue}
     </p>
-    <div className={`text-3xl font-black mt-2 ${color}`}>{value}</div>
-    <p className="text-xs text-gray-400 mt-1 italic">{subValue}</p>
   </div>
 );
 

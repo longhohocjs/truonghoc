@@ -1,89 +1,112 @@
-import React from "react";
-import { Link, useLocation } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
+import React, { useState } from "react";
+import { NavLink } from "react-router-dom";
 
 const Sidebar = () => {
-  const { user, logout } = useAuth();
-  const location = useLocation();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Định nghĩa Menu dựa trên vai trò (Role)
-  const menuItems = {
-    admin: [
-      { title: "Quản lý Người dùng", path: "/admin/users" },
-      { title: "Năm học & Học kỳ", path: "/admin/nam-hoc" },
-      { title: "Môn học", path: "/admin/mon-hoc" },
-      { title: "Quản lý Lớp học phần", path: "/admin/lop-hoc-phan" },
-      { title: "Thống kê", path: "/admin/thong-ke" },
-    ],
-    giangvien: [
-      { title: "Hồ sơ cá nhân", path: "/giang-vien/profile" },
-      { title: "Lớp học phần giảng dạy", path: "/giang-vien/lop-phan-cong" },
-      { title: "Lớp sinh hoạt (Cố vấn)", path: "/giang-vien/lop-sinh-hoat" },
-      { title: "Thời khóa biểu dạy", path: "/giang-vien/lich-giang-day" },
-      { title: "Lịch coi thi", path: "/giang-vien/lich-coi-thi" },
-    ],
-    sinhvien: [
-      { title: "Hồ sơ sinh viên", path: "/sinh-vien/profile" },
-      { title: "Chương trình đào tạo", path: "/sinh-vien/chuong-trinh" },
-      { title: "Môn đã hoàn thành", path: "/sinh-vien/mon-da-dat" },
-      { title: "Đăng ký học phần", path: "/sinh-vien/dang-ky" },
-      { title: "Kết quả học tập", path: "/sinh-vien/ket-qua" },
-      { title: "Lịch học", path: "/sinh-vien/lich-hoc" },
-      { title: "Lịch thi", path: "/sinh-vien/lich-thi" },
-    ],
-  };
-
-  // Chuẩn hóa logic nhận diện Role để hiển thị Menu chính xác
-  const getMenu = () => {
-    const role = user?.role?.toLowerCase() || "";
-    if (role === "admin") return menuItems.admin;
-    if (role === "sinhvien" || role === "sinh_vien") return menuItems.sinhvien;
-    // Hỗ trợ "giangvien", "giang_vien" và "giảng viên"
-    if (role.includes("giang") || role.includes("giảng"))
-      return menuItems.giangvien;
-    return [];
-  };
-
-  const currentMenu = getMenu();
+  // Phân nhóm các chức năng để tạo đường kẻ ngăn cách
+  const menuGroups = [
+    {
+      id: "personal",
+      items: [
+        { path: "/sinh-vien/profile", label: "Hồ sơ cá nhân" },
+        { path: "/sinh-vien/dang-ky", label: "Đăng ký học phần" },
+        { path: "/sinh-vien/lich-hoc", label: "Thời khóa biểu" },
+        { path: "/sinh-vien/lich-thi", label: "Lịch thi học kỳ" },
+      ],
+    },
+    {
+      id: "academic",
+      items: [
+        { path: "/sinh-vien/ket-qua", label: "Kết quả học tập" },
+        { path: "/sinh-vien/chuong-trinh", label: "Chương trình đào tạo" },
+      ],
+    },
+    {
+      id: "support",
+      items: [{ path: "/sinh-vien/xin-mo-lop", label: "Yêu cầu mở lớp" }],
+    },
+  ];
 
   return (
-    <div className="w-64 h-screen bg-gray-900 text-white flex flex-col fixed left-0 top-0">
-      <div className="p-6 text-2xl font-bold border-b border-gray-800 text-blue-400">
-        EDU-PORTAL
-      </div>
-      <div className="flex-1 overflow-y-auto py-4">
-        <div className="px-6 mb-4 text-xs text-gray-500 uppercase font-semibold">
-          VAI TRÒ: {user?.role?.toUpperCase()}
-        </div>
-        <ul>
-          {currentMenu.map((item) => (
-            <li key={item.path}>
-              <Link
-                to={item.path}
-                className={`block px-6 py-3 hover:bg-gray-800 transition-all ${
-                  location.pathname === item.path
-                    ? "bg-blue-600 text-white border-l-4 border-blue-300"
-                    : "text-gray-400"
-                }`}
-              >
-                {item.title}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className="p-4 border-t border-gray-800 bg-gray-950">
-        <div className="px-2 mb-3 text-sm font-medium text-gray-300">
-          {user?.ho_ten}
-        </div>
-        <button
-          onClick={logout}
-          className="w-full bg-red-500/10 hover:bg-red-500 hover:text-white text-red-500 py-2 rounded transition-all text-sm font-bold"
+    <aside
+      className={`relative h-screen bg-white border-r border-gray-100 transition-all duration-500 ease-in-out z-30 ${
+        isCollapsed ? "w-16" : "w-64"
+      }`}
+    >
+      {/* Button thu gọn: Hình tròn nhỏ tinh tế nằm trên đường border */}
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="absolute -right-3 top-12 z-40 flex h-6 w-6 items-center justify-center rounded-full border border-gray-100 bg-white text-gray-400 shadow-sm hover:text-indigo-600 hover:border-indigo-200 transition-all"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          className={`h-3 w-3 transition-transform duration-500 ${isCollapsed ? "rotate-180" : ""}`}
         >
-          ĐĂNG XUẤT
-        </button>
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="3"
+            d="M15 19l-7-7 7-7"
+          />
+        </svg>
+      </button>
+
+      <div className="flex flex-col h-full py-8">
+        {/* Logo hoặc Tên hệ thống */}
+        <div
+          className={`px-8 mb-12 transition-all duration-300 ${isCollapsed ? "opacity-0 invisible" : "opacity-100"}`}
+        >
+          <span className="text-sm font-bold tracking-[0.15em] text-gray-800 uppercase">
+            i<span className="text-indigo-600">Student</span>
+          </span>
+        </div>
+
+        <nav className="flex-1 px-3 space-y-6">
+          {menuGroups.map((group, gIdx) => (
+            <div key={group.id} className="flex flex-col gap-1">
+              {/* Đường mờ ngăn cách giữa các nhóm (trừ nhóm đầu tiên) */}
+              {gIdx !== 0 && (
+                <div className="mx-4 my-4 h-px bg-gradient-to-r from-transparent via-gray-100 to-transparent" />
+              )}
+
+              {group.items.map((item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({ isActive }) =>
+                    `relative flex items-center px-5 py-3 rounded-xl text-[13.5px] transition-all duration-300 group
+                    ${
+                      isActive
+                        ? "bg-indigo-50/60 text-indigo-700 font-medium"
+                        : "text-gray-500 hover:text-indigo-600 hover:bg-indigo-50/50"
+                    }
+                  `
+                  }
+                >
+                  {/* Thanh chỉ thị màu xanh khi Active */}
+                  <div
+                    className={`absolute left-0 w-1 h-5 bg-indigo-600 rounded-r-full scale-y-0 transition-transform duration-300 group-[.active]:scale-y-100`}
+                  />
+
+                  <span
+                    className={`truncate whitespace-nowrap transition-all duration-300 ${
+                      isCollapsed
+                        ? "opacity-0 -translate-x-4"
+                        : "opacity-100 translate-x-0"
+                    }`}
+                  >
+                    {item.label}
+                  </span>
+                </NavLink>
+              ))}
+            </div>
+          ))}
+        </nav>
       </div>
-    </div>
+    </aside>
   );
 };
 

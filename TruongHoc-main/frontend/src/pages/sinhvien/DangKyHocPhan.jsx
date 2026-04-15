@@ -1,6 +1,15 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axiosClient from "@/api/axios";
 import ConfirmModal from "@/components/ConfirmModal";
+import {
+  ClipboardList,
+  ShoppingCart,
+  BookOpen,
+  Layers,
+  Info,
+  Trash2,
+  Clock,
+} from "lucide-react";
 
 const DangKyHocPhan = () => {
   const [lops, setLops] = useState([]);
@@ -218,12 +227,24 @@ const DangKyHocPhan = () => {
                       </div>
                     ))}
                   </td>
-                  <td className="px-6 py-4">
-                    <span className="text-gray-500">
-                      {lop.SoLuongHienTai || 0}/{lop.SoLuongToiDa}
-                    </span>
+                  <td className="px-6 py-5">
+                    <div className="w-24">
+                      <div className="flex justify-between text-[10px] font-bold text-gray-400 mb-1">
+                        <span>
+                          {lop.SoLuongHienTai || 0}/{lop.SoLuongToiDa}
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full transition-all ${(lop.SoLuongHienTai || 0) / lop.SoLuongToiDa > 0.9 ? "bg-rose-500" : "bg-blue-500"}`}
+                          style={{
+                            width: `${((lop.SoLuongHienTai || 0) / lop.SoLuongToiDa) * 100}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-6 py-5 text-right">
                     <button
                       disabled={
                         processingId === lop.LopHocPhanID ||
@@ -232,14 +253,14 @@ const DangKyHocPhan = () => {
                         )
                       }
                       onClick={() => handleDangKy(lop.LopHocPhanID)}
-                      className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                      className={`px-5 py-2.5 rounded-xl text-xs font-black transition-all ${
                         daDangKy.some(
                           (d) => d.LopHocPhanID === lop.LopHocPhanID,
                         )
-                          ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                          ? "bg-emerald-50 text-emerald-600 border border-emerald-100 cursor-not-allowed"
                           : processingId === lop.LopHocPhanID
-                            ? "bg-blue-200 text-white cursor-wait"
-                            : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm"
+                            ? "bg-blue-100 text-blue-400 cursor-wait animate-pulse"
+                            : "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-100 active:scale-95"
                       }`}
                     >
                       {processingId === lop.LopHocPhanID
@@ -261,18 +282,17 @@ const DangKyHocPhan = () => {
       <section>
         <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
           <span className="bg-green-500 w-2 h-6 rounded mr-3"></span>
-          Kết quả đăng ký (Giỏ hàng)
+          Kết quả đăng ký
         </h3>
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <table className="w-full text-left">
             <thead className="bg-green-50 text-green-700 text-xs uppercase font-bold">
               <tr>
                 <th className="px-6 py-4">STT</th>
-                <th className="px-6 py-4">Mã Lớp</th>
+                <th className="px-6 py-4">Mã Môn</th>
                 <th className="px-6 py-4">Tên Môn</th>
-                <th className="px-6 py-4">Tín chỉ</th>
-                <th className="px-6 py-4">Học phí (tạm tính)</th>
-                <th className="px-6 py-4">Trạng thái</th>
+                <th className="px-6 py-4 text-center">Tín chỉ</th>
+                <th className="px-6 py-4 text-center">Học phí</th>
                 <th className="px-6 py-4 text-right">Thao tác</th>
               </tr>
             </thead>
@@ -280,7 +300,7 @@ const DangKyHocPhan = () => {
               {daDangKy.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="7"
+                    colSpan="6"
                     className="px-6 py-10 text-center text-gray-400 italic"
                   >
                     Bạn chưa đăng ký môn học nào.
@@ -288,29 +308,29 @@ const DangKyHocPhan = () => {
                 </tr>
               ) : (
                 daDangKy.map((item, index) => (
-                  <tr key={item.DangKyID} className="text-sm">
-                    <td className="px-6 py-4 text-gray-500">{index + 1}</td>
-                    <td className="px-6 py-4 font-bold">
-                      {item.lop_hoc_phan?.MaLopHP}
+                  <tr
+                    key={item.DangKyID}
+                    className="group hover:bg-emerald-50/20 transition-all"
+                  >
+                    <td className="px-6 py-5 text-gray-500 text-sm">
+                      {index + 1}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-5 font-bold text-emerald-600 text-sm">
+                      {item.lop_hoc_phan?.mon_hoc?.MaMon}
+                    </td>
+                    <td className="px-6 py-5 font-bold text-gray-800 text-sm">
                       {item.lop_hoc_phan?.mon_hoc?.TenMon}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-5 text-center font-bold text-gray-600 text-sm">
                       {item.lop_hoc_phan?.mon_hoc?.SoTinChi}
                     </td>
-                    <td className="px-6 py-4 font-medium">
+                    <td className="px-6 py-5 text-center font-bold text-gray-500 text-xs">
                       {(
                         item.lop_hoc_phan?.mon_hoc?.SoTinChi * 500000
                       ).toLocaleString()}{" "}
                       VNĐ
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="bg-green-100 text-green-600 px-2 py-1 rounded text-xs font-bold uppercase">
-                        Thành công
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-5 text-right">
                       <button
                         onClick={() =>
                           setConfirmConfig({
@@ -318,9 +338,9 @@ const DangKyHocPhan = () => {
                             id: item.DangKyID,
                           })
                         }
-                        className="text-red-500 hover:text-red-700 font-bold text-xs"
+                        className="text-rose-500 hover:text-rose-700 font-black text-[10px] uppercase flex items-center gap-1 ml-auto group-hover:scale-105 transition-all"
                       >
-                        Hủy môn
+                        <Trash2 size={12} /> Hủy môn
                       </button>
                     </td>
                   </tr>
@@ -328,10 +348,10 @@ const DangKyHocPhan = () => {
               )}
             </tbody>
           </table>
-          <div className="p-6 bg-gray-50 flex justify-end items-center space-x-6">
-            <div className="text-gray-600 font-medium">
-              Tổng tín chỉ:{" "}
-              <span className="text-blue-600 font-bold">
+          <div className="p-6 bg-gray-50/50 border-t border-emerald-100 flex flex-col md:flex-row justify-end items-center gap-6">
+            <div className="text-gray-500 font-bold text-xs uppercase tracking-widest">
+              Tổng tín chỉ chọn:{" "}
+              <span className="text-indigo-600 text-lg font-black ml-2">
                 {daDangKy.reduce(
                   (sum, item) =>
                     sum + (item.lop_hoc_phan?.mon_hoc?.SoTinChi || 0),
@@ -339,9 +359,9 @@ const DangKyHocPhan = () => {
                 )}
               </span>
             </div>
-            <div className="text-lg font-bold text-gray-800">
+            <div className="text-gray-500 font-bold text-xs uppercase tracking-widest">
               Tổng học phí:{" "}
-              <span className="text-red-600">
+              <span className="text-rose-600 text-lg font-black ml-2">
                 {(
                   daDangKy.reduce(
                     (sum, item) =>

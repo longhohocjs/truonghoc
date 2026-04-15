@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axiosClient from "@/api/axios";
+import { AlertCircle, BookOpen, HelpCircle } from "lucide-react";
 
 const MonConThieu = () => {
   const [data, setData] = useState([]);
@@ -36,30 +37,39 @@ const MonConThieu = () => {
   );
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto pb-10 animate-fadeIn">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800 flex items-center">
-            <span className="mr-2 text-red-500">🚩</span> Môn học còn thiếu
-          </h2>
-          <p className="text-gray-500 text-sm">
-            Danh sách các học phần trong CTĐT bạn chưa hoàn thành hoặc chưa đạt
-          </p>
-        </div>
-        <div className="bg-red-50 px-5 py-3 rounded-2xl border border-red-100 text-center shadow-sm">
-          <p className="text-[10px] font-bold text-red-600 uppercase tracking-widest mb-1">
-            Tín chỉ cần tích lũy thêm
-          </p>
-          <p className="text-2xl font-black text-red-700 leading-none">
-            {tongTinChiThieu}
-          </p>
+    <div className="max-w-6xl mx-auto space-y-8 animate-fadeIn pb-10">
+      {/* Unified Header Section */}
+      <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-rose-50/40 rounded-full -mr-20 -mt-20 blur-3xl" />
+
+        <div className="relative flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-5">
+            <AlertCircle size={42} className="text-rose-600 shrink-0" />
+            <div>
+              <h2 className="text-2xl font-black text-gray-900 tracking-tight">
+                Môn học còn thiếu
+              </h2>
+              <p className="text-gray-500 text-sm font-medium">
+                Học phần chưa hoàn thành hoặc chưa đạt điểm tích lũy
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-rose-600 px-6 py-3 rounded-2xl text-center shadow-lg shadow-rose-100">
+            <p className="text-[10px] font-bold text-rose-100 uppercase tracking-widest mb-1">
+              Tín chỉ cần tích lũy
+            </p>
+            <p className="text-2xl font-black text-white leading-none">
+              {tongTinChiThieu}
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50/50 text-gray-400 uppercase text-[10px] font-bold tracking-widest">
+          <table className="w-full text-left">
+            <thead className="bg-gray-50/50 text-gray-400 uppercase text-[11px] font-bold tracking-widest border-b border-gray-100">
               <tr>
                 <th className="px-6 py-4">Mã môn</th>
                 <th className="px-6 py-4">Tên môn học</th>
@@ -73,7 +83,7 @@ const MonConThieu = () => {
                 <tr>
                   <td
                     colSpan="5"
-                    className="p-16 text-center text-green-500 font-bold italic"
+                    className="p-16 text-center text-emerald-500 font-bold italic"
                   >
                     Chúc mừng! Bạn đã hoàn thành tất cả các môn học trong chương
                     trình đào tạo.
@@ -83,25 +93,30 @@ const MonConThieu = () => {
                 data.map((item, index) => (
                   <tr
                     key={index}
-                    className="hover:bg-red-50/10 transition-colors group"
+                    className="hover:bg-gray-50/50 transition-all group border-b border-gray-50 last:border-0"
                   >
-                    <td className="px-6 py-4 font-bold text-gray-500">
+                    <td className="px-6 py-5 font-bold text-indigo-600 text-sm">
                       {item.MaMon || item.ma_mon}
                     </td>
-                    <td className="px-6 py-4 font-bold text-gray-800 group-hover:text-red-600 transition-colors">
-                      {item.TenMon || item.ten_mon}
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                        <span className="font-bold text-gray-800 text-sm group-hover:text-indigo-600 transition-colors">
+                          {item.TenMon || item.ten_mon}
+                        </span>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-center font-medium">
+                    <td className="px-6 py-5 text-center font-bold text-gray-600 text-sm">
                       {item.SoTinChi || item.so_tin_chi || item.tin_chi}
                     </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className="px-2 py-1 bg-gray-100 rounded-md text-xs text-gray-600 font-bold">
+                    <td className="px-6 py-5 text-center">
+                      <span className="px-3 py-1 bg-gray-100 rounded-lg text-[11px] text-gray-500 font-black uppercase">
                         Kỳ {item.HocKyGoiY || item.hoc_ky_goi_y || "-"}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-6 py-5 text-center">
                       <span
-                        className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
+                        className={`text-[10px] font-black px-3 py-1 rounded-lg border uppercase ${
                           item.LoaiMon === 1 ||
                           item.loai_mon === 1 ||
                           item.bat_buoc === true

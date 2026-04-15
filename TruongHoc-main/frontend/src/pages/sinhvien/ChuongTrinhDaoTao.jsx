@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axiosClient from "@/api/axios";
+import { BookOpen, Layers, Award, CheckCircle2 } from "lucide-react";
 
 const ChuongTrinhDaoTao = () => {
   const [data, setData] = useState({ nganh: "", chuong_trinh: [] });
@@ -38,66 +39,94 @@ const ChuongTrinhDaoTao = () => {
     );
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto pb-10">
-      <div className="flex justify-between items-end">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">
-            Chương trình đào tạo
-          </h2>
-          <p className="text-blue-600 font-medium">Ngành: {data.nganh}</p>
-        </div>
-        <div className="text-right text-xs text-gray-400">
-          Tổng số môn: {data.chuong_trinh.length}
+    <div className="max-w-6xl mx-auto space-y-8 animate-fadeIn pb-10">
+      {/* Unified Header Section */}
+      <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-50/40 rounded-full -mr-20 -mt-20 blur-3xl" />
+        <div className="absolute bottom-0 left-20 w-40 h-40 bg-blue-50/30 rounded-full -mb-10 blur-2xl" />
+
+        <div className="relative flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-6">
+            <BookOpen size={42} className="text-indigo-600 shrink-0" />
+            <div>
+              <h2 className="text-2xl font-black text-gray-900 tracking-tight">
+                Chương trình đào tạo
+              </h2>
+              <p className="text-gray-500 text-sm font-medium">
+                Ngành:{" "}
+                <span className="text-indigo-600 font-bold">{data.nganh}</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-indigo-600 px-6 py-3 rounded-2xl text-center shadow-lg shadow-indigo-100">
+            <p className="text-[10px] font-bold text-indigo-100 uppercase tracking-widest mb-1">
+              Tổng số môn học
+            </p>
+            <p className="text-2xl font-black text-white leading-none">
+              {data.chuong_trinh.length}
+            </p>
+          </div>
         </div>
       </div>
 
       {Object.entries(grouped).map(([hk, dsMon]) => (
         <div
           key={hk}
-          className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+          className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden"
         >
-          <div className="bg-gray-50 px-6 py-3 border-b border-gray-100 font-bold text-gray-700">
-            Học kỳ {hk}
+          <div className="bg-gray-50/50 px-8 py-5 border-b border-gray-100 flex items-center justify-between">
+            <h3 className="font-black text-gray-800 tracking-tight flex items-center gap-2">
+              <Layers size={18} className="text-indigo-400" />
+              Học kỳ {hk}
+            </h3>
+            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">
+              Lộ trình đào tạo chuẩn
+            </span>
           </div>
-          <table className="w-full text-left text-sm">
-            <thead className="text-gray-400 uppercase text-[10px] font-bold tracking-wider">
-              <tr>
-                <th className="px-6 py-3">Mã môn</th>
-                <th className="px-6 py-3">Tên môn học</th>
-                <th className="px-6 py-3 text-center">Tín chỉ</th>
-                <th className="px-6 py-3 text-center">Loại môn</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {dsMon.map((item) => (
-                <tr
-                  key={item.ChuongTrinhID}
-                  className="hover:bg-blue-50/20 transition-colors"
-                >
-                  <td className="px-6 py-4 font-medium text-blue-600">
-                    {item.mon_hoc?.MaMon}
-                  </td>
-                  <td className="px-6 py-4 font-semibold text-gray-800">
-                    {item.mon_hoc?.TenMon}
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    {item.mon_hoc?.SoTinChi}
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        item.LoaiMon === 1
-                          ? "bg-orange-50 text-orange-600 border border-orange-100"
-                          : "bg-gray-50 text-gray-500 border border-gray-100"
-                      }`}
-                    >
-                      {item.LoaiMon === 1 ? "BẮT BUỘC" : "TỰ CHỌN"}
-                    </span>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-gray-50/30 text-gray-400 uppercase text-[11px] font-bold tracking-widest border-b border-gray-100">
+                <tr>
+                  <th className="px-8 py-4">Mã môn</th>
+                  <th className="px-8 py-4">Tên môn học</th>
+                  <th className="px-6 py-4 text-center">Tín chỉ</th>
+                  <th className="px-8 py-4 text-center">Loại môn</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {dsMon.map((item) => (
+                  <tr
+                    key={item.ChuongTrinhID}
+                    className="hover:bg-gray-50/50 transition-all group border-b border-gray-50 last:border-0"
+                  >
+                    <td className="px-8 py-5 font-bold text-indigo-600 text-sm">
+                      {item.mon_hoc?.MaMon}
+                    </td>
+                    <td className="px-8 py-5">
+                      <span className="font-bold text-gray-800 text-sm group-hover:text-indigo-600 transition-colors">
+                        {item.mon_hoc?.TenMon}
+                      </span>
+                    </td>
+                    <td className="px-6 py-5 text-center font-bold text-gray-600 text-sm">
+                      {item.mon_hoc?.SoTinChi}
+                    </td>
+                    <td className="px-8 py-5 text-center">
+                      <span
+                        className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase border ${
+                          item.LoaiMon === 1
+                            ? "bg-amber-50 text-amber-600 border-amber-100"
+                            : "bg-gray-100 text-gray-500 border-gray-200"
+                        }`}
+                      >
+                        {item.LoaiMon === 1 ? "BẮT BUỘC" : "TỰ CHỌN"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       ))}
     </div>
