@@ -331,7 +331,12 @@ const MainLayout = () => {
                       </p>
                     </div>
                     <Link
-                      to="/sinh-vien/profile"
+                      to={
+                        user?.role?.toLowerCase().includes("giang") ||
+                        user?.role?.toLowerCase().includes("giảng")
+                          ? "/giang-vien/profile"
+                          : "/sinh-vien/profile"
+                      }
                       onClick={() => setIsUserMenuOpen(false)}
                       className="flex items-center space-x-3 px-4 py-3 text-sm text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
                     >

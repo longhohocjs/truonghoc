@@ -57,12 +57,16 @@ const Unauthorized = () => (
 
 const RoleBasedDashboard = () => {
   const { user } = useAuth();
-  const role = user?.role?.toLowerCase() || "";
+  // Chuẩn hóa role về một kiểu duy nhất để dễ kiểm tra
+  const rawRole = user?.role?.toLowerCase() || "";
+  const isGiangVien = ["giangvien", "giang_vien", "giảng viên"].includes(
+    rawRole,
+  );
 
-  if (role === "sinhvien" || role === "sinh_vien") {
+  if (rawRole === "sinhvien" || rawRole === "sinh_vien") {
     return <Navigate to="/sinh-vien/profile" replace />;
   }
-  if (role === "giangvien" || role === "giang_vien" || role === "giảng viên") {
+  if (isGiangVien) {
     return <Navigate to="/giang-vien/profile" replace />;
   }
   return <Dashboard />;

@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from "react";
 import axiosClient from "@/api/axios";
 import toast from "react-hot-toast";
+import {
+  X,
+  FileDown,
+  FileUp,
+  ClipboardPenLine,
+  Save,
+  Search,
+  UserCheck,
+} from "lucide-react";
 
 const NhapDiemModal = ({ isOpen, onClose, lop }) => {
   const [sinhViens, setSinhViens] = useState([]);
@@ -85,18 +94,34 @@ const NhapDiemModal = ({ isOpen, onClose, lop }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col">
-        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-          <div>
-            <h3 className="text-xl font-bold text-gray-800">
-              Quản lý điểm lớp: {lop.ma_lop_hp}
-            </h3>
-            <p className="text-xs text-gray-500">{lop.ten_mon}</p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-md animate-fadeIn">
+      <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-indigo-100 w-full max-w-6xl max-h-[92vh] flex flex-col overflow-hidden border border-gray-50">
+        {/* Styled Header */}
+        <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/50 rounded-full -mr-32 -mt-32 blur-3xl" />
+
+          <div className="relative z-10 flex items-center gap-5">
+            <div className="p-3 bg-indigo-50 rounded-2xl text-indigo-600">
+              <ClipboardPenLine size={24} />
+            </div>
+            <div>
+              <h3 className="text-2xl font-black text-gray-900 tracking-tight leading-none">
+                Quản lý điểm lớp học phần
+              </h3>
+              <div className="flex items-center gap-3 mt-2">
+                <span className="text-[10px] font-black px-2 py-0.5 bg-indigo-600 text-white rounded-lg uppercase tracking-wider">
+                  {lop?.ma_lop_hp}
+                </span>
+                <p className="text-sm font-bold text-gray-400">
+                  {lop?.ten_mon}
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center space-x-4">
-            <label className="cursor-pointer bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-green-700 transition-all">
-              📥 Import Excel
+
+          <div className="flex items-center gap-3 relative z-10">
+            <label className="cursor-pointer flex items-center gap-2 bg-emerald-500 text-white px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-wider hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100 active:scale-95">
+              <FileUp size={16} /> IMPORT
               <input
                 type="file"
                 className="hidden"
@@ -106,26 +131,31 @@ const NhapDiemModal = ({ isOpen, onClose, lop }) => {
             </label>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 text-2xl"
+              className="p-3 bg-gray-50 text-gray-400 rounded-2xl hover:bg-rose-50 hover:text-rose-500 transition-all"
             >
-              &times;
+              <X size={24} />
             </button>
           </div>
         </div>
 
-        <div className="p-6 overflow-y-auto flex-1">
+        {/* Table Content */}
+        <div className="p-8 overflow-y-auto flex-1 custom-scrollbar">
           {loading ? (
-            <div className="text-center py-10">Đang tải dữ liệu...</div>
+            <div className="flex flex-col items-center justify-center py-24 gap-4">
+              <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
+              <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">
+                Đang xử lý dữ liệu...
+              </p>
+            </div>
           ) : (
             <table className="w-full text-left">
-              <thead className="text-xs font-bold text-gray-400 uppercase border-b border-gray-100">
+              <thead className="text-[11px] font-black text-gray-400 uppercase tracking-[0.15em] border-b border-gray-100">
                 <tr>
-                  <th className="pb-3 px-2">Mã SV</th>
-                  <th className="pb-3 px-2">Họ tên</th>
-                  <th className="pb-3 px-2 text-center w-24">Chuyên cần</th>
-                  <th className="pb-3 px-2 text-center w-24">Giữa kỳ</th>
-                  <th className="pb-3 px-2 text-center w-24">Điểm thi</th>
-                  <th className="pb-3 px-2 text-center w-24">Tổng kết</th>
+                  <th className="pb-6 px-4">Thông tin sinh viên</th>
+                  <th className="pb-6 px-2 text-center w-32">Chuyên cần</th>
+                  <th className="pb-6 px-2 text-center w-32">Giữa kỳ</th>
+                  <th className="pb-6 px-2 text-center w-32">Điểm thi</th>
+                  <th className="pb-6 px-4 text-center w-32">Tổng kết</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -134,19 +164,23 @@ const NhapDiemModal = ({ isOpen, onClose, lop }) => {
                     key={sv.sinh_vien_id}
                     className="hover:bg-gray-50 transition-colors"
                   >
-                    <td className="py-3 px-2 font-medium text-blue-600 text-sm">
-                      {sv.ma_sv}
+                    <td className="py-5 px-4">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-black text-gray-800">
+                          {sv.ho_ten}
+                        </span>
+                        <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider">
+                          {sv.ma_sv}
+                        </span>
+                      </div>
                     </td>
-                    <td className="py-3 px-2 font-semibold text-gray-800 text-sm">
-                      {sv.ho_ten}
-                    </td>
-                    <td className="py-3 px-2">
+                    <td className="py-5 px-2">
                       <input
                         type="number"
                         min="0"
                         max="10"
                         step="0.1"
-                        className="w-full p-2 border border-gray-200 rounded text-center text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        className="w-24 mx-auto block px-3 py-3 bg-gray-50 border border-transparent rounded-xl text-center font-black text-gray-700 focus:bg-white focus:border-indigo-200 focus:ring-4 focus:ring-indigo-500/5 transition-all outline-none"
                         value={sv.diem_cc ?? ""}
                         onBlur={(e) =>
                           handleUpdateDiem(
@@ -166,13 +200,13 @@ const NhapDiemModal = ({ isOpen, onClose, lop }) => {
                         }
                       />
                     </td>
-                    <td className="py-3 px-2">
+                    <td className="py-5 px-2">
                       <input
                         type="number"
                         min="0"
                         max="10"
                         step="0.1"
-                        className="w-full p-2 border border-gray-200 rounded text-center text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        className="w-24 mx-auto block px-3 py-3 bg-gray-50 border border-transparent rounded-xl text-center font-black text-gray-700 focus:bg-white focus:border-indigo-200 focus:ring-4 focus:ring-indigo-500/5 transition-all outline-none"
                         value={sv.diem_gk ?? ""}
                         onBlur={(e) =>
                           handleUpdateDiem(
@@ -192,13 +226,13 @@ const NhapDiemModal = ({ isOpen, onClose, lop }) => {
                         }
                       />
                     </td>
-                    <td className="py-3 px-2">
+                    <td className="py-5 px-2">
                       <input
                         type="number"
                         min="0"
                         max="10"
                         step="0.1"
-                        className="w-full p-2 border border-gray-200 rounded text-center text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        className="w-24 mx-auto block px-3 py-3 bg-indigo-50/50 border border-indigo-100 rounded-xl text-center font-black text-indigo-600 focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none"
                         value={sv.diem_thi ?? ""}
                         onBlur={(e) =>
                           handleUpdateDiem(
@@ -218,11 +252,15 @@ const NhapDiemModal = ({ isOpen, onClose, lop }) => {
                         }
                       />
                     </td>
-                    <td className="py-3 px-2 text-center">
+                    <td className="py-5 px-4 text-center">
                       <span
-                        className={`font-bold text-sm ${parseFloat(sv.diem_tk) >= 5 ? "text-green-600" : "text-red-500"}`}
+                        className={`text-base font-black px-4 py-2 rounded-2xl ${
+                          parseFloat(sv.diem_tk) >= 5
+                            ? "text-emerald-600 bg-emerald-50"
+                            : "text-rose-600 bg-rose-50"
+                        }`}
                       >
-                        {sv.diem_tk || "--"}
+                        {sv.diem_tk || "-"}
                       </span>
                     </td>
                   </tr>
@@ -231,12 +269,12 @@ const NhapDiemModal = ({ isOpen, onClose, lop }) => {
             </table>
           )}
         </div>
-        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+        <div className="px-8 py-5 border-t border-gray-100 bg-gray-50/50 flex justify-end">
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-gray-800 text-white rounded-lg font-bold text-sm hover:bg-gray-900 transition-all"
+            className="px-10 py-4 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl shadow-gray-200 active:scale-95"
           >
-            Hoàn tất
+            Hoàn tất nhập điểm
           </button>
         </div>
       </div>

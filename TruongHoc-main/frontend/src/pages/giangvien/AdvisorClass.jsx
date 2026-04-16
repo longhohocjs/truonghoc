@@ -127,132 +127,169 @@ const AdvisorClass = () => {
     return <div className="p-10 text-center">Đang tải dữ liệu...</div>;
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate("/giang-vien/lop-sinh-hoat")}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <ArrowLeft size={24} className="text-gray-400" />
-          </button>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">
-              Chi tiết lớp cố vấn
-            </h2>
-            <p className="text-gray-500 text-sm">
-              Quản lý sinh viên lớp chủ nhiệm
-            </p>
+    <div className="max-w-6xl mx-auto space-y-8 animate-fadeIn pb-10">
+      {/* Navigation & Header Section */}
+      <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-50/40 rounded-full -mr-20 -mt-20 blur-3xl" />
+        <div className="absolute bottom-0 left-20 w-40 h-40 bg-blue-50/30 rounded-full -mb-10 blur-2xl" />
+
+        <div className="relative flex flex-col lg:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-6">
+            <button
+              onClick={() => navigate("/giang-vien/lop-sinh-hoat")}
+              className="p-3 bg-gray-50 text-gray-400 rounded-2xl hover:bg-indigo-50 hover:text-indigo-600 transition-all group"
+            >
+              <ArrowLeft
+                size={24}
+                className="group-hover:-translate-x-1 transition-transform"
+              />
+            </button>
+            <div className="flex items-center gap-5">
+              <Users size={42} className="text-indigo-600 shrink-0" />
+              <div>
+                <h2 className="text-2xl font-black text-gray-900 tracking-tight">
+                  Chi tiết lớp cố vấn
+                </h2>
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="text-[10px] font-black px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-lg uppercase tracking-wider border border-indigo-100">
+                    {lops.find(
+                      (l) =>
+                        (l.LopSinhHoatID || l.lop_sinh_hoat_id) == selectedLop,
+                    )?.TenLop ||
+                      lops.find(
+                        (l) =>
+                          (l.LopSinhHoatID || l.lop_sinh_hoat_id) ==
+                          selectedLop,
+                      )?.ten_lop ||
+                      "Lớp"}
+                  </span>
+                  <p className="text-gray-400 text-sm font-medium">
+                    Quản lý sinh viên lớp chủ nhiệm
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <select
-            className="border p-2 rounded-xl text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-indigo-500"
-            value={selectedHK}
-            onChange={(e) => setSelectedHK(e.target.value)}
-          >
-            {hocKys.map((hk) => (
-              <option key={hk.HocKyID} value={hk.HocKyID}>
-                {hk.TenHocKy}
-              </option>
-            ))}
-          </select>
-          <select
-            className="border p-2 rounded-xl text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-indigo-500"
-            value={selectedLop}
-            onChange={(e) => setSelectedLop(e.target.value)}
-          >
-            <option value="">-- Chọn lớp --</option>
-            {lops.map((l, index) => (
-              <option
-                key={l.LopSinhHoatID || l.lop_sinh_hoat_id || index}
-                value={l.LopSinhHoatID || l.lop_sinh_hoat_id}
-              >
-                {l.TenLop || l.ten_lop}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={handleSaveAll}
-            disabled={saving || students.length === 0}
-            className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-lg shadow-indigo-100"
-          >
-            {saving ? "..." : <Save size={18} />}
-            LƯU ĐIỂM
-          </button>
+
+          <div className="flex flex-wrap items-center gap-3 relative z-10">
+            <select
+              className="bg-gray-50 border-none p-3 rounded-2xl text-xs font-black text-gray-700 outline-none focus:ring-2 focus:ring-indigo-500 transition-all uppercase tracking-wider cursor-pointer shadow-sm"
+              value={selectedHK}
+              onChange={(e) => setSelectedHK(e.target.value)}
+            >
+              {hocKys.map((hk) => (
+                <option key={hk.HocKyID} value={hk.HocKyID}>
+                  {hk.TenHocKy}
+                </option>
+              ))}
+            </select>
+            <select
+              className="bg-gray-50 border-none p-3 rounded-2xl text-xs font-black text-gray-700 outline-none focus:ring-2 focus:ring-indigo-500 transition-all uppercase tracking-wider cursor-pointer shadow-sm"
+              value={selectedLop}
+              onChange={(e) => setSelectedLop(e.target.value)}
+            >
+              <option value="">-- Chọn lớp --</option>
+              {lops.map((l, index) => (
+                <option
+                  key={l.LopSinhHoatID || l.lop_sinh_hoat_id || index}
+                  value={l.LopSinhHoatID || l.lop_sinh_hoat_id}
+                >
+                  {l.TenLop || l.ten_lop}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={handleSaveAll}
+              disabled={saving || students.length === 0}
+              className="bg-gray-900 hover:bg-indigo-600 disabled:bg-gray-200 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-wider flex items-center gap-2 transition-all shadow-lg shadow-gray-200 active:scale-95"
+            >
+              {saving ? "ĐANG LƯU..." : <Save size={16} />}
+              LƯU ĐIỂM
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-gray-50/50 text-gray-400 text-[10px] uppercase font-bold tracking-widest border-b border-gray-100">
-            <tr>
-              <th className="px-6 py-4">STT</th>
-              <th className="px-6 py-4">MSSV</th>
-              <th className="px-6 py-4">Họ và tên</th>
-              <th className="px-6 py-4 text-center w-32">Điểm (0-100)</th>
-              <th className="px-6 py-4 text-center">Xếp loại</th>
-              <th className="px-6 py-4 text-right">Email / SĐT</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {students.length === 0 ? (
+      {/* Student List Table */}
+      <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-gray-50/50 text-gray-400 text-[11px] uppercase font-bold tracking-[0.15em] border-b border-gray-100">
               <tr>
-                <td colSpan="6" className="p-10 text-center text-gray-400">
-                  Không có dữ liệu
-                </td>
+                <th className="px-8 py-5 w-20">STT</th>
+                <th className="px-6 py-4">MSSV</th>
+                <th className="px-6 py-4">Họ và tên</th>
+                <th className="px-6 py-4 text-center w-60">Điểm (0-100)</th>
+                <th className="px-6 py-4 text-center">Xếp loại</th>
               </tr>
-            ) : (
-              students.map((sv, index) => (
-                <tr
-                  key={sv.sinh_vien_id || sv.SinhVienID || index}
-                  className="hover:bg-indigo-50/10 transition-colors"
-                >
-                  <td className="px-6 py-4 text-gray-400 text-sm">
-                    {index + 1}
-                  </td>
-                  <td className="px-6 py-4 font-black text-indigo-600 text-sm">
-                    {sv.ma_sv}
-                  </td>
-                  <td className="px-6 py-4 font-bold text-gray-800 text-sm">
-                    {sv.ho_ten}
-                  </td>
-                  <td className="px-6 py-4">
-                    <input
-                      type="number"
-                      className="w-full p-2 border border-gray-100 rounded-lg text-center font-bold text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none bg-gray-50/50"
-                      value={sv.tong_diem ?? sv.TongDiem ?? ""}
-                      onChange={(e) =>
-                        handleScoreChange(
-                          sv.sinh_vien_id || sv.SinhVienID,
-                          e.target.value,
-                        )
-                      }
-                    />
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <span
-                      className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
-                        (sv.xep_loai || sv.XepLoai) === "XuatSac"
-                          ? "bg-purple-100 text-purple-600"
-                          : (sv.xep_loai || sv.XepLoai) === "Gioi"
-                            ? "bg-green-100 text-green-600"
-                            : (sv.xep_loai || sv.XepLoai) === "Kha"
-                              ? "bg-blue-100 text-blue-600"
-                              : "bg-gray-100 text-gray-500"
-                      }`}
-                    >
-                      {sv.xep_loai || sv.XepLoai || "Chưa chấm"}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right text-[10px] text-gray-400 font-medium">
-                    {sv.email} <br /> {sv.so_dien_thoai}
+            </thead>
+            <tbody className="divide-y divide-gray-50/50">
+              {students.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan="6"
+                    className="p-24 text-center text-gray-400 italic"
+                  >
+                    Không có dữ liệu
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                students.map((sv, index) => (
+                  <tr
+                    key={sv.sinh_vien_id || sv.SinhVienID || index}
+                    className="hover:bg-gray-50/50 transition-all group"
+                  >
+                    <td className="px-8 py-5 text-gray-400 text-sm font-medium">
+                      {index + 1}
+                    </td>
+                    <td className="px-6 py-4 font-black text-indigo-600 text-sm">
+                      {sv.ma_sv}
+                    </td>
+                    <td className="px-6 py-4 font-bold text-gray-800 text-sm">
+                      {sv.ho_ten}
+                    </td>
+                    <td className="px-6 py-4">
+                      <input
+                        type="number"
+                        className="w-full p-2.5 bg-gray-50/50 border border-transparent rounded-xl text-center font-black text-indigo-600 focus:bg-white focus:border-indigo-200 focus:ring-4 focus:ring-indigo-500/5 transition-all outline-none"
+                        value={sv.tong_diem ?? sv.TongDiem ?? ""}
+                        onChange={(e) =>
+                          handleScoreChange(
+                            sv.sinh_vien_id || sv.SinhVienID,
+                            e.target.value,
+                          )
+                        }
+                      />
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span
+                        className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border shadow-sm ${
+                          (sv.xep_loai || sv.XepLoai) === "XuatSac"
+                            ? "bg-purple-100 text-purple-600"
+                            : (sv.xep_loai || sv.XepLoai) === "Gioi"
+                              ? "bg-green-100 text-green-600"
+                              : (sv.xep_loai || sv.XepLoai) === "Kha"
+                                ? "bg-blue-100 text-blue-600"
+                                : "bg-gray-100 text-gray-500"
+                        }`}
+                      >
+                        {sv.xep_loai || sv.XepLoai || "Chưa chấm"}
+                      </span>
+                    </td>
+                    <td className="px-8 py-5 text-right">
+                      <div className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">
+                        {sv.email}
+                      </div>
+                      <div className="text-[10px] text-indigo-500 font-black mt-0.5">
+                        {sv.so_dien_thoai}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

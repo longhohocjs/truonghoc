@@ -7,6 +7,9 @@ import {
   FileSpreadsheet,
   ClipboardPenLine,
   ListChecks,
+  LayoutDashboard,
+  Calendar,
+  GraduationCap,
 } from "lucide-react";
 import NhapDiemModal from "./NhapDiemModal";
 
@@ -54,76 +57,89 @@ const LopPhanCong = () => {
 
   if (loading)
     return (
-      <div className="flex justify-center p-10 font-medium text-gray-500">
+      <div className="flex justify-center p-20 font-medium text-gray-500">
         Đang tải dữ liệu...
       </div>
     );
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      <div className="flex justify-between items-end">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">
-            Lớp học phần giảng dạy
-          </h2>
-          <p className="text-gray-500 text-sm">
-            Quản lý điểm và danh sách sinh viên các lớp được phân công
-          </p>
-        </div>
-        <div className="bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100">
-          <span className="text-xs text-indigo-500 font-bold uppercase block text-center">
-            Tổng số lớp
-          </span>
-          <span className="text-xl font-black text-indigo-700 block text-center">
-            {lops.length}
-          </span>
+    <div className="max-w-6xl mx-auto space-y-8 animate-fadeIn pb-10">
+      {/* Unified Header */}
+      <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-50/40 rounded-full -mr-20 -mt-20 blur-3xl" />
+        <div className="absolute bottom-0 left-20 w-40 h-40 bg-blue-50/30 rounded-full -mb-10 blur-2xl" />
+
+        <div className="relative flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-6">
+            <LayoutDashboard size={42} className="text-indigo-600 shrink-0" />
+            <div>
+              <h2 className="text-2xl font-black text-gray-900 tracking-tight">
+                Lớp học phần giảng dạy
+              </h2>
+              <p className="text-gray-500 text-sm font-medium">
+                Quản lý điểm và danh sách sinh viên các lớp được phân công
+              </p>
+            </div>
+          </div>
+          <div className="bg-indigo-600 px-6 py-3 rounded-2xl text-center shadow-lg shadow-indigo-100">
+            <p className="text-[10px] font-bold text-indigo-100 uppercase tracking-widest mb-1">
+              Tổng số lớp
+            </p>
+            <p className="text-2xl font-black text-white leading-none">
+              {lops.length}
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="bg-gray-50/50 text-gray-400 text-[10px] uppercase font-bold tracking-widest">
+            <thead className="bg-gray-50/50 text-gray-400 text-[11px] uppercase font-bold tracking-[0.15em] border-b border-gray-100">
               <tr>
-                <th className="px-6 py-4">Mã Lớp HP</th>
+                <th className="px-8 py-5">Mã Lớp HP</th>
                 <th className="px-6 py-4">Tên Môn Học</th>
-                <th className="px-6 py-4">Tín chỉ</th>
+                <th className="px-6 py-4 text-center">Tín chỉ</th>
                 <th className="px-6 py-4">Học kỳ</th>
                 <th className="px-6 py-4 text-center">Sĩ số</th>
-                <th className="px-6 py-4 text-right">Thao tác</th>
+                <th className="px-8 py-4 text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {lops.map((lop) => (
                 <tr
                   key={lop.lop_hoc_phan_id}
-                  className="hover:bg-indigo-50/20 transition-colors group"
+                  className="hover:bg-gray-50/50 transition-all group"
                 >
-                  <td className="px-6 py-4 font-bold text-indigo-600">
+                  <td className="px-8 py-5 font-black text-indigo-600 text-sm">
                     {lop.ma_lop_hp}
                   </td>
-                  <td className="px-6 py-4 font-bold text-gray-800 group-hover:text-indigo-700 transition-colors">
+                  <td className="px-6 py-4 font-bold text-gray-800 text-sm">
                     {lop.ten_mon}
                   </td>
-                  <td className="px-6 py-4 text-center font-medium">
+                  <td className="px-6 py-4 text-center font-bold text-gray-500 text-sm">
                     {lop.so_tin_chi}
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm font-medium">{lop.ten_hoc_ky}</div>
-                    <div className="text-xs text-gray-400">{lop.nam_hoc}</div>
+                    <div className="text-sm font-bold text-gray-700">
+                      {lop.ten_hoc_ky}
+                    </div>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase">
+                      {lop.nam_hoc}
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-center">
                     <span
-                      className={`px-3 py-1 rounded-lg text-xs font-black ${
+                      className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase border ${
                         lop.so_sinh_vien >= lop.so_luong_toi_da
-                          ? "bg-red-100 text-red-600"
-                          : "bg-indigo-100 text-indigo-600"
+                          ? "bg-rose-50 text-rose-600 border-rose-100"
+                          : "bg-indigo-50 text-indigo-600 border-indigo-100"
                       }`}
                     >
                       {lop.si_so}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-8 py-5">
                     <div className="flex justify-end space-x-2">
                       <button
                         onClick={() =>
@@ -131,7 +147,7 @@ const LopPhanCong = () => {
                             `/giang-vien/lop/${lop.lop_hoc_phan_id}/sinh-vien`,
                           )
                         }
-                        className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                        className="p-2.5 bg-gray-50 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
                         title="Xem danh sách sinh viên"
                       >
                         <ListChecks size={18} />
@@ -141,7 +157,7 @@ const LopPhanCong = () => {
                           setSelectedLop(lop);
                           setIsModalOpen(true);
                         }}
-                        className="flex items-center bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-lg shadow-indigo-100"
+                        className="flex items-center bg-blue-700 hover:bg-indigo-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-lg shadow-gray-100 active:scale-95"
                       >
                         <ClipboardPenLine size={14} className="mr-1.5" /> NHẬP
                         ĐIỂM
@@ -153,7 +169,7 @@ const LopPhanCong = () => {
                             lop.ma_lop_hp,
                           )
                         }
-                        className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all"
+                        className="p-2.5 bg-gray-50 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
                         title="Tải mẫu Excel"
                       >
                         <FileSpreadsheet size={18} />

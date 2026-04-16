@@ -35,23 +35,32 @@ const LopSinhHoatList = () => {
     );
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      <div className="flex justify-between items-end">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">
-            Lớp sinh hoạt chủ nhiệm
-          </h2>
-          <p className="text-gray-500 text-sm">
-            Danh sách các lớp bạn đang đảm nhận vai trò Cố vấn học tập
-          </p>
-        </div>
-        <div className="bg-blue-50 px-4 py-2 rounded-xl border border-blue-100">
-          <span className="text-xs text-blue-500 font-bold uppercase block text-center">
-            Đang quản lý
-          </span>
-          <span className="text-xl font-black text-blue-700 block text-center">
-            {lops.length} lớp
-          </span>
+    <div className="max-w-6xl mx-auto space-y-8 animate-fadeIn pb-10">
+      {/* Unified Header Section */}
+      <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-50/40 rounded-full -mr-20 -mt-20 blur-3xl" />
+        <div className="absolute bottom-0 left-20 w-40 h-40 bg-blue-50/30 rounded-full -mb-10 blur-2xl" />
+
+        <div className="relative flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-6">
+            <Users size={42} className="text-indigo-600 shrink-0" />
+            <div>
+              <h2 className="text-2xl font-black text-gray-900 tracking-tight">
+                Lớp sinh hoạt chủ nhiệm
+              </h2>
+              <p className="text-gray-500 text-sm font-medium">
+                Danh sách các lớp bạn đang đảm nhận vai trò Cố vấn học tập
+              </p>
+            </div>
+          </div>
+          <div className="bg-indigo-600 px-6 py-3 rounded-2xl text-center shadow-lg shadow-indigo-100">
+            <p className="text-[10px] font-bold text-indigo-100 uppercase tracking-widest mb-1">
+              Đang quản lý
+            </p>
+            <p className="text-2xl font-black text-white leading-none">
+              {lops.length} Lớp
+            </p>
+          </div>
         </div>
       </div>
 

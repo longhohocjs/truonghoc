@@ -108,10 +108,10 @@ const GiangVienProfile = () => {
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fadeIn pb-10">
       {/* Main Identity Card */}
-      <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm relative overflow-hidden group">
-        <div className="flex flex-col md:flex-row gap-8 items-center relative z-10">
+      <div className="bg-white rounded-[2.5rem] p-6 border border-gray-100 shadow-sm relative overflow-hidden group">
+        <div className="flex flex-col md:flex-row gap-6 items-center relative z-10">
           <div className="relative">
-            <div className="w-32 h-32 bg-indigo-50 rounded-full flex items-center justify-center text-4xl font-black text-indigo-600 border-4 border-white shadow-xl shadow-indigo-100/50 uppercase">
+            <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center text-2xl font-black text-indigo-600 border-4 border-white shadow-xl shadow-indigo-100/50 uppercase">
               {(profile.HoTen || profile.ho_ten || "?").charAt(0)}
             </div>
             <div
@@ -120,7 +120,7 @@ const GiangVienProfile = () => {
             ></div>
           </div>
           <div className="flex-1 text-center md:text-left space-y-4">
-            <h2 className="text-3xl font-black text-gray-900 tracking-tight leading-none">
+            <h2 className="text-2xl font-black text-gray-900 tracking-tight leading-none">
               {profile.HoTen || profile.ho_ten}
             </h2>
             <div className="flex flex-wrap justify-center md:justify-start gap-3">

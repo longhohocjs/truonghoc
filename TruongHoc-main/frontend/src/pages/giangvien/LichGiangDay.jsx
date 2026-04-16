@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
 import axiosClient from "@/api/axios";
+import {
+  Calendar,
+  Printer,
+  MapPin,
+  Clock,
+  Info,
+  LayoutDashboard,
+} from "lucide-react";
 
 const LichGiangDay = () => {
   const [schedule, setSchedule] = useState({});
@@ -147,18 +155,12 @@ const LichGiangDay = () => {
             <tbody>
               {timeSlots.map((slot) => (
                 <tr key={slot} className="h-20">
-                  <td className="text-center border-b border-r border-gray-100 bg-gray-50/50">
-                    <span className="text-xs font-bold text-gray-500">
+                  <td className="text-center border-b border-r border-gray-50 bg-gray-50/30">
+                    <span className="text-[10px] font-black text-gray-400">
                       Tiết {slot}
                     </span>
-                    <div className="text-[10px] text-gray-400 mt-1">
-                      {slot === 1
-                        ? "07:00"
-                        : slot === 5
-                          ? "10:30"
-                          : slot === 7
-                            ? "13:00"
-                            : ""}
+                    <div className="text-[9px] font-bold text-indigo-300 mt-1 uppercase">
+                      {slot <= 5 ? "Sáng" : slot <= 10 ? "Chiều" : "Tối"}
                     </div>
                   </td>
                   {daysOfWeek.map((day) => {
@@ -180,20 +182,21 @@ const LichGiangDay = () => {
                       <td
                         key={`${day.value}-${slot}`}
                         rowSpan={cellData?.soTiet || 1}
-                        className={`p-2 border-b border-r border-gray-100 align-top ${
-                          cellData ? "bg-blue-50/50" : "hover:bg-gray-50/30"
+                        className={`p-2 border-b border-r border-gray-50 align-top transition-colors ${
+                          cellData ? "bg-indigo-50/20" : "hover:bg-gray-50/50"
                         }`}
                       >
                         {cellData && (
-                          <div className="h-full bg-blue-100/50 border-l-4 border-blue-500 p-2 rounded-r-lg shadow-sm">
-                            <div className="text-xs font-bold text-blue-800 leading-tight mb-1">
+                          <div className="h-full bg-indigo-50/50 border-l-4 border-indigo-500 p-3 rounded-r-2xl shadow-sm transition-all hover:bg-indigo-100/50 group">
+                            <div className="text-xs font-black text-indigo-900 leading-tight mb-2 uppercase tracking-tight group-hover:text-indigo-600 transition-colors">
                               {cellData.tenMon}
                             </div>
-                            <div className="text-[10px] text-blue-600 font-medium">
-                              📍 {cellData.phong}
+                            <div className="flex items-center text-[10px] text-indigo-600 font-bold mb-1">
+                              <MapPin size={12} className="mr-1" />{" "}
+                              {cellData.phong}
                             </div>
-                            <div className="text-[10px] text-gray-500 mt-1 truncate">
-                              Mã lớp: {cellData.maLop}
+                            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">
+                              Mã: {cellData.maLop}
                             </div>
                           </div>
                         )}
@@ -209,39 +212,24 @@ const LichGiangDay = () => {
 
       {/* Hiển thị các lớp đã nhận được nhưng chưa có thông tin lịch cụ thể */}
       {unscheduledClasses.length > 0 && (
-        <div className="mt-8 bg-amber-50 border border-amber-200 rounded-xl p-6">
+        <div className="bg-amber-50 rounded-[2rem] border border-amber-100 p-8 shadow-sm">
           <div className="flex items-center mb-4">
-            <div className="p-2 bg-amber-100 rounded-lg mr-3">
-              <svg
-                className="w-5 h-5 text-amber-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                />
-              </svg>
-            </div>
-            <h3 className="text-sm font-bold text-amber-800 uppercase tracking-wider">
-              Lớp học phần đã phân công nhưng chưa có lịch (Thứ/Tiết)
+            <Info size={24} className="text-amber-500 mr-3" />
+            <h3 className="text-xs font-black text-amber-800 uppercase tracking-[0.2em]">
+              Lớp học phần chưa có thông tin xếp lịch
             </h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {unscheduledClasses.map((lop, idx) => (
               <div
                 key={idx}
-                className="bg-white p-3 rounded-lg border border-amber-100 shadow-sm"
+                className="bg-white p-4 rounded-2xl border border-amber-100 shadow-sm"
               >
-                <p className="text-xs font-bold text-blue-600">{lop.MaLopHP}</p>
-                <p className="text-sm font-medium text-gray-800 truncate">
-                  {lop.mon_hoc?.TenMon || lop.TenMon || "N/A"}
+                <p className="text-[10px] font-black text-amber-600 uppercase mb-1">
+                  {lop.MaLopHP}
                 </p>
-                <p className="text-[10px] text-gray-400 mt-1 italic">
-                  * Cần cập nhật thông tin trong bảng 'lichhoc'
+                <p className="text-sm font-bold text-gray-800 truncate">
+                  {lop.mon_hoc?.TenMon || lop.TenMon || "N/A"}
                 </p>
               </div>
             ))}
