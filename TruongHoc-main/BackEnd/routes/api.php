@@ -101,11 +101,14 @@ Route::middleware(['auth:api', \App\Http\Middleware\CheckActiveUser::class])->gr
         Route::post('lop-sinh-hoat/cap-nhat-diem-ren-luyen', [LopSinhHoatCoVanController::class, 'capNhatDiemRenLuyen']);
     });
 
+    // --- ADMIN ---
     Route::middleware(\App\Http\Middleware\CheckAdmin::class)->prefix('admin')->group(function () {
         Route::get('thong-bao', [ThongBaoController::class, 'index']);
         Route::post('thong-bao', [ThongBaoController::class, 'store']);
         Route::put('thong-bao/{id}', [ThongBaoController::class, 'update']);
         Route::delete('thong-bao/{id}', [ThongBaoController::class, 'destroy']);
+
+        Route::get('thong-ke', [ThongKeController::class, 'index']);
 
         Route::post('nam-hoc', [NamHocController::class, 'storeNamHoc']);
         Route::get('nam-hoc', [NamHocController::class, 'getDanhSachNamHoc']);

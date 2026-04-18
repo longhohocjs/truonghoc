@@ -1,193 +1,67 @@
 import React, { useState, useEffect } from "react";
 import axiosClient from "@/api/axios";
+import {
+  Users,
+  UserPlus,
+  Search,
+  Filter,
+  ShieldCheck,
+  ShieldAlert,
+  KeyRound,
+  Trash2,
+  MoreVertical,
+  GraduationCap,
+  UserCog,
+  Briefcase,
+} from "lucide-react";
 import toast from "react-hot-toast";
-import UserModal from "./UserModal";
-import AssignAccountModal from "./AssignAccountModal";
 
 const UserManagement = () => {
-  const [activeTab, setActiveTab] = useState("sinhvien");
+  const [activeTab, setActiveTab] = useState("sinhvien"); // sinhvien, giangvien, admin
   const [users, setUsers] = useState([]);
-  const [faculties, setFaculties] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-  const [staffForAccount, setStaffForAccount] = useState(null);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const endpoint =
-        activeTab === "sinhvien"
-          ? "/admin/users/sinh-vien/index"
-          : activeTab === "giangvien"
-            ? "/admin/users/giang-vien/index"
-            : "/admin/users/admin-list/index";
-
-      const response = await axiosClient.post(endpoint);
-
-      // Trích xuất dữ liệu cực kỳ linh hoạt
-      let dataArray = [];
-
-      // Trích xuất dữ liệu cực kỳ linh hoạt (Hỗ trợ Laravel Pagination & Resource)
-      const isSuccess =
-        response?.success === true || response?.status === "success";
-      const payload = isSuccess ? response.data : response;
-
-      if (Array.isArray(payload)) {
-        dataArray = payload;
-      } else if (payload?.data && Array.isArray(payload.data)) {
-        dataArray = payload.data;
-      }
-
-      setUsers(dataArray);
-
-      // Debug: Kiểm tra cấu hình dữ liệu của sinh viên đầu tiên
-      if (dataArray.length > 0 && activeTab === "sinhvien") {
-        console.log("Dữ liệu mẫu sinh viên:", dataArray[0]);
-      }
-    } catch (error) {
-      console.error("Lỗi khi tải danh sách người dùng:", error);
-      // Mock dữ liệu để demo giao diện nếu API chưa sẵn sàng
-      setUsers([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchFaculties = async () => {
-    try {
-      const res = await axiosClient.post("/admin/khoa/list");
-      setFaculties(res.data || res || []);
-    } catch (error) {
-      console.error("Lỗi tải khoa:", error);
-    }
-  };
+  const [search, setSearch] = useState("");
+  const [khoas, setKhoas] = useState([]);
+  const [selectedKhoa, setSelectedKhoa] = useState("");
 
   useEffect(() => {
-    fetchData();
-    fetchFaculties();
-  }, [activeTab]);
+    fetchKhoas();
+  }, []);
 
-  // Lọc danh sách dựa trên từ khóa tìm kiếm
-  const filteredUsers = (Array.isArray(users) ? users : []).filter((u) => {
-    if (!u) return false;
-    const nameMatch = String(u.ho_ten || u.HoTen || "")
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const codeMatch = String(u.ma_sv || u.ma_gv || u.MaSV || u.MaGV || "")
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    return nameMatch || codeMatch;
-  });
+  useEffect(() => {
+    fetchUsers();
+  }, [activeTab, selectedKhoa]);
 
-  const handleAdd = () => {
-    setSelectedUser(null);
-    setIsEditing(false);
-    setIsModalOpen(true);
-  };
-
-  const handleEdit = (item) => {
-    setSelectedUser(item);
-    setIsEditing(true);
-    setIsModalOpen(true);
-  };
-
-  const handleSave = async (formData) => {
+  const fetchKhoas = async () => {
     try {
-      if (isEditing) {
-        const endpoint =
-          activeTab === "sinhvien"
-            ? "/admin/users/sinh-vien"
-            : "/admin/users/staff";
-        const roleID =
-          activeTab === "sinhvien" ? 3 : activeTab === "giangvien" ? 2 : 1;
-
-        await axiosClient.patch(endpoint, {
-          ...formData,
-          SinhVienID: selectedUser?.SinhVienID || formData?.SinhVienID,
-          StaffID:
-            selectedUser?.GiangVienID ||
-            selectedUser?.AdminID ||
-            selectedUser?.StaffID ||
-            formData?.GiangVienID,
-          RoleID: roleID,
-        });
-        toast.success("Cập nhật thành công");
-      } else {
-        const endpoint =
-          activeTab === "sinhvien"
-            ? "/admin/users/sinh-vien"
-            : "/admin/users/staff-profile";
-
-        const roleID =
-          activeTab === "sinhvien" ? 3 : activeTab === "giangvien" ? 2 : 1;
-
-        await axiosClient.post(endpoint, { ...formData, RoleID: roleID });
-        toast.success("Thêm mới thành công");
-      }
-      setIsModalOpen(false);
-      fetchData();
+      const res = await axiosClient.post("/admin/khoa/list");
+      setKhoas(res.data || []);
     } catch (error) {
-      console.error(error);
+      console.error("Lỗi lấy danh sách khoa");
     }
   };
 
-  const handleDelete = async (item) => {
-    if (
-      !window.confirm(
-        `Xóa tài khoản ${item.HoTen || item.ho_ten}? Thao tác này sẽ xóa cả hồ sơ và tài khoản.`,
-      )
-    )
-      return;
-
+  const fetchUsers = async () => {
+    setLoading(true);
     try {
-      const userId = item.UserID || item.user?.UserID;
+      let endpoint = "";
+      let payload = { search, KhoaID: selectedKhoa };
 
-      if (userId) {
-        // Trường hợp 1: Đã có tài khoản -> Xóa đồng bộ cả 2 bảng
-        await axiosClient.delete(`/admin/users/${userId}`);
+      if (activeTab === "sinhvien") {
+        endpoint = "/admin/users/sinh-vien/index";
       } else {
-        // Trường hợp 2: Chưa có tài khoản -> Chỉ xóa hồ sơ
-        const staffId = item.GiangVienID || item.AdminID;
-        const roleId =
-          activeTab === "sinhvien" ? 3 : activeTab === "giangvien" ? 2 : 1;
-
-        if (!staffId) {
-          toast.error("Không tìm thấy ID hồ sơ để xóa");
-          return;
-        }
-        await axiosClient.delete(`/admin/users/profile/${staffId}/${roleId}`);
+        endpoint = "/admin/users/staff/index";
+        payload.RoleID = activeTab === "giangvien" ? 2 : 1;
       }
 
-      toast.success("Đã xóa dữ liệu thành công");
-      fetchData();
+      const res = await axiosClient.post(endpoint, payload);
+      const rawData = res.data?.data || res.data || [];
+      // Xử lý dữ liệu phân trang hoặc mảng phẳng
+      setUsers(Array.isArray(rawData) ? rawData : rawData.data || []);
     } catch (error) {
-      toast.error("Lỗi khi xóa người dùng");
-    }
-  };
-
-  const handleAssignAccountClick = (item) => {
-    setStaffForAccount(item);
-    setIsAssignModalOpen(true);
-  };
-
-  const handleConfirmAssign = async (username, password) => {
-    try {
-      await axiosClient.post("/admin/users/assign-account", {
-        StaffID: staffForAccount.GiangVienID || staffForAccount.AdminID,
-        RoleID: activeTab === "giangvien" ? 2 : 1,
-        username: username,
-        password: password,
-      });
-
-      toast.success("Cấp tài khoản thành công!");
-      setIsAssignModalOpen(false);
-      fetchData(); // Tải lại danh sách để cập nhật trạng thái UserID
-    } catch (error) {
-      // Lỗi 422 (trùng username) đã được axios interceptor hiển thị qua toast
+      toast.error("Không thể tải danh sách người dùng");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -197,288 +71,204 @@ const UserManagement = () => {
         UserID: userId,
       });
       toast.success(
-        res.is_active ? "Đã mở khóa tài khoản" : "Đã khóa tài khoản",
+        res.is_active ? "Đã kích hoạt tài khoản" : "Đã khóa tài khoản",
       );
-      fetchData();
+      fetchUsers();
     } catch (error) {
-      console.error("Lỗi khi thay đổi trạng thái:", error);
+      toast.error("Thao tác thất bại");
     }
   };
 
   const handleResetPassword = async (userId) => {
-    if (
-      !window.confirm(
-        "Bạn có chắc chắn muốn đặt lại mật khẩu về '123456' cho tài khoản này?",
-      )
-    )
-      return;
+    if (!window.confirm("Đặt lại mật khẩu về mặc định (123456)?")) return;
     try {
       await axiosClient.post("/admin/users/reset-password", { UserID: userId });
-      toast.success("Mật khẩu đã được đặt lại về 123456");
+      toast.success("Mật khẩu đã được đặt lại");
     } catch (error) {
-      console.error("Lỗi khi reset mật khẩu:", error);
+      toast.error("Lỗi khi đặt lại mật khẩu");
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">
-            Quản lý Người dùng
-          </h2>
-          <p className="text-gray-500 text-sm">
-            Quản lý thông tin tài khoản Sinh viên và Giảng viên trong hệ thống
-          </p>
+    <div className="max-w-6xl mx-auto space-y-8 animate-fadeIn pb-10">
+      {/* Header Section */}
+      <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-50/40 rounded-full -mr-20 -mt-20 blur-3xl" />
+
+        <div className="relative flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-6">
+            <div className="p-4 bg-indigo-600 rounded-3xl text-white shadow-lg shadow-indigo-100">
+              <Users size={32} />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-gray-900 tracking-tight">
+                Quản lý Người dùng
+              </h2>
+              <p className="text-gray-500 text-sm font-medium">
+                Phân quyền, cấp tài khoản và quản lý trạng thái nhân sự/sinh
+                viên
+              </p>
+            </div>
+          </div>
+          <button className="flex items-center gap-2 bg-gray-900 text-white px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl shadow-gray-200 active:scale-95">
+            <UserPlus size={18} /> Thêm người dùng
+          </button>
         </div>
-        <button
-          onClick={handleAdd}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-blue-700 shadow-md transition-all active:scale-95"
-        >
-          + Thêm{" "}
-          {activeTab === "sinhvien"
-            ? "Sinh viên"
-            : activeTab === "giangvien"
-              ? "Giảng viên"
-              : "Admin"}
-        </button>
       </div>
 
-      {/* Tab Switcher */}
-      <div className="flex border-b border-gray-200">
-        <button
-          className={`px-8 py-3 font-bold text-sm transition-all ${activeTab === "sinhvien" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500 hover:text-gray-700"}`}
-          onClick={() => {
-            setActiveTab("sinhvien");
-            setSearchTerm("");
-          }}
-        >
-          DANH SÁCH SINH VIÊN
-        </button>
-        <button
-          className={`px-8 py-3 font-bold text-sm transition-all ${activeTab === "giangvien" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500 hover:text-gray-700"}`}
-          onClick={() => {
-            setActiveTab("giangvien");
-            setSearchTerm("");
-          }}
-        >
-          DANH SÁCH GIẢNG VIÊN
-        </button>
-        <button
-          className={`px-8 py-3 font-bold text-sm transition-all ${activeTab === "admin" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500 hover:text-gray-700"}`}
-          onClick={() => {
-            setActiveTab("admin");
-            setSearchTerm("");
-          }}
-        >
-          DANH SÁCH ADMIN
-        </button>
-      </div>
-
-      {/* Toolbar */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-        <div className="relative w-full md:w-96">
-          <input
-            type="text"
-            placeholder={`Tìm kiếm theo tên hoặc mã ${activeTab === "sinhvien" ? "SV" : activeTab === "giangvien" ? "GV" : "Admin"}...`}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+      {/* Tabs & Filters */}
+      <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
+        <div className="bg-white p-1.5 rounded-2xl border border-gray-100 flex gap-1 shadow-sm">
+          <TabButton
+            active={activeTab === "sinhvien"}
+            onClick={() => setActiveTab("sinhvien")}
+            icon={<GraduationCap size={16} />}
+            label="Sinh viên"
           />
-          <svg
-            className="w-5 h-5 absolute left-3 top-2.5 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
+          <TabButton
+            active={activeTab === "giangvien"}
+            onClick={() => setActiveTab("giangvien")}
+            icon={<Briefcase size={16} />}
+            label="Giảng viên"
+          />
+          <TabButton
+            active={activeTab === "admin"}
+            onClick={() => setActiveTab("admin")}
+            icon={<UserCog size={16} />}
+            label="Quản trị"
+          />
         </div>
-        <div className="text-sm text-gray-500">
-          Tổng cộng:{" "}
-          <span className="font-bold text-gray-800">
-            {filteredUsers.length}
-          </span>{" "}
-          nhân sự
+
+        <div className="flex gap-3 w-full md:w-auto">
+          <div className="relative flex-1 md:w-64">
+            <Search
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+              size={18}
+            />
+            <input
+              type="text"
+              placeholder="Tìm tên, mã số..."
+              className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm font-medium"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyPress={(e) => e.key === "Enter" && fetchUsers()}
+            />
+          </div>
+          <select
+            className="bg-white border border-gray-100 px-4 py-3.5 rounded-2xl outline-none text-sm font-bold text-gray-600 focus:ring-2 focus:ring-indigo-500/20 cursor-pointer"
+            value={selectedKhoa}
+            onChange={(e) => setSelectedKhoa(e.target.value)}
+          >
+            <option value="">Tất cả Khoa</option>
+            {khoas.map((k) => (
+              <option key={k.KhoaID} value={k.KhoaID}>
+                {k.TenKhoa}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
-      {/* Table Area */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      {/* Table Section */}
+      <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="bg-gray-50 text-gray-600 text-xs uppercase font-bold tracking-wider">
+            <thead className="bg-gray-50/50 text-gray-400 text-[11px] uppercase font-bold tracking-[0.15em] border-b border-gray-100">
               <tr>
-                <th className="px-6 py-4">STT</th>
-                <th className="px-6 py-4">
-                  Mã{" "}
-                  {activeTab === "sinhvien"
-                    ? "SV"
-                    : activeTab === "giangvien"
-                      ? "GV"
-                      : "Định danh"}
-                </th>
-                <th className="px-6 py-4">Họ tên</th>
-                {activeTab === "sinhvien" ? (
-                  <>
-                    <th className="px-6 py-4">Lớp sinh hoạt</th>
-                    <th className="px-6 py-4">Khóa học</th>
-                  </>
-                ) : activeTab === "admin" ? (
-                  <>
-                    <th className="px-6 py-4">Quyền hạn</th>
-                    <th className="px-6 py-4">Ngày tạo</th>
-                  </>
-                ) : (
-                  <>
-                    <th className="px-6 py-4">Khoa</th>
-                    <th className="px-6 py-4">Trình độ</th>
-                  </>
-                )}
-                <th className="px-6 py-4">Email</th>
-                <th className="px-6 py-4 text-right">Thao tác</th>
+                <th className="px-8 py-5">Người dùng</th>
+                <th className="px-6 py-5">Mã định danh</th>
+                <th className="px-6 py-5">Khoa / Phòng</th>
+                <th className="px-6 py-5">Trạng thái</th>
+                <th className="px-8 py-5 text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td
-                    colSpan="7"
-                    className="px-6 py-10 text-center text-gray-400"
-                  >
-                    Đang tải dữ liệu...
+                  <td colSpan="5" className="px-8 py-20 text-center">
+                    <div className="inline-block w-8 h-8 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
                   </td>
                 </tr>
-              ) : filteredUsers.length === 0 ? (
+              ) : users.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="7"
-                    className="px-6 py-10 text-center text-gray-400 italic"
+                    colSpan="5"
+                    className="px-8 py-20 text-center text-gray-400 font-medium italic"
                   >
-                    Không tìm thấy dữ liệu phù hợp.
+                    Không tìm thấy người dùng nào
                   </td>
                 </tr>
               ) : (
-                filteredUsers.map((item, index) => (
+                users.map((u) => (
                   <tr
-                    key={
-                      item.SinhVienID ||
-                      item.GiangVienID ||
-                      item.UserID ||
-                      `user-${index}`
-                    }
-                    className="hover:bg-blue-50/30 transition-colors text-sm"
+                    key={u.UserID || u.SinhVienID || u.GiangVienID}
+                    className="hover:bg-gray-50/50 transition-all group"
                   >
-                    <td className="px-6 py-4 text-gray-500">{index + 1}</td>
-                    <td className="px-6 py-4 font-bold text-blue-600">
-                      {activeTab === "sinhvien"
-                        ? item.MaSV || item.ma_sv
-                        : item.MaGV ||
-                          item.ma_gv ||
-                          item.user?.Username ||
-                          "ADMIN"}
+                    <td className="px-8 py-5">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 font-black text-xs border-2 border-white shadow-sm">
+                          {u.HoTen?.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-black text-gray-900">
+                            {u.HoTen}
+                          </p>
+                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">
+                            {u.email || u.Email || "Chưa có email"}
+                          </p>
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 font-semibold text-gray-800">
-                      {item.HoTen || item.ho_ten}
+                    <td className="px-6 py-5">
+                      <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg">
+                        {u.MaSV || u.MaGV || u.Username || "N/A"}
+                      </span>
                     </td>
-                    {activeTab === "sinhvien" ? (
-                      <>
-                        <td className="px-6 py-4 text-indigo-600 font-medium">
-                          {item.TenLop ||
-                            item.MaLop ||
-                            item.ten_lop_sinh_hoat ||
-                            item.lop_sinh_hoat?.TenLop ||
-                            item.lop_sinh_hoat?.MaLop ||
-                            "Chưa xếp lớp"}
-                        </td>
-                        <td className="px-6 py-4">
-                          {item.ten_nganh || item.khoahoc || item.KhoaHoc}
-                        </td>
-                      </>
-                    ) : activeTab === "admin" ? (
-                      <>
-                        <td className="px-6 py-4 font-medium text-orange-600">
-                          Administrator
-                        </td>
-                        <td className="px-6 py-4 text-gray-400">
-                          {new Date(item.created_at).toLocaleDateString(
-                            "vi-VN",
-                          )}
-                        </td>
-                      </>
-                    ) : (
-                      <>
-                        <td className="px-6 py-4 font-medium text-gray-700">
-                          {item.khoa?.TenKhoa || item.ten_khoa || "N/A"}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-bold uppercase">
-                            {item.hoc_vi || "Giảng viên"}
-                          </span>
-                        </td>
-                      </>
-                    )}
-                    <td className="px-6 py-4 text-gray-500 lowercase">
-                      {item.Email || item.email || "N/A"}
+                    <td className="px-6 py-5">
+                      <p className="text-xs font-bold text-gray-600">
+                        {u.khoa?.TenKhoa || u.TenKhoa || "Hệ thống"}
+                      </p>
+                      <p className="text-[10px] text-gray-400 font-medium uppercase">
+                        {u.nganh?.TenNganh || u.hoc_vi || ""}
+                      </p>
                     </td>
-                    <td className="px-6 py-4 text-right space-x-2">
-                      {activeTab !== "sinhvien" && !item.UserID && (
-                        <button
-                          onClick={() => handleAssignAccountClick(item)}
-                          className="text-green-600 hover:bg-green-100 px-3 py-1.5 rounded-lg font-bold text-xs uppercase transition-all"
-                          title="Cấp tài khoản đăng nhập"
-                        >
-                          Cấp TK
-                        </button>
-                      )}
-                      {(item.UserID || item.user?.UserID) && (
-                        <>
-                          <button
-                            onClick={() =>
-                              handleResetPassword(
-                                item.UserID || item.user?.UserID,
-                              )
-                            }
-                            className="text-gray-600 hover:bg-gray-100 px-3 py-1.5 rounded-lg font-bold text-xs uppercase transition-all"
-                            title="Reset mật khẩu về 123456"
-                          >
-                            Reset
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleToggleStatus(
-                                item.UserID || item.user?.UserID,
-                              )
-                            }
-                            className={`${
-                              (item.user?.is_active ?? item.is_active ?? true)
-                                ? "text-orange-600 hover:bg-orange-100"
-                                : "text-green-600 hover:bg-green-100"
-                            } px-3 py-1.5 rounded-lg font-bold text-xs uppercase transition-all`}
-                          >
-                            {(item.user?.is_active ?? item.is_active ?? true)
-                              ? "Khóa"
-                              : "Mở khóa"}
-                          </button>
-                        </>
-                      )}
-                      <button
-                        onClick={() => handleEdit(item)}
-                        className="text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-lg font-bold text-xs uppercase transition-all"
-                      >
-                        Sửa
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item)}
-                        className="text-red-500 hover:bg-red-100 px-3 py-1.5 rounded-lg font-bold text-xs uppercase transition-all"
-                      >
-                        Xóa
-                      </button>
+                    <td className="px-6 py-5">
+                      <StatusBadge active={u.user?.is_active ?? u.is_active} />
+                    </td>
+                    <td className="px-8 py-5">
+                      <div className="flex justify-end items-center gap-2">
+                        <ActionButton
+                          icon={<KeyRound size={16} />}
+                          onClick={() => handleResetPassword(u.UserID)}
+                          tooltip="Reset Password"
+                        />
+                        <ActionButton
+                          icon={
+                            (u.user?.is_active ?? u.is_active) ? (
+                              <ShieldAlert size={16} />
+                            ) : (
+                              <ShieldCheck size={16} />
+                            )
+                          }
+                          onClick={() => handleToggleStatus(u.UserID)}
+                          variant={
+                            (u.user?.is_active ?? u.is_active)
+                              ? "danger"
+                              : "success"
+                          }
+                          tooltip={
+                            (u.user?.is_active ?? u.is_active)
+                              ? "Khóa tài khoản"
+                              : "Kích hoạt"
+                          }
+                        />
+                        <ActionButton
+                          icon={<Trash2 size={16} />}
+                          onClick={() => {}}
+                          variant="danger"
+                          tooltip="Xóa vĩnh viễn"
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -487,23 +277,57 @@ const UserManagement = () => {
           </table>
         </div>
       </div>
-
-      <UserModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleSave}
-        editingUser={selectedUser}
-        type={activeTab}
-        faculties={faculties}
-      />
-
-      <AssignAccountModal
-        isOpen={isAssignModalOpen}
-        onClose={() => setIsAssignModalOpen(false)}
-        onConfirm={handleConfirmAssign}
-        userData={staffForAccount}
-      />
     </div>
+  );
+};
+
+const TabButton = ({ active, onClick, label, icon }) => (
+  <button
+    onClick={onClick}
+    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all
+      ${
+        active
+          ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
+          : "text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"
+      }`}
+  >
+    {icon}
+    {label}
+  </button>
+);
+
+const StatusBadge = ({ active }) => (
+  <div
+    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border ${
+      active
+        ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+        : "bg-rose-50 text-rose-600 border-rose-100"
+    }`}
+  >
+    <div
+      className={`w-1.5 h-1.5 rounded-full ${active ? "bg-emerald-500" : "bg-rose-500"}`}
+    />
+    <span className="text-[10px] font-black uppercase tracking-tight">
+      {active ? "Đang hoạt động" : "Đã khóa"}
+    </span>
+  </div>
+);
+
+const ActionButton = ({ icon, onClick, variant = "default", tooltip }) => {
+  const variants = {
+    default: "text-gray-400 hover:text-indigo-600 hover:bg-indigo-50",
+    danger: "text-gray-400 hover:text-rose-600 hover:bg-rose-50",
+    success: "text-gray-400 hover:text-emerald-600 hover:bg-emerald-50",
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      title={tooltip}
+      className={`p-2.5 rounded-xl transition-all ${variants[variant]}`}
+    >
+      {icon}
+    </button>
   );
 };
 

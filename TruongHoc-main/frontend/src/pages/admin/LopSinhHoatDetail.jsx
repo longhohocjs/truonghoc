@@ -2,6 +2,16 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axiosClient from "@/api/axios";
 import toast from "react-hot-toast";
+import {
+  ArrowLeft,
+  Users,
+  Plus,
+  Trash2,
+  Search,
+  Mail,
+  Phone,
+  GraduationCap,
+} from "lucide-react";
 
 const LopSinhHoatDetail = () => {
   const { id } = useParams();
@@ -101,63 +111,64 @@ const LopSinhHoatDetail = () => {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={() => navigate("/admin/lop-sinh-hoat")}
-            className="p-2 hover:bg-gray-200 rounded-full transition-colors"
-          >
-            <span className="text-xl">⬅️</span>
-          </button>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">
-              Chi tiết Lớp sinh hoạt
-            </h2>
-            <p className="text-gray-500 text-sm">
-              Quản lý danh sách sinh viên của lớp
-            </p>
+    <div className="max-w-6xl mx-auto space-y-8 animate-fadeIn pb-10">
+      {/* Unified Header */}
+      <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-50/40 rounded-full -mr-20 -mt-20 blur-3xl" />
+
+        <div className="relative flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-6">
+            <button
+              onClick={() => navigate("/admin/lop-sinh-hoat")}
+              className="p-4 bg-gray-50 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-3xl transition-all active:scale-90"
+            >
+              <ArrowLeft size={24} />
+            </button>
+            <div>
+              <h2 className="text-2xl font-black text-gray-900 tracking-tight">
+                Danh sách sinh viên
+              </h2>
+              <p className="text-gray-500 text-sm font-medium">
+                Quản lý hồ sơ và danh sách thành viên trong lớp hành chính
+              </p>
+            </div>
           </div>
+          <button
+            onClick={() => {
+              fetchAllStudents();
+              setShowAddModal(true);
+            }}
+            className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 active:scale-95"
+          >
+            <Plus size={18} /> Thêm sinh viên
+          </button>
         </div>
-        <button
-          onClick={() => {
-            fetchAllStudents();
-            setShowAddModal(true);
-          }}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-green-700 shadow-md"
-        >
-          + Thêm sinh viên vào lớp
-        </button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      {/* Table Area */}
+      <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
         <table className="w-full text-left">
-          <thead className="bg-gray-50 text-gray-600 text-xs uppercase font-bold tracking-wider">
+          <thead className="bg-gray-50/50 text-gray-400 text-[10px] uppercase font-bold tracking-[0.15em] border-b border-gray-100">
             <tr>
-              <th className="px-6 py-4">Mã SV</th>
-              <th className="px-6 py-4">Họ tên</th>
-              <th className="px-6 py-4">Email</th>
-              <th className="px-6 py-4">Số điện thoại</th>
-              <th className="px-6 py-4 text-right">Thao tác</th>
+              <th className="px-8 py-5">Sinh viên</th>
+              <th className="px-6 py-5">Thông tin liên lạc</th>
+              <th className="px-8 py-5 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {loading ? (
               <tr>
-                <td
-                  colSpan="5"
-                  className="px-6 py-10 text-center text-gray-400"
-                >
-                  Đang tải...
+                <td colSpan="3" className="px-8 py-20 text-center">
+                  <div className="inline-block w-8 h-8 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
                 </td>
               </tr>
             ) : students.length === 0 ? (
               <tr>
                 <td
-                  colSpan="5"
-                  className="px-6 py-10 text-center text-gray-400 italic"
+                  colSpan="3"
+                  className="px-8 py-20 text-center text-gray-400 font-medium italic"
                 >
-                  Lớp chưa có sinh viên nào.
+                  Hiện tại lớp sinh hoạt chưa có sinh viên
                 </td>
               </tr>
             ) : (
@@ -166,38 +177,46 @@ const LopSinhHoatDetail = () => {
                   key={sv.SinhVienID}
                   className="hover:bg-gray-50 transition-colors text-sm"
                 >
-                  <td className="px-6 py-4 font-bold text-blue-600">
-                    {sv.MaSV ||
-                      sv.ma_sv ||
-                      sv.sinh_vien?.MaSV ||
-                      sv.sinh_vien?.ma_sv}
+                  <td className="px-8 py-5">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 font-black text-xs">
+                        {sv.HoTen?.charAt(0) || "S"}
+                      </div>
+                      <div>
+                        <p className="text-sm font-black text-gray-900 leading-none mb-1">
+                          {sv.HoTen || sv.ho_ten || sv.sinh_vien?.HoTen}
+                        </p>
+                        <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md uppercase">
+                          {sv.MaSV || sv.ma_sv || sv.sinh_vien?.MaSV}
+                        </span>
+                      </div>
+                    </div>
                   </td>
-                  <td className="px-6 py-4 font-semibold text-gray-800">
-                    {sv.HoTen ||
-                      sv.ho_ten ||
-                      sv.sinh_vien?.HoTen ||
-                      sv.sinh_vien?.ho_ten}
+                  <td className="px-6 py-5">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <Mail size={12} className="text-gray-300" />
+                        {sv.email || sv.Email || sv.sinh_vien?.email}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <Phone size={12} className="text-gray-300" />
+                        {sv.SoDienThoai ||
+                          sv.so_dien_thoai ||
+                          sv.sinh_vien?.SoDienThoai}
+                      </div>
+                    </div>
                   </td>
-                  <td className="px-6 py-4 text-gray-600">
-                    {sv.email || sv.Email || sv.sinh_vien?.email}
-                  </td>
-                  <td className="px-6 py-4 text-gray-600">
-                    {sv.SoDienThoai ||
-                      sv.so_dien_thoai ||
-                      sv.sodienthoai ||
-                      sv.sinh_vien?.SoDienThoai ||
-                      sv.sinh_vien?.sodienthoai}
-                  </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-8 py-5 text-right">
                     <button
                       onClick={() =>
                         handleRemove(
                           sv.SinhVienID || sv.sinh_vien?.SinhVienID || sv.id,
                         )
                       }
-                      className="text-red-500 hover:text-red-700 font-bold text-xs uppercase"
+                      className="p-2.5 text-gray-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                      title="Gỡ khỏi lớp"
                     >
-                      Xóa khỏi lớp
+                      <Trash2 size={18} />
                     </button>
                   </td>
                 </tr>

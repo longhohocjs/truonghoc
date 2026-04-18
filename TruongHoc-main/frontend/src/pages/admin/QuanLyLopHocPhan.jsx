@@ -5,6 +5,17 @@ import LopHocPhanModal from "./LopHocPhanModal";
 import LichHocModal from "./LichHocModal";
 import LichThiModal from "./LichThiModal";
 import ConfirmModal from "@/components/ConfirmModal";
+import {
+  School,
+  Plus,
+  Search,
+  Calendar,
+  Clock,
+  Pencil,
+  Trash2,
+  CheckCircle2,
+  AlertCircle,
+} from "lucide-react";
 
 const QuanLyLopHocPhan = () => {
   const [lops, setLops] = useState([]);
@@ -129,198 +140,198 @@ const QuanLyLopHocPhan = () => {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">
-            Quản lý Lớp học phần
-          </h2>
-          <p className="text-gray-500 text-sm">
-            Quản lý việc mở lớp, phân công giảng viên và sĩ số
-          </p>
+    <div className="max-w-6xl mx-auto space-y-8 animate-fadeIn pb-10">
+      {/* Unified Header */}
+      <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-50/40 rounded-full -mr-20 -mt-20 blur-3xl" />
+
+        <div className="relative flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-6">
+            <div className="p-4 bg-indigo-600 rounded-3xl text-white shadow-lg shadow-indigo-100">
+              <School size={32} />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-gray-900 tracking-tight">
+                Quản lý Lớp học phần
+              </h2>
+              <p className="text-gray-500 text-sm font-medium">
+                Điều phối kế hoạch giảng dạy, phân công nhân sự và quản lý sĩ số
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setEditingLop(null);
+              setIsModalOpen(true);
+            }}
+            className="flex items-center gap-2 bg-gray-900 text-white px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl shadow-gray-200 active:scale-95"
+          >
+            <Plus size={18} /> Mở Lớp học phần
+          </button>
         </div>
-        <button
-          onClick={() => {
-            setEditingLop(null);
-            setIsModalOpen(true);
-          }}
-          type="button"
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-blue-700 shadow-md transition-all active:scale-95"
-        >
-          + Mở Lớp học phần
-        </button>
       </div>
 
-      {/* Toolbar */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4">
-        <div className="relative flex-1">
+      {/* Search & Stats Bar */}
+      <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
+        <div className="relative flex-1 w-full md:w-auto">
+          <Search
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+            size={18}
+          />
           <input
             type="text"
-            placeholder="Tìm theo mã lớp hoặc tên môn..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+            placeholder="Tìm mã lớp, tên môn..."
+            className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm font-medium shadow-sm"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <svg
-            className="w-5 h-5 absolute left-3 top-2.5 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
+        </div>
+        <div className="flex gap-4">
+          <div className="bg-white px-5 py-3 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+              {filteredLops.length} Lớp đang mở
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Table Area */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="bg-gray-50 text-gray-600 text-xs uppercase font-bold tracking-wider">
+            <thead className="bg-gray-50/50 text-gray-400 text-[10px] uppercase font-bold tracking-[0.15em] border-b border-gray-100">
               <tr>
-                <th className="px-6 py-4">Mã LHP</th>
-                <th className="px-6 py-4">Tên môn học</th>
-                <th className="px-6 py-4">Giảng viên</th>
-                <th className="px-6 py-4">Học kỳ</th>
-                <th className="px-6 py-4 text-center">Sĩ số</th>
-                <th className="px-6 py-4 text-right">Thao tác</th>
+                <th className="px-8 py-5">Định danh Lớp</th>
+                <th className="px-6 py-5">Học phần / Giảng viên</th>
+                <th className="px-6 py-5">Học kỳ</th>
+                <th className="px-6 py-5 text-center">Tình trạng Sĩ số</th>
+                <th className="px-8 py-5 text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td
-                    colSpan="6"
-                    className="px-6 py-10 text-center text-gray-400"
-                  >
-                    Đang tải dữ liệu...
+                  <td colSpan="5" className="px-8 py-20 text-center">
+                    <div className="inline-block w-8 h-8 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
                   </td>
                 </tr>
               ) : filteredLops.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="6"
-                    className="px-6 py-10 text-center text-gray-400 italic"
+                    colSpan="5"
+                    className="px-8 py-20 text-center text-gray-400 italic"
                   >
-                    Không tìm thấy lớp học phần nào.
+                    Không tìm thấy lớp học phần nào phù hợp
                   </td>
                 </tr>
               ) : (
                 filteredLops.map((item) => (
                   <tr
                     key={item.LopHocPhanID}
-                    className="hover:bg-blue-50/30 transition-colors text-sm"
+                    className="hover:bg-gray-50/50 transition-all group"
                   >
-                    {/* Debugging: Kiểm tra dữ liệu lich_hoc_details và lich_thi_details từ Backend */}
-                    {console.log(
-                      `LopHocPhanID: ${item.LopHocPhanID}, lich_hoc_details:`,
-                      item.lich_hoc_details,
-                    )}
-                    {console.log(
-                      `LopHocPhanID: ${item.LopHocPhanID}, lich_thi_details:`,
-                      item.lich_thi_details,
-                    )}
-
-                    <td className="px-6 py-4 font-bold text-blue-600">
-                      <div className="flex flex-col">
-                        <span>{item.MaLopHP}</span>
-                        {item.lich_hoc && item.lich_hoc.length > 0 ? (
-                          <span className="text-[9px] font-black text-green-500 uppercase tracking-tighter">
-                            ● Đã xếp lịch
-                          </span>
-                        ) : (
-                          <span className="text-[9px] font-bold text-gray-300 uppercase tracking-tighter">
-                            ○ Chưa có lịch
-                          </span>
-                        )}
-                        {item.lich_thi_details &&
-                        item.lich_thi_details.length > 0 ? (
-                          <span className="text-[9px] font-black text-purple-500 uppercase tracking-tighter">
-                            ● Đã xếp thi
-                          </span>
-                        ) : (
-                          <span className="text-[9px] font-bold text-gray-300 uppercase tracking-tighter">
-                            ○ Chưa có lịch thi
-                          </span>
-                        )}
+                    <td className="px-8 py-5">
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-sm font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg w-fit">
+                          {item.MaLopHP}
+                        </span>
+                        <div className="flex gap-2">
+                          {item.lich_hoc?.length > 0 ? (
+                            <span className="flex items-center gap-1 text-[9px] font-black text-emerald-500 uppercase tracking-tighter">
+                              <CheckCircle2 size={10} /> Đã có lịch
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-[9px] font-bold text-gray-300 uppercase tracking-tighter">
+                              <Clock size={10} /> Trống lịch
+                            </span>
+                          )}
+                          {item.lich_thi_details?.length > 0 ? (
+                            <span className="flex items-center gap-1 text-[9px] font-black text-purple-500 uppercase tracking-tighter">
+                              <CheckCircle2 size={10} /> Đã có thi
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-[9px] font-bold text-gray-300 uppercase tracking-tighter">
+                              <Calendar size={10} /> Trống thi
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-semibold text-gray-800">
-                      {item.mon_hoc?.TenMon}
-                      <div className="text-[10px] text-gray-400 font-normal">
-                        {item.mon_hoc?.MaMon}
+                    <td className="px-6 py-5">
+                      <div className="space-y-1">
+                        <p className="text-sm font-black text-gray-900 leading-none">
+                          {item.mon_hoc?.TenMon}
+                        </p>
+                        <p className="text-xs font-bold text-gray-500">
+                          {item.giang_vien?.HoTen ||
+                            "Chưa phân công giảng viên"}
+                        </p>
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-medium text-gray-700">
-                      {item.giang_vien?.HoTen || "Chưa phân công"}
-                    </td>
-                    <td className="px-6 py-4 text-gray-500">
-                      {item.hoc_ky?.TenHocKy}
-                      <div className="text-[10px] text-gray-400">
-                        {item.hoc_ky?.NamHoc}
+                    <td className="px-6 py-5">
+                      <div className="text-xs font-bold text-gray-600">
+                        {item.hoc_ky?.TenHocKy}
+                        <p className="text-[10px] text-gray-400 font-medium uppercase tracking-tighter">
+                          {item.hoc_ky?.nam_hoc?.TenNamHoc}
+                        </p>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="font-bold text-gray-800">
-                        {item.SoLuongHienTai || 0}/{item.SoLuongToiDa}
+                    <td className="px-6 py-5 text-center">
+                      <div className="inline-flex flex-col items-center gap-1">
+                        <span className="text-xs font-black text-gray-700">
+                          {item.SoLuongHienTai || 0} / {item.SoLuongToiDa} SV
+                        </span>
+                        <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden border border-gray-50">
+                          <div
+                            className={`h-full transition-all duration-500 ${item.SoLuongHienTai / item.SoLuongToiDa > 0.9 ? "bg-rose-500" : "bg-indigo-500"}`}
+                            style={{
+                              width: `${Math.min(((item.SoLuongHienTai || 0) / item.SoLuongToiDa) * 100, 100)}%`,
+                            }}
+                          />
+                        </div>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
-                        <div
-                          className="bg-green-500 h-1 rounded-full"
-                          style={{
-                            width: `${Math.min(((item.SoLuongHienTai || 0) / item.SoLuongToiDa) * 100, 100)}%`,
+                    </td>
+                    <td className="px-8 py-5 text-right">
+                      <div className="flex justify-end items-center gap-1 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
+                        <ActionButton
+                          icon={<Calendar size={14} />}
+                          onClick={() => {
+                            setSelectedLopForThi(item);
+                            setIsThiModalOpen(true);
                           }}
-                        ></div>
+                          tooltip="Xếp lịch thi"
+                          variant="warning"
+                        />
+                        <ActionButton
+                          icon={<Clock size={14} />}
+                          onClick={() => {
+                            setSelectedLopForLich(item);
+                            setIsLichModalOpen(true);
+                          }}
+                          tooltip="Xếp lịch học"
+                          variant="warning"
+                        />
+                        <ActionButton
+                          icon={<Pencil size={14} />}
+                          onClick={() => {
+                            setEditingLop(item);
+                            setIsModalOpen(true);
+                          }}
+                          tooltip="Chỉnh sửa"
+                        />
+                        <ActionButton
+                          icon={<Trash2 size={14} />}
+                          onClick={() =>
+                            setConfirmConfig({
+                              isOpen: true,
+                              id: item.LopHocPhanID,
+                            })
+                          }
+                          tooltip="Xóa lớp"
+                          variant="danger"
+                        />
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-right space-x-2">
-                      <button
-                        onClick={() => {
-                          setSelectedLopForThi(item);
-                          setIsThiModalOpen(true);
-                        }}
-                        type="button"
-                        className="text-orange-600 hover:bg-orange-100 px-3 py-1.5 rounded-lg font-bold text-xs uppercase transition-all"
-                      >
-                        Lịch thi
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedLopForLich(item);
-                          setIsLichModalOpen(true);
-                        }}
-                        type="button"
-                        className="text-orange-600 hover:bg-orange-100 px-3 py-1.5 rounded-lg font-bold text-xs uppercase transition-all"
-                      >
-                        Lịch học
-                      </button>
-                      <button
-                        onClick={() => {
-                          setEditingLop(item);
-                          setIsModalOpen(true);
-                        }}
-                        type="button"
-                        className="text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-lg font-bold text-xs uppercase transition-all"
-                      >
-                        Sửa
-                      </button>
-                      <button
-                        onClick={() =>
-                          setConfirmConfig({
-                            isOpen: true,
-                            id: item.LopHocPhanID,
-                          })
-                        }
-                        type="button"
-                        className="text-red-500 hover:bg-red-100 px-3 py-1.5 rounded-lg font-bold text-xs uppercase transition-all"
-                      >
-                        Xóa
-                      </button>
                     </td>
                   </tr>
                 ))
@@ -360,6 +371,27 @@ const QuanLyLopHocPhan = () => {
         message="Bạn có chắc chắn muốn xóa lớp học phần này? Hệ thống sẽ ngăn chặn việc xóa nếu đã có sinh viên đăng ký học."
       />
     </div>
+  );
+};
+
+const ActionButton = ({ icon, onClick, variant = "default", tooltip }) => {
+  const variants = {
+    default:
+      "bg-white text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 border-gray-100",
+    danger:
+      "bg-white text-gray-400 hover:text-rose-600 hover:bg-rose-50 border-gray-100",
+    warning:
+      "bg-white text-gray-400 hover:text-amber-600 hover:bg-amber-50 border-gray-100",
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      title={tooltip}
+      className={`p-2.5 rounded-xl border transition-all shadow-sm active:scale-90 ${variants[variant]}`}
+    >
+      {icon}
+    </button>
   );
 };
 

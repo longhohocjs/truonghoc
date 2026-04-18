@@ -1,4 +1,13 @@
 import React, { useState, useEffect } from "react";
+import {
+  School,
+  X,
+  Calendar,
+  Users,
+  BookOpen,
+  UserCheck,
+  Timer,
+} from "lucide-react";
 
 const LopHocPhanModal = ({
   isOpen,
@@ -75,44 +84,84 @@ const LopHocPhanModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
-        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-          <h3 className="text-xl font-bold text-gray-800">
-            {editingLop ? "Chỉnh sửa Lớp học phần" : "Mở Lớp học phần mới"}
-          </h3>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm animate-fadeIn">
+      <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl border border-gray-50 overflow-hidden flex flex-col relative">
+        {/* Decoration blobs */}
+        <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-50/50 rounded-full -mr-10 -mt-10 blur-3xl pointer-events-none" />
+
+        <div className="relative px-10 py-8 border-b border-gray-100 flex justify-between items-center bg-white">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-indigo-50 rounded-2xl text-indigo-600">
+              <School size={24} />
+            </div>
+            <div>
+              <h3 className="text-xl font-black text-gray-900 tracking-tight">
+                {editingLop ? "Cập nhật Lớp học" : "Thiết lập Mở lớp mới"}
+              </h3>
+              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-0.5">
+                Học phần đào tạo
+              </p>
+            </div>
+          </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors text-2xl"
+            className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-all"
           >
-            &times;
+            <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-              Mã Lớp học phần
-            </label>
-            <input
-              type="text"
-              required
-              placeholder="VD: LHP001"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-              value={formData.MaLopHP}
-              onChange={(e) =>
-                setFormData({ ...formData, MaLopHP: e.target.value })
-              }
-            />
+        <form
+          onSubmit={handleSubmit}
+          className="relative p-10 space-y-6 overflow-y-auto max-h-[75vh] custom-scrollbar"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] ml-1">
+                Mã định danh Lớp
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  placeholder="VD: LHP001"
+                  className="w-full px-5 py-3.5 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700"
+                  value={formData.MaLopHP}
+                  onChange={(e) =>
+                    setFormData({ ...formData, MaLopHP: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] ml-1">
+                Học kỳ áp dụng
+              </label>
+              <select
+                className="w-full px-5 py-3.5 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700"
+                value={formData.HocKyID}
+                onChange={(e) =>
+                  setFormData({ ...formData, HocKyID: e.target.value })
+                }
+              >
+                <option value="">-- Chọn học kỳ --</option>
+                {(dropdownData.hocKys || []).map((hk) => (
+                  <option key={hk.HocKyID} value={hk.HocKyID}>
+                    {hk.TenHocKy} - {hk.nam_hoc?.TenNamHoc}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-              Môn học
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] ml-1 flex items-center gap-2">
+              <BookOpen size={12} /> Chọn môn học đào tạo
             </label>
             <select
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+              className="w-full px-5 py-3.5 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700"
               value={formData.MonHocID}
               onChange={(e) =>
                 setFormData({ ...formData, MonHocID: e.target.value })
@@ -121,19 +170,19 @@ const LopHocPhanModal = ({
               <option value="">-- Chọn môn học --</option>
               {(dropdownData.monHocs || []).map((m) => (
                 <option key={m.MonHocID} value={m.MonHocID}>
-                  {m.TenMon} ({m.MaMon})
+                  ({m.MaMon}) - {m.TenMon}
                 </option>
               ))}
             </select>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-              Giảng viên phụ trách
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] ml-1 flex items-center gap-2">
+              <UserCheck size={12} /> Giảng viên giảng dạy
             </label>
             <select
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+              className="w-full px-5 py-3.5 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700"
               value={formData.GiangVienID}
               onChange={(e) =>
                 setFormData({ ...formData, GiangVienID: e.target.value })
@@ -149,64 +198,53 @@ const LopHocPhanModal = ({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                Học kỳ
-              </label>
-              <select
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                value={formData.HocKyID}
-                onChange={(e) =>
-                  setFormData({ ...formData, HocKyID: e.target.value })
-                }
-              >
-                <option value="">-- Chọn học kỳ --</option>
-                {(dropdownData.hocKys || []).map((hk) => (
-                  <option key={hk.HocKyID} value={hk.HocKyID}>
-                    {hk.TenHocKy} - {hk.nam_hoc?.TenNamHoc || "Năm học ẩn"}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] ml-1">
                 Sĩ số tối đa
               </label>
               <input
                 type="number"
                 min="10"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full px-5 py-3.5 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700"
                 value={formData.SoLuongToiDa}
                 onChange={(e) =>
                   setFormData({ ...formData, SoLuongToiDa: e.target.value })
                 }
               />
             </div>
+            <div className="flex items-center justify-center pt-4">
+              <div className="bg-amber-50 text-amber-600 px-4 py-2 rounded-xl border border-amber-100 flex items-center gap-2">
+                <Users size={16} />
+                <span className="text-[10px] font-black uppercase">
+                  Chỉ tiêu SV
+                </span>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                Ngày bắt đầu
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] ml-1 flex items-center gap-2">
+                <Calendar size={12} /> Ngày bắt đầu
               </label>
               <input
                 type="date"
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full px-5 py-3.5 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700"
                 value={formData.NgayBatDau}
                 onChange={(e) =>
                   setFormData({ ...formData, NgayBatDau: e.target.value })
                 }
               />
             </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                Ngày kết thúc
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] ml-1 flex items-center gap-2">
+                <Timer size={12} /> Ngày kết thúc
               </label>
               <input
                 type="date"
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full px-5 py-3.5 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700"
                 value={formData.NgayKetThuc}
                 onChange={(e) =>
                   setFormData({ ...formData, NgayKetThuc: e.target.value })
@@ -214,23 +252,24 @@ const LopHocPhanModal = ({
               />
             </div>
           </div>
-
-          <div className="pt-4 flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2 text-sm font-bold text-gray-500 hover:text-gray-700"
-            >
-              Đóng
-            </button>
-            <button
-              type="submit"
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all active:scale-95"
-            >
-              {editingLop ? "Lưu thay đổi" : "Mở lớp"}
-            </button>
-          </div>
         </form>
+
+        <div className="px-10 py-8 bg-gray-50 border-t border-gray-100 flex justify-end gap-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-6 py-3.5 text-xs font-black text-gray-400 uppercase tracking-widest hover:text-gray-600"
+          >
+            Hủy bỏ
+          </button>
+          <button
+            type="submit"
+            onClick={handleSubmit}
+            className="px-8 py-3.5 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95"
+          >
+            {editingLop ? "Cập nhật thiết lập" : "Tiến hành mở lớp"}
+          </button>
+        </div>
       </div>
     </div>
   );

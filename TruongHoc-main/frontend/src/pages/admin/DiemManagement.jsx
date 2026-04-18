@@ -1,7 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosClient from "@/api/axios";
 import toast from "react-hot-toast";
+import {
+  Star,
+  Search,
+  Save,
+  Lock,
+  Unlock,
+  ArrowRight,
+  BookOpen,
+  GraduationCap,
+  Calendar,
+} from "lucide-react";
 
 const DiemManagement = () => {
   const navigate = useNavigate();
@@ -68,7 +79,7 @@ const DiemManagement = () => {
       setHocKys(listHK);
       setLopsSH(getArray(resLop));
 
-      if (listHK.length > 0) {
+      if (listHK.length > 0 && !filtersDRL.HocKyID) {
         setFiltersDRL((prev) => ({ ...prev, HocKyID: listHK[0].HocKyID }));
       }
     } catch (error) {
@@ -80,10 +91,15 @@ const DiemManagement = () => {
     if (activeTab === "hocphan") {
       fetchLopHocPhan();
     } else {
-      if (hocKys.length === 0) fetchDropdowns();
-      else fetchDRLData();
+      fetchDropdowns();
     }
-  }, [activeTab, filtersDRL]);
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === "renluyen" && filtersDRL.HocKyID) {
+      fetchDRLData();
+    }
+  }, [filtersDRL, activeTab]);
 
   const getXepLoai = (diem) => {
     const d = parseFloat(diem);
@@ -151,129 +167,160 @@ const DiemManagement = () => {
       l.TenMon?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  // Lọc lấy danh sách lớp duy nhất để không bị lặp lại trên giao diện
-  const uniqueLops = React.useMemo(() => {
+  const uniqueLops = useMemo(() => {
     return Array.from(
       new Map(filteredLops.map((item) => [item.LopHocPhanID, item])).values(),
     );
   }, [filteredLops]);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-800">Quản lý Điểm số</h2>
-        <p className="text-gray-500 text-sm">
-          Chọn lớp học phần để quản lý bảng điểm
-        </p>
+    <div className="max-w-6xl mx-auto space-y-8 animate-fadeIn pb-10">
+      {/* Unified Header */}
+      <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-50/40 rounded-full -mr-20 -mt-20 blur-3xl" />
+        <div className="relative flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-6">
+            <div className="p-4 bg-indigo-600 rounded-3xl text-white shadow-lg shadow-indigo-100">
+              <Star size={32} />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-gray-900 tracking-tight">
+                Quản lý Điểm số
+              </h2>
+              <p className="text-gray-500 text-sm font-medium">
+                Cập nhật kết quả học tập và đánh giá điểm rèn luyện định kỳ của
+                sinh viên
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Tab Switcher */}
-      <div className="flex border-b border-gray-200">
-        <button
-          className={`px-8 py-3 font-bold text-sm transition-all ${activeTab === "hocphan" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500 hover:text-gray-700"}`}
-          onClick={() => setActiveTab("hocphan")}
-        >
-          ĐIỂM HỌC PHẦN
-        </button>
-        <button
-          className={`px-8 py-3 font-bold text-sm transition-all ${activeTab === "renluyen" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500 hover:text-gray-700"}`}
-          onClick={() => setActiveTab("renluyen")}
-        >
-          ĐIỂM RÈN LUYỆN
-        </button>
-      </div>
+      {/* Tab Switcher & Search Bar */}
+      <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
+        <div className="bg-white p-1.5 rounded-2xl border border-gray-100 flex gap-1 shadow-sm w-fit">
+          <TabButton
+            active={activeTab === "hocphan"}
+            onClick={() => setActiveTab("hocphan")}
+            icon={<BookOpen size={16} />}
+            label="Điểm học phần"
+          />
+          <TabButton
+            active={activeTab === "renluyen"}
+            onClick={() => setActiveTab("renluyen")}
+            icon={<GraduationCap size={16} />}
+            label="Điểm rèn luyện"
+          />
+        </div>
 
-      {activeTab === "hocphan" ? (
-        <>
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        {activeTab === "hocphan" && (
+          <div className="relative flex-1 w-full md:max-w-md">
+            <Search
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+              size={18}
+            />
             <input
               type="text"
-              placeholder="Tìm theo mã lớp hoặc tên môn..."
-              className="w-full md:w-96 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              placeholder="Tìm mã lớp hoặc tên môn học..."
+              className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm font-medium shadow-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+        )}
+      </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      {activeTab === "hocphan" ? (
+        <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
+          <div className="overflow-x-auto">
             <table className="w-full text-left">
-              <thead className="bg-gray-50 text-gray-600 text-xs uppercase font-bold tracking-wider">
+              <thead className="bg-gray-50/50 text-gray-400 text-[10px] uppercase font-bold tracking-[0.15em] border-b border-gray-100">
                 <tr>
-                  <th className="px-6 py-4">Mã LHP</th>
-                  <th className="px-6 py-4">Môn học</th>
-                  <th className="px-6 py-4">Tiên quyết</th>
-                  <th className="px-6 py-4">Song hành</th>
-                  <th className="px-6 py-4">Giảng viên</th>
-                  <th className="px-6 py-4 text-center">Trạng thái</th>
-                  <th className="px-6 py-4 text-right">Thao tác</th>
+                  <th className="px-8 py-5">Định danh Lớp</th>
+                  <th className="px-6 py-5">Học phần / Học kỳ</th>
+                  <th className="px-6 py-5">Ràng buộc</th>
+                  <th className="px-6 py-5">Giảng viên</th>
+                  <th className="px-6 py-5 text-center">Trạng thái</th>
+                  <th className="px-8 py-5 text-right">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {loading ? (
                   <tr>
-                    <td colSpan="5" className="p-10 text-center text-gray-400">
-                      Đang tải...
+                    <td colSpan="6" className="px-8 py-24 text-center">
+                      <div className="inline-block w-8 h-8 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
                     </td>
                   </tr>
                 ) : uniqueLops.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="p-10 text-center text-gray-400">
-                      Không tìm thấy lớp nào.
+                    <td
+                      colSpan="6"
+                      className="px-8 py-20 text-center text-gray-400 font-medium italic"
+                    >
+                      Không tìm thấy dữ liệu điểm lớp học phần phù hợp
                     </td>
                   </tr>
                 ) : (
-                  uniqueLops.map((lop, index) => (
+                  uniqueLops.map((lop) => (
                     <tr
-                      key={`${lop.LopHocPhanID}-${index}`}
-                      className="hover:bg-gray-50 transition-colors text-sm"
+                      key={lop.LopHocPhanID}
+                      className="hover:bg-gray-50/50 transition-all group"
                     >
-                      <td className="px-6 py-4 font-bold text-blue-600">
-                        {lop.MaLopHP}
+                      <td className="px-8 py-5">
+                        <span className="text-sm font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg">
+                          {lop.MaLopHP}
+                        </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="font-semibold text-gray-800">
-                          {lop.TenMon}
+                      <td className="px-6 py-5">
+                        <div className="flex flex-col">
+                          <p className="text-sm font-black text-gray-900 leading-tight mb-1">
+                            {lop.TenMon}
+                          </p>
+                          <div className="flex items-center gap-1 text-[10px] text-gray-400 font-bold uppercase tracking-tight">
+                            <Calendar size={10} /> {lop.TenHocKy}
+                          </div>
                         </div>
-                        <div className="text-[10px] text-gray-400">
-                          {lop.TenHocKy}
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="flex flex-col gap-0.5">
+                          <span
+                            className="text-[10px] text-rose-500 font-black truncate max-w-[120px]"
+                            title={lop.MonTienQuyet}
+                          >
+                            TQ: {lop.MonTienQuyet || "---"}
+                          </span>
+                          <span
+                            className="text-[10px] text-gray-400 font-medium truncate max-w-[120px]"
+                            title={lop.MonSongHanh}
+                          >
+                            SH: {lop.MonSongHanh || "---"}
+                          </span>
                         </div>
                       </td>
-                      <td
-                        className="px-6 py-4 text-[11px] text-gray-500 italic max-w-[150px] truncate"
-                        title={lop.MonTienQuyet}
-                      >
-                        {lop.MonTienQuyet || "Không có"}
+                      <td className="px-6 py-5">
+                        <p className="text-xs font-bold text-gray-600">
+                          {lop.HoTenGV || "Chưa phân công"}
+                        </p>
                       </td>
-                      <td
-                        className="px-6 py-4 text-[11px] text-gray-500 italic max-w-[150px] truncate"
-                        title={lop.MonSongHanh}
-                      >
-                        {lop.MonSongHanh || "Không có"}
-                      </td>
-                      <td className="px-6 py-4 text-gray-600">
-                        {lop.HoTenGV || "Chưa phân công"}
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        {Number(lop.IsLocked) === 1 ||
-                        Number(lop.is_locked) === 1 ||
-                        Number(lop.TrangThaiNhapDiem) === 1 ? (
-                          <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-[10px] font-bold">
-                            ĐÃ KHÓA
+                      <td className="px-6 py-5 text-center">
+                        {Number(lop.IsLocked) === 1 ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 text-rose-600 border border-rose-100 text-[10px] font-black uppercase">
+                            <Lock size={10} /> KHÓA
                           </span>
                         ) : (
-                          <span className="bg-green-100 text-green-600 px-2 py-1 rounded text-[10px] font-bold">
-                            MỞ
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 text-[10px] font-black uppercase">
+                            <Unlock size={10} /> MỞ
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-8 py-5 text-right">
                         <button
                           onClick={() =>
                             navigate(`/admin/diem-so/${lop.LopHocPhanID}`)
                           }
-                          className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-700 transition-all"
+                          className="p-2.5 bg-white text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all shadow-sm border border-gray-100 inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
                         >
-                          VÀO ĐIỂM
+                          Vào điểm <ArrowRight size={14} />
                         </button>
                       </td>
                     </tr>
@@ -282,141 +329,169 @@ const DiemManagement = () => {
               </tbody>
             </table>
           </div>
-        </>
+        </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-8 animate-fadeIn">
           {/* Filters for DRL */}
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">
-                Học kỳ xét điểm
-              </label>
-              <select
-                className="w-full p-2 border rounded-lg text-sm"
-                value={filtersDRL.HocKyID}
-                onChange={(e) =>
-                  setFiltersDRL({ ...filtersDRL, HocKyID: e.target.value })
-                }
-              >
-                {hocKys.map((hk) => (
-                  <option key={hk.HocKyID} value={hk.HocKyID}>
-                    {hk.TenHocKy} - {hk.nam_hoc?.TenNamHoc}
-                  </option>
-                ))}
-              </select>
+          <div className="flex flex-col md:flex-row gap-4 items-end justify-between bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1 w-full">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] ml-1">
+                  Học kỳ đánh giá
+                </label>
+                <select
+                  className="w-full px-5 py-3 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700 appearance-none shadow-inner"
+                  value={filtersDRL.HocKyID}
+                  onChange={(e) =>
+                    setFiltersDRL({ ...filtersDRL, HocKyID: e.target.value })
+                  }
+                >
+                  {hocKys.map((hk) => (
+                    <option key={hk.HocKyID} value={hk.HocKyID}>
+                      {hk.nam_hoc?.TenNamHoc} - {hk.TenHocKy}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] ml-1">
+                  Lớp sinh hoạt
+                </label>
+                <select
+                  className="w-full px-5 py-3 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700 appearance-none shadow-inner"
+                  value={filtersDRL.LopSinhHoatID}
+                  onChange={(e) =>
+                    setFiltersDRL({
+                      ...filtersDRL,
+                      LopSinhHoatID: e.target.value,
+                    })
+                  }
+                >
+                  <option value="">-- Tất cả các lớp --</option>
+                  {lopsSH.map((l) => (
+                    <option key={l.LopSinhHoatID} value={l.LopSinhHoatID}>
+                      {l.MaLop} - {l.TenLop}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">
-                Lớp sinh hoạt
-              </label>
-              <select
-                className="w-full p-2 border rounded-lg text-sm"
-                value={filtersDRL.LopSinhHoatID}
-                onChange={(e) =>
-                  setFiltersDRL({
-                    ...filtersDRL,
-                    LopSinhHoatID: e.target.value,
-                  })
-                }
-              >
-                <option value="">-- Tất cả sinh viên --</option>
-                {lopsSH.map((l) => (
-                  <option key={l.LopSinhHoatID} value={l.LopSinhHoatID}>
-                    {l.MaLop} - {l.TenLop}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-end">
-              <button
-                onClick={handleSaveDRL}
-                disabled={savingDRL || drlStudents.length === 0}
-                className="bg-green-600 text-white px-6 py-2 rounded-lg font-bold text-sm hover:bg-green-700 disabled:bg-gray-300"
-              >
-                {savingDRL ? "Đang lưu..." : "LƯU TẤT CẢ"}
-              </button>
-            </div>
+            <button
+              onClick={handleSaveDRL}
+              disabled={savingDRL || drlStudents.length === 0}
+              className="flex items-center gap-2 bg-indigo-600 text-white px-8 py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 disabled:bg-gray-200 active:scale-95"
+            >
+              <Save size={18} /> {savingDRL ? "Đang lưu..." : "Lưu bảng điểm"}
+            </button>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <table className="w-full text-left">
-              <thead className="bg-gray-50 text-gray-600 text-xs uppercase font-bold tracking-wider">
-                <tr>
-                  <th className="px-6 py-4">Sinh viên</th>
-                  <th className="px-6 py-4 text-center w-40">
-                    Tổng điểm (0-100)
-                  </th>
-                  <th className="px-6 py-4 text-center">Xếp loại</th>
-                  <th className="px-6 py-4 text-center">Ngày cập nhật</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {loading ? (
+          {/* Training Grades Table Area */}
+          <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-gray-50/50 text-gray-400 text-[10px] uppercase font-bold tracking-[0.15em] border-b border-gray-100">
                   <tr>
-                    <td colSpan="4" className="p-10 text-center text-gray-400">
-                      Đang tải danh sách...
-                    </td>
+                    <th className="px-8 py-5">Sinh viên</th>
+                    <th className="px-6 py-5 text-center w-48">
+                      Tổng điểm (0-100)
+                    </th>
+                    <th className="px-6 py-5 text-center">Xếp loại</th>
+                    <th className="px-8 py-5 text-right">Ngày cập nhật</th>
                   </tr>
-                ) : drlStudents.length === 0 ? (
-                  <tr>
-                    <td colSpan="4" className="p-10 text-center text-gray-400">
-                      Vui lòng chọn Học kỳ để xem danh sách.
-                    </td>
-                  </tr>
-                ) : (
-                  drlStudents.map((sv) => (
-                    <tr
-                      key={sv.SinhVienID}
-                      className="hover:bg-gray-50 text-sm"
-                    >
-                      <td className="px-6 py-4">
-                        <div className="font-bold text-gray-800">
-                          {sv.HoTen || sv.ho_ten}
-                        </div>
-                        <div className="text-xs text-gray-400">
-                          {sv.MaSV || sv.ma_sv}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <input
-                          type="number"
-                          className="w-full p-2 border border-gray-200 rounded text-center font-bold text-blue-600 outline-none focus:ring-2 focus:ring-blue-500"
-                          value={sv.TongDiem ?? ""}
-                          onChange={(e) =>
-                            handleDRLChange(sv.SinhVienID, e.target.value)
-                          }
-                        />
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span
-                          className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
-                            sv.XepLoai === "XuatSac"
-                              ? "bg-purple-100 text-purple-600"
-                              : sv.XepLoai === "Gioi"
-                                ? "bg-blue-100 text-blue-600"
-                                : sv.XepLoai === "Kha"
-                                  ? "bg-green-100 text-green-600"
-                                  : "bg-gray-100 text-gray-500"
-                          }`}
-                        >
-                          {getXepLoaiLabel(sv.XepLoai)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-center text-gray-400 text-xs">
-                        {sv.NgayDanhGia
-                          ? new Date(sv.NgayDanhGia).toLocaleDateString("vi-VN")
-                          : "Chưa chấm"}
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {loading ? (
+                    <tr>
+                      <td colSpan="4" className="px-8 py-24 text-center">
+                        <div className="inline-block w-8 h-8 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : drlStudents.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan="4"
+                        className="px-8 py-20 text-center text-gray-400 font-medium italic"
+                      >
+                        Không tìm thấy dữ liệu rèn luyện trong học kỳ này
+                      </td>
+                    </tr>
+                  ) : (
+                    drlStudents.map((sv) => (
+                      <tr
+                        key={sv.SinhVienID}
+                        className="hover:bg-gray-50/50 transition-all"
+                      >
+                        <td className="px-8 py-5">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 font-black text-xs">
+                              {sv.HoTen?.charAt(0) || "S"}
+                            </div>
+                            <div>
+                              <p className="text-sm font-black text-gray-900 leading-none mb-1">
+                                {sv.HoTen}
+                              </p>
+                              <span className="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-md uppercase tracking-tighter">
+                                {sv.MaSV || sv.ma_sv}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5">
+                          <input
+                            type="number"
+                            className="w-full max-w-[100px] mx-auto px-4 py-2 bg-gray-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-black text-indigo-600 text-center shadow-inner block"
+                            value={sv.TongDiem ?? ""}
+                            onChange={(e) =>
+                              handleDRLChange(sv.SinhVienID, e.target.value)
+                            }
+                          />
+                        </td>
+                        <td className="px-6 py-5 text-center">
+                          <span
+                            className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border shadow-sm ${
+                              sv.XepLoai === "XuatSac"
+                                ? "bg-purple-50 text-purple-600 border-purple-100"
+                                : sv.XepLoai === "Gioi"
+                                  ? "bg-indigo-50 text-indigo-600 border-indigo-100"
+                                  : sv.XepLoai === "Kha"
+                                    ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                                    : "bg-gray-50 text-gray-400 border-gray-100"
+                            }`}
+                          >
+                            {getXepLoaiLabel(sv.XepLoai)}
+                          </span>
+                        </td>
+                        <td className="px-8 py-5 text-right">
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                            {sv.NgayDanhGia
+                              ? new Date(sv.NgayDanhGia).toLocaleDateString(
+                                  "vi-VN",
+                                )
+                              : "---"}
+                          </p>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
     </div>
   );
 };
+
+const TabButton = ({ active, onClick, label, icon }) => (
+  <button
+    onClick={onClick}
+    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all
+      ${active ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"}`}
+  >
+    {icon}
+    {label}
+  </button>
+);
 
 export default DiemManagement;

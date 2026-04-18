@@ -2,6 +2,15 @@ import React, { useState, useEffect } from "react";
 import axiosClient from "@/api/axios";
 import toast from "react-hot-toast";
 import ConfirmModal from "@/components/ConfirmModal";
+import {
+  Building2,
+  Plus,
+  Pencil,
+  Trash2,
+  GraduationCap,
+  ArrowRight,
+  LayoutGrid,
+} from "lucide-react";
 
 const QuanLyKhoa = () => {
   const [khoas, setKhoas] = useState([]);
@@ -123,63 +132,74 @@ const QuanLyKhoa = () => {
   };
 
   return (
-    <div className="space-y-6 p-4">
-      {/* Thanh tiêu đề nổi bật để nhận diện file mới */}
-      <div className="flex justify-between items-center bg-blue-600 p-6 rounded-3xl text-white shadow-xl">
-        <div>
-          <h2 className="text-2xl font-black uppercase">
-            Quản lý Khoa & Ngành
-          </h2>
-          <p className="text-blue-100 text-sm font-medium">
-            Cấu hình tổ chức các đơn vị đào tạo trong trường
-          </p>
+    <div className="max-w-6xl mx-auto space-y-8 animate-fadeIn pb-10">
+      {/* Unified Header */}
+      <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-50/40 rounded-full -mr-20 -mt-20 blur-3xl" />
+        <div className="absolute bottom-0 left-20 w-40 h-40 bg-blue-50/30 rounded-full -mb-10 blur-2xl" />
+
+        <div className="relative flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-6">
+            <div className="p-4 bg-indigo-600 rounded-3xl text-white shadow-lg shadow-indigo-100">
+              <Building2 size={32} />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-gray-900 tracking-tight">
+                Quản lý Khoa & Ngành
+              </h2>
+              <p className="text-gray-500 text-sm font-medium">
+                Cấu hình tổ chức các đơn vị đào tạo và danh mục ngành học
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setEditingKhoa(null);
+              setNewKhoa({ MaKhoa: "", TenKhoa: "" });
+              setIsAddModalOpen(true);
+            }}
+            className="flex items-center gap-2 bg-gray-900 text-white px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl shadow-gray-200 active:scale-95"
+          >
+            <Plus size={18} /> Thêm Khoa mới
+          </button>
         </div>
-        {/* Nút Thêm Khoa mới - Đặt lại vị trí cũ */}
-        <button
-          onClick={() => setIsAddModalOpen(true)}
-          type="button"
-          className="bg-white text-blue-600 px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-50 transition-all shadow-lg active:scale-95"
-        >
-          + Thêm Khoa mới
-        </button>
       </div>
 
       {loading ? (
-        <div className="text-center py-20 text-gray-400 font-bold uppercase text-xs tracking-widest">
-          Đang tải dữ liệu đơn vị...
+        <div className="flex items-center justify-center py-32 text-gray-400 font-medium">
+          <div className="w-8 h-8 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mr-3" />
+          Đang tải cấu trúc sơ đồ đơn vị...
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6">
+        <div className="grid grid-cols-1 gap-8">
           {khoas.map((khoa) => (
             <div
               key={khoa.KhoaID}
-              className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden"
+              className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden group hover:border-indigo-100 transition-all"
             >
               {/* Header của Khoa */}
-              <div className="px-8 py-5 bg-gray-50/50 border-b border-gray-100 flex justify-between items-center">
+              <div className="px-10 py-6 bg-gray-50/50 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div>
-                  <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest block mb-1">
+                  <span className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em] block mb-2">
                     Khoa đào tạo
                   </span>
-                  <h3 className="text-lg font-black text-gray-800 uppercase tracking-tight">
+                  <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-3">
                     {khoa.TenKhoa}{" "}
-                    <span className="text-gray-400 ml-2 font-bold">
-                      ({khoa.MaKhoa})
+                    <span className="text-[11px] bg-white border border-gray-200 text-gray-400 px-3 py-1 rounded-xl font-black">
+                      {khoa.MaKhoa}
                     </span>
                   </h3>
                 </div>
                 <div className="flex gap-2">
-                  {" "}
-                  {/* Giữ nguyên div này cho nút Xóa Khoa */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleOpenEditKhoa(khoa);
                     }}
-                    type="button"
-                    className="bg-blue-100 text-blue-600 text-[10px] font-black px-4 py-2 rounded-xl hover:bg-blue-200 transition-all uppercase"
+                    className="p-2.5 bg-white text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all shadow-sm"
+                    title="Sửa thông tin khoa"
                   >
-                    Sửa
+                    <Pencil size={16} />
                   </button>
                   <button
                     onClick={(e) => {
@@ -190,70 +210,63 @@ const QuanLyKhoa = () => {
                         type: "khoa",
                       });
                     }}
-                    type="button"
-                    className="bg-red-500 text-white text-[10px] font-black px-4 py-2 rounded-xl hover:bg-red-600 transition-all uppercase shadow-lg shadow-red-100"
+                    className="p-2.5 bg-white text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all shadow-sm"
+                    title="Xóa khoa"
                   >
-                    Xóa Khoa
+                    <Trash2 size={16} />
                   </button>
                 </div>
               </div>
 
-              {/* Danh sách ngành thuộc khoa */}
-              <div className="p-4 px-8">
+              <div className="px-10 py-6">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                      <th className="py-3 px-2">Mã ngành</th>
-                      <th className="py-3 px-2">Tên ngành đào tạo</th>
-                      <th className="py-3 px-2 text-right w-48">
-                        {" "}
-                        {/* Mở rộng cột thao tác */}
-                        <div className="flex justify-end items-center gap-2">
-                          {/* Nút Thêm Ngành - Đặt vào header cột Thao tác */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedKhoaForNganh({
-                                KhoaID: khoa.KhoaID,
-                                MaNganh: "",
-                                TenNganh: "",
-                              });
-                              setIsAddNganhModalOpen(true);
-                            }}
-                            type="button"
-                            className="bg-blue-500 text-white text-[8px] font-black px-2 py-1 rounded-lg hover:bg-blue-600 transition-all uppercase shadow-lg shadow-blue-100"
-                          >
-                            + Thêm Ngành
-                          </button>
-                          <span>Thao tác</span>
-                        </div>
+                    <tr className="text-[11px] font-black text-gray-400 uppercase tracking-[0.15em]">
+                      <th className="pb-4 px-2 w-32">Mã ngành</th>
+                      <th className="pb-4 px-2">Ngành đào tạo</th>
+                      <th className="pb-4 px-2 text-right">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedKhoaForNganh({
+                              KhoaID: khoa.KhoaID,
+                              MaNganh: "",
+                              TenNganh: "",
+                            });
+                            setIsAddNganhModalOpen(true);
+                          }}
+                          className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-xl hover:bg-indigo-600 hover:text-white transition-all uppercase tracking-wider shadow-sm"
+                        >
+                          + THÊM NGÀNH
+                        </button>
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-50">
+                  <tbody className="divide-y divide-gray-50/50">
                     {khoa.nganhs && khoa.nganhs.length > 0 ? (
                       khoa.nganhs.map((nganh) => (
                         <tr
                           key={nganh.NganhID}
-                          className="group hover:bg-gray-50/50 transition-colors"
+                          className="hover:bg-gray-50/30 transition-all group/row"
                         >
-                          <td className="py-4 px-2 text-xs font-black text-blue-500">
-                            {nganh.MaNganh}
+                          <td className="py-4 px-2">
+                            <span className="text-xs font-black text-indigo-500 bg-indigo-50 px-2.5 py-1 rounded-lg">
+                              {nganh.MaNganh}
+                            </span>
                           </td>
-                          <td className="py-4 px-2 text-sm font-bold text-gray-700">
+                          <td className="py-4 px-2 text-sm font-bold text-gray-700 group-hover/row:text-indigo-600 transition-colors">
                             {nganh.TenNganh}
                           </td>
                           <td className="py-4 px-2 text-right">
-                            <div className="flex justify-end gap-2">
+                            <div className="flex justify-end gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleOpenEditNganh(nganh);
                                 }}
-                                type="button"
-                                className="bg-blue-100 text-blue-600 text-[10px] font-bold px-3 py-1.5 rounded-lg hover:bg-blue-200 transition-all uppercase"
+                                className="p-2 text-gray-400 hover:text-indigo-600 rounded-lg hover:bg-white transition-all"
                               >
-                                Sửa
+                                <Pencil size={14} />
                               </button>
                               <button
                                 onClick={(e) => {
@@ -264,10 +277,9 @@ const QuanLyKhoa = () => {
                                     type: "nganh",
                                   });
                                 }}
-                                type="button"
-                                className="bg-gray-100 text-red-500 text-[10px] font-bold px-3 py-1.5 rounded-lg hover:bg-red-50 transition-all uppercase"
+                                className="p-2 text-gray-400 hover:text-rose-500 rounded-lg hover:bg-white transition-all"
                               >
-                                Xóa Ngành
+                                <Trash2 size={14} />
                               </button>
                             </div>
                           </td>
@@ -275,11 +287,14 @@ const QuanLyKhoa = () => {
                       ))
                     ) : (
                       <tr>
-                        <td
-                          colSpan="3"
-                          className="py-8 text-center text-gray-400 text-[10px] uppercase font-bold italic tracking-widest"
-                        >
-                          Khoa này chưa có ngành đào tạo nào
+                        <td colSpan="3" className="py-10 text-center">
+                          <LayoutGrid
+                            size={24}
+                            className="mx-auto text-gray-100 mb-2"
+                          />
+                          <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">
+                            Khoa chưa có ngành đào tạo
+                          </p>
                         </td>
                       </tr>
                     )}
@@ -290,42 +305,36 @@ const QuanLyKhoa = () => {
           ))}
 
           {khoas.length === 0 && !loading && (
-            <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200 text-gray-400 uppercase font-black text-xs tracking-tighter">
-              Hệ thống chưa có dữ liệu khoa
+            <div className="text-center py-32 bg-white rounded-[2.5rem] border border-dashed border-gray-200">
+              <Building2 size={48} className="mx-auto text-gray-100 mb-4" />
+              <p className="text-gray-400 font-bold uppercase text-xs tracking-widest">
+                Hệ thống chưa có dữ liệu khoa
+              </p>
             </div>
           )}
         </div>
       )}
 
-      {/* Modal Thêm Khoa Mới */}
+      {/* Modal Thêm/Sửa Khoa */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-100">
-            <div className="px-8 py-5 border-b border-gray-50 flex justify-between items-center bg-white">
-              <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">
-                {editingKhoa ? "Cập nhật đơn vị Khoa" : "Tạo đơn vị Khoa mới"}
-              </h3>
-              <button
-                onClick={() => {
-                  setIsAddModalOpen(false);
-                  setEditingKhoa(null);
-                  setNewKhoa({ MaKhoa: "", TenKhoa: "" });
-                }}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 transition-all"
-              >
-                &times;
-              </button>
-            </div>
-            <form onSubmit={handleSubmitKhoa} className="p-8 space-y-5">
+        <div className="fixed inset-0 z-[100] bg-gray-900/40 backdrop-blur-sm flex items-center justify-center animate-fadeIn">
+          <form
+            onSubmit={handleSubmitKhoa}
+            className="bg-white p-10 rounded-[2.5rem] w-full max-w-md space-y-8 shadow-2xl border border-gray-50"
+          >
+            <h3 className="text-2xl font-black text-gray-900 tracking-tight">
+              {editingKhoa ? "Cập nhật Khoa" : "Thêm Khoa mới"}
+            </h3>
+            <div className="space-y-5">
               <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">
-                  Mã Khoa
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] ml-1">
+                  Mã định danh khoa
                 </label>
                 <input
                   type="text"
                   required
                   placeholder="VD: CNTT"
-                  className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full mt-1 px-5 py-3.5 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700"
                   value={newKhoa.MaKhoa}
                   onChange={(e) =>
                     setNewKhoa({
@@ -336,76 +345,60 @@ const QuanLyKhoa = () => {
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] ml-1">
                   Tên Khoa đào tạo
                 </label>
                 <input
                   type="text"
                   required
                   placeholder="VD: Công nghệ thông tin"
-                  className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full mt-1 px-5 py-3.5 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700"
                   value={newKhoa.TenKhoa}
                   onChange={(e) =>
                     setNewKhoa({ ...newKhoa, TenKhoa: e.target.value })
                   }
                 />
               </div>
-
-              <div className="pt-4 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsAddModalOpen(false);
-                    setEditingKhoa(null);
-                    setNewKhoa({ MaKhoa: "", TenKhoa: "" });
-                  }}
-                  className="flex-1 px-6 py-3 text-xs font-black text-gray-400 uppercase tracking-widest hover:text-gray-600"
-                >
-                  Hủy bỏ
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-100 transition-all active:scale-95"
-                >
-                  Lưu thiết lập
-                </button>
-              </div>
-            </form>
-          </div>
+            </div>
+            <div className="flex gap-4 pt-4">
+              <button
+                type="button"
+                onClick={() => setIsAddModalOpen(false)}
+                className="flex-1 py-4 text-sm font-bold text-gray-400 hover:text-gray-600 transition-colors uppercase tracking-widest"
+              >
+                Hủy
+              </button>
+              <button
+                type="submit"
+                className="flex-[2] bg-indigo-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all"
+              >
+                Lưu thiết lập
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
-      {/* Modal Thêm Ngành Mới */}
+      {/* Modal Thêm/Sửa Ngành */}
       {isAddNganhModalOpen && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-100">
-            <div className="px-8 py-5 border-b border-gray-50 flex justify-between items-center bg-white">
-              <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">
-                {editingNganh
-                  ? "Cập nhật Ngành đào tạo"
-                  : "Tạo Ngành đào tạo mới"}
-              </h3>
-              <button
-                onClick={() => {
-                  setIsAddNganhModalOpen(false);
-                  setEditingNganh(null);
-                  setSelectedKhoaForNganh(null);
-                }}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 transition-all"
-              >
-                &times;
-              </button>
-            </div>
-            <form onSubmit={handleSubmitNganh} className="p-8 space-y-5">
+        <div className="fixed inset-0 z-[100] bg-gray-900/40 backdrop-blur-sm flex items-center justify-center animate-fadeIn">
+          <form
+            onSubmit={handleSubmitNganh}
+            className="bg-white p-10 rounded-[2.5rem] w-full max-w-md space-y-8 shadow-2xl border border-gray-50"
+          >
+            <h3 className="text-2xl font-black text-gray-900 tracking-tight">
+              {editingNganh ? "Cập nhật Ngành" : "Thêm Ngành học"}
+            </h3>
+            <div className="space-y-5">
               <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">
-                  Mã Ngành
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] ml-1">
+                  Mã ngành đào tạo
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="VD: CNPM"
-                  className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="VD: KTPM"
+                  className="w-full mt-1 px-5 py-3.5 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700"
                   value={selectedKhoaForNganh?.MaNganh || ""}
                   onChange={(e) =>
                     setSelectedKhoaForNganh({
@@ -416,14 +409,14 @@ const QuanLyKhoa = () => {
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">
-                  Tên Ngành đào tạo
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] ml-1">
+                  Tên Ngành học
                 </label>
                 <input
                   type="text"
                   required
                   placeholder="VD: Kỹ thuật phần mềm"
-                  className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full mt-1 px-5 py-3.5 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700"
                   value={selectedKhoaForNganh?.TenNganh || ""}
                   onChange={(e) =>
                     setSelectedKhoaForNganh({
@@ -433,28 +426,23 @@ const QuanLyKhoa = () => {
                   }
                 />
               </div>
-
-              <div className="pt-4 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsAddNganhModalOpen(false);
-                    setEditingNganh(null);
-                    setSelectedKhoaForNganh(null);
-                  }}
-                  className="flex-1 px-6 py-3 text-xs font-black text-gray-400 uppercase tracking-widest hover:text-gray-600"
-                >
-                  Hủy bỏ
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-100 transition-all active:scale-95"
-                >
-                  Lưu thiết lập
-                </button>
-              </div>
-            </form>
-          </div>
+            </div>
+            <div className="flex gap-4 pt-4">
+              <button
+                type="button"
+                onClick={() => setIsAddNganhModalOpen(false)}
+                className="flex-1 py-4 text-sm font-bold text-gray-400 hover:text-gray-600 transition-colors uppercase tracking-widest"
+              >
+                Hủy
+              </button>
+              <button
+                type="submit"
+                className="flex-[2] bg-indigo-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all"
+              >
+                Lưu ngành học
+              </button>
+            </div>
+          </form>
         </div>
       )}
 

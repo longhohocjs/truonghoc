@@ -19,43 +19,49 @@ class ThongKeController extends Controller
         try {
             // 1. Tính toán Summary
             $tongLhp = LopHocPhan::count();
-            $tongChoNgoi = LopHocPhan::sum('SoLuongToiDa');
-            $daDangKy = DangKyHocPhan::count();
+            $tongChoNgoi = LopHocPhan::sum('SoLuongToiDa') ?: 0;
+            $daDangKy = DangKyHocPhan::where('TrangThai', 'ThanhCong')->count();
             $tiLeLapDay = $tongChoNgoi > 0 ? round(($daDangKy / $tongChoNgoi) * 100, 1) : 0;
 
-            // 2. Dữ liệu biểu đồ (Thống kê theo Khoa) - Sử dụng Query Builder để chính xác hơn
-            $chartData = Khoa::all()->map(function($khoa) {
-                // Tính tổng chỉ tiêu của khoa
-                $totalSlots = DB::table('lophocphan')
-                    ->join('monhoc', 'lophocphan.MonHocID', '=', 'monhoc.MonHocID')
-                    ->where('monhoc.KhoaID', $khoa->KhoaID)
-                    ->sum('SoLuongToiDa');
+            // 2. Tối ưu dữ liệu biểu đồ bằng cách sử dụng GROUP BY (Tránh lỗi N+1 query)
+            $slotsPerFaculty = DB::table('lophocphan')
+                ->join('monhoc', 'lophocphan.MonHocID', '=', 'monhoc.MonHocID')
+                ->select('monhoc.KhoaID', DB::raw('SUM(SoLuongToiDa) as total'))
+                ->groupBy('monhoc.KhoaID')
+                ->pluck('total', 'KhoaID');
 
-                // Tính số lượng sinh viên đã đăng ký thực tế của khoa
-                $registeredCount = DB::table('dangkyhocphan')
-                    ->join('lophocphan', 'dangkyhocphan.LopHocPhanID', '=', 'lophocphan.LopHocPhanID')
-                    ->join('monhoc', 'lophocphan.MonHocID', '=', 'monhoc.MonHocID')
-                    ->where('monhoc.KhoaID', $khoa->KhoaID)
-                    ->count();
+                $registrationsPerFaculty = DB::table('dangkyhocphan')
+                ->join('lophocphan', 'dangkyhocphan.LopHocPhanID', '=', 'lophocphan.LopHocPhanID')
+                ->join('monhoc', 'lophocphan.MonHocID', '=', 'monhoc.MonHocID')
+                ->where('dangkyhocphan.TrangThai', 'ThanhCong')
+                ->select('monhoc.KhoaID', DB::raw('COUNT(*) as registered'))
+                ->groupBy('monhoc.KhoaID')
+                ->pluck('registered', 'KhoaID');
+
+            $chartData = Khoa::all()->map(function($khoa) use ($slotsPerFaculty, $registrationsPerFaculty) {
+                $total = $slotsPerFaculty->get($khoa->KhoaID, 0);
+                $registered = $registrationsPerFaculty->get($khoa->KhoaID, 0);
 
                 return [
                     'name' => $khoa->TenKhoa,
-                    'registered' => $registeredCount,
-                    'total' => (int)$totalSlots ?: 100 // Tránh chia cho 0 hoặc hiển thị trống
+                    'registered' => (int)$registered,
+                    'total' => (int)$total ?: 1, // Tránh chia cho 0
                 ];
             });
 
             // 3. Danh sách lớp tiêu biểu (Tỉ lệ đăng ký cao nhất)
             $topClasses = LopHocPhan::with('monHoc')
+                ->withCount(['dangKyHocPhan as si_so' => function($q) {
+                    $q->where('TrangThai', 'ThanhCong');
+                }])
                 ->get()
                 ->map(function($lop) {
-                    $count = DangKyHocPhan::where('LopHocPhanID', $lop->LopHocPhanID)->count();
-                    $tiLe = $lop->SoLuongToiDa > 0 ? round(($count / $lop->SoLuongToiDa) * 100) : 0;
+                    $tiLe = $lop->SoLuongToiDa > 0 ? round(($lop->si_so / $lop->SoLuongToiDa) * 100) : 0;
                     return [
                         'ma_lhp' => $lop->MaLopHP,
                         'ten_mon' => $lop->monHoc->TenMon ?? 'N/A',
                         'ti_le' => $tiLe,
-                        'si_so' => "{$count}/{$lop->SoLuongToiDa}"
+                        'si_so' => "{$lop->si_so}/{$lop->SoLuongToiDa}",
                     ];
                 })
                 ->sortByDesc('ti_le')

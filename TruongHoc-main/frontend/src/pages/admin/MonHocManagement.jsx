@@ -2,6 +2,16 @@ import React, { useState, useEffect } from "react";
 import axiosClient from "@/api/axios";
 import toast from "react-hot-toast";
 import MonHocModal from "./MonHocModal";
+import {
+  BookOpen,
+  Plus,
+  Search,
+  Filter,
+  Pencil,
+  Trash2,
+  Building2,
+  Layers,
+} from "lucide-react";
 
 const MonHocManagement = () => {
   const [monHocs, setMonHocs] = useState([]);
@@ -142,166 +152,197 @@ const MonHocManagement = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">Quản lý Môn học</h2>
-          <p className="text-gray-500 text-sm">
-            Thiết lập danh mục môn học, tín chỉ và điều kiện tiên quyết
-          </p>
+    <div className="max-w-6xl mx-auto space-y-8 animate-fadeIn pb-10">
+      {/* Unified Header */}
+      <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-50/40 rounded-full -mr-20 -mt-20 blur-3xl" />
+        <div className="absolute bottom-0 left-20 w-40 h-40 bg-blue-50/30 rounded-full -mb-10 blur-2xl" />
+
+        <div className="relative flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-6">
+            <div className="p-4 bg-indigo-600 rounded-3xl text-white shadow-lg shadow-indigo-100">
+              <BookOpen size={32} />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-gray-900 tracking-tight">
+                Quản lý Môn học
+              </h2>
+              <p className="text-gray-500 text-sm font-medium">
+                Thiết lập danh mục môn học, tín chỉ và các điều kiện ràng buộc
+                đào tạo
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleAdd}
+            className="flex items-center gap-2 bg-gray-900 text-white px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl shadow-gray-200 active:scale-95"
+          >
+            <Plus size={18} /> Thêm Môn học mới
+          </button>
         </div>
-        <button
-          onClick={handleAdd}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-blue-700 shadow-md transition-all active:scale-95"
-        >
-          + Thêm Môn học mới
-        </button>
       </div>
 
       {/* Toolbar */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <select
-          className="border rounded-lg p-2 outline-none focus:ring-2 focus:ring-blue-500"
-          value={filters.KhoaID}
-          onChange={(e) =>
-            setFilters({ ...filters, KhoaID: e.target.value, page: 1 })
-          }
-        >
-          <option value="">Tất cả Khoa quản lý</option>
-          {faculties.map((f) => (
-            <option key={f.KhoaID} value={f.KhoaID}>
-              {f.TenKhoa}
-            </option>
-          ))}
-        </select>
-
-        <div className="relative w-full md:w-96">
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="flex flex-1 gap-3 w-full md:w-auto">
+          <div className="relative flex-1 md:w-80">
+            <Search
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+              size={18}
+            />
+            <input
+              type="text"
+              placeholder="Tìm theo mã hoặc tên môn..."
+              className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm font-medium shadow-sm"
+              value={filters.search}
+              onChange={(e) =>
+                setFilters({ ...filters, search: e.target.value, page: 1 })
+              }
+            />
+          </div>
           <input
-            type="text"
-            placeholder="Tìm theo mã môn hoặc tên môn..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-            value={filters.search}
+            type="number"
+            placeholder="Số tín..."
+            className="w-24 px-4 py-3.5 bg-white border border-gray-100 rounded-2xl outline-none text-sm font-bold text-center focus:ring-2 focus:ring-indigo-500/20 shadow-sm"
+          />
+        </div>
+
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="flex items-center gap-2 bg-white px-4 py-3 rounded-2xl border border-gray-100 shadow-sm">
+            <Filter size={16} className="text-gray-400" />
+            <select
+              className="outline-none text-sm font-bold text-gray-600 cursor-pointer bg-transparent"
+              value={filters.KhoaID}
+              onChange={(e) =>
+                setFilters({ ...filters, KhoaID: e.target.value, page: 1 })
+              }
+            >
+              <option value="">Tất cả Khoa quản lý</option>
+              {faculties.map((f) => (
+                <option key={f.KhoaID} value={f.KhoaID}>
+                  {f.TenKhoa}
+                </option>
+              ))}
+            </select>
+          </div>
+          <select
+            className="bg-white border border-gray-100 px-4 py-3.5 rounded-2xl outline-none text-sm font-bold text-gray-400 focus:ring-2 focus:ring-indigo-500/20 shadow-sm"
+            value={filters.per_page}
             onChange={(e) =>
-              setFilters({ ...filters, search: e.target.value, page: 1 })
+              setFilters({
+                ...filters,
+                per_page: parseInt(e.target.value),
+                page: 1,
+              })
             }
           />
-          <svg
-            className="w-5 h-5 absolute left-3 top-2.5 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
         </div>
       </div>
 
       {/* Table Area */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="bg-gray-50 text-gray-600 text-xs uppercase font-bold tracking-wider">
+            <thead className="bg-gray-50/50 text-gray-400 text-[10px] uppercase font-bold tracking-[0.15em] border-b border-gray-100">
               <tr>
-                <th className="px-6 py-4">Mã môn</th>
-                <th className="px-6 py-4">Tên môn học</th>
-                <th className="px-6 py-4 text-center">Tín chỉ</th>
-                <th className="px-6 py-4">Khoa quản lý</th>
-                <th className="px-6 py-4">Môn tiên quyết</th>
-                <th className="px-6 py-4">Môn song hành</th>
-                <th className="px-6 py-4 text-right">Thao tác</th>
+                <th className="px-8 py-5">Định danh môn</th>
+                <th className="px-6 py-5">Tên môn học</th>
+                <th className="px-6 py-5 text-center">Tín chỉ</th>
+                <th className="px-6 py-5">Khoa quản lý</th>
+                <th className="px-6 py-5">Ràng buộc (TQ/SH)</th>
+                <th className="px-8 py-5 text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td
-                    colSpan="7"
-                    className="px-6 py-10 text-center text-gray-400"
-                  >
-                    Đang tải dữ liệu...
+                  <td colSpan="6" className="px-8 py-20 text-center">
+                    <div className="inline-block w-8 h-8 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
                   </td>
                 </tr>
               ) : monHocs.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="7"
-                    className="px-6 py-10 text-center text-gray-400 italic"
+                    colSpan="6"
+                    className="px-8 py-20 text-center text-gray-400 font-medium italic"
                   >
-                    Không tìm thấy môn học nào phù hợp.
+                    Không tìm thấy môn học nào phù hợp
                   </td>
                 </tr>
               ) : (
                 monHocs.map((item) => (
                   <tr
                     key={item.MonHocID}
-                    className="hover:bg-blue-50/30 transition-colors text-sm"
+                    className="hover:bg-gray-50/50 transition-all group"
                   >
-                    <td className="px-6 py-4 font-bold text-blue-600">
-                      {item.MaMon}
+                    <td className="px-8 py-5">
+                      <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg">
+                        {item.MaMon}
+                      </span>
                     </td>
-                    <td className="px-6 py-4 font-semibold text-gray-800">
+                    <td className="px-6 py-5 font-black text-gray-900 text-sm">
                       {item.TenMon}
                     </td>
-                    <td className="px-6 py-4 text-center">{item.SoTinChi}</td>
-                    <td className="px-6 py-4 text-gray-500">
-                      {item.khoa?.TenKhoa || "N/A"}
+                    <td className="px-6 py-5 text-center">
+                      <span className="text-xs font-bold text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+                        {item.SoTinChi} TC
+                      </span>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1">
-                        {item.mon_tien_quyet?.length > 0 ? (
-                          item.mon_tien_quyet.map((tq) => (
-                            <span
-                              key={tq.MaMon}
-                              className="bg-red-50 text-red-600 px-2 py-0.5 rounded text-[10px] font-bold border border-red-100"
-                              title={tq.TenMon}
-                            >
-                              {tq.MaMon}
+                    <td className="px-6 py-5">
+                      <p className="text-xs font-bold text-gray-600">
+                        {item.khoa?.TenKhoa || "N/A"}
+                      </p>
+                      <p className="text-[10px] text-gray-400 font-medium uppercase">
+                        {item.khoa?.MaKhoa || "Hệ thống"}
+                      </p>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex flex-col gap-1.5">
+                        {item.mon_tien_quyet?.length > 0
+                          ? item.mon_tien_quyet.map((tq) => (
+                              <span
+                                key={tq.MaMon}
+                                className="bg-red-50 text-red-600 px-2 py-0.5 rounded text-[10px] font-bold border border-red-100"
+                                title={tq.TenMon}
+                              >
+                                {tq.MaMon}
+                              </span>
+                            ))
+                          : null}
+                        {item.mon_song_hanh?.length > 0
+                          ? item.mon_song_hanh.map((sh) => (
+                              <span
+                                key={sh.MaMon}
+                                className="w-fit bg-purple-50 text-purple-600 px-2 py-0.5 rounded text-[9px] font-black border border-purple-100"
+                                title={sh.TenMon}
+                              >
+                                {sh.MaMon}
+                              </span>
+                            ))
+                          : null}
+                        {!(item.mon_tien_quyet?.length > 0) &&
+                          !(item.mon_song_hanh?.length > 0) && (
+                            <span className="text-[10px] text-gray-300 italic font-medium">
+                              Không ràng buộc
                             </span>
-                          ))
-                        ) : (
-                          <span className="text-gray-300 text-xs">
-                            Không có
-                          </span>
-                        )}
+                          )}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1">
-                        {item.mon_song_hanh?.length > 0 ? (
-                          item.mon_song_hanh.map((sh) => (
-                            <span
-                              key={sh.MaMon}
-                              className="bg-purple-50 text-purple-600 px-2 py-0.5 rounded text-[10px] font-bold border border-purple-100"
-                              title={sh.TenMon}
-                            >
-                              {sh.MaMon}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-gray-300 text-xs">
-                            Không có
-                          </span>
-                        )}
+                    <td className="px-8 py-5 text-right">
+                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => handleEdit(item)}
+                          className="p-2.5 bg-white text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all shadow-sm border border-gray-100"
+                        >
+                          <Pencil size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item.MonHocID)}
+                          className="p-2.5 bg-white text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all shadow-sm border border-gray-100"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-right space-x-2">
-                      <button
-                        onClick={() => handleEdit(item)}
-                        className="text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-lg font-bold text-xs uppercase transition-all"
-                      >
-                        Sửa
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item.MonHocID)}
-                        className="text-red-500 hover:bg-red-100 px-3 py-1.5 rounded-lg font-bold text-xs uppercase transition-all"
-                      >
-                        Xóa
-                      </button>
                     </td>
                   </tr>
                 ))
@@ -313,17 +354,20 @@ const MonHocManagement = () => {
 
       {/* Pagination UI */}
       {!loading && pagination.last_page > 1 && (
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="text-sm text-gray-500">
-            Hiển thị trang{" "}
-            <span className="font-bold">{pagination.current_page}</span> /{" "}
-            {pagination.last_page} ({pagination.total} môn học)
+        <div className="px-8 py-6 bg-white rounded-[2rem] border border-gray-100 flex flex-col sm:row justify-between items-center gap-4 shadow-sm">
+          <div className="text-xs font-black text-gray-400 uppercase tracking-widest">
+            Trang{" "}
+            <span className="text-indigo-600">{pagination.current_page}</span> /{" "}
+            {pagination.last_page}
+            <span className="ml-2 text-gray-300">
+              ({pagination.total} môn học)
+            </span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             <button
               disabled={pagination.current_page === 1}
               onClick={() => setFilters({ ...filters, page: 1 })}
-              className="p-2 rounded border bg-white disabled:opacity-50"
+              className="p-2.5 rounded-xl border border-gray-100 bg-white text-gray-400 hover:text-indigo-600 disabled:opacity-30 transition-all"
             >
               «
             </button>
@@ -333,7 +377,7 @@ const MonHocManagement = () => {
               onClick={() =>
                 setFilters({ ...filters, page: pagination.current_page - 1 })
               }
-              className="px-3 py-1 rounded border bg-white text-blue-600 disabled:opacity-50"
+              className="px-4 py-2 rounded-xl border border-gray-100 bg-white text-xs font-black uppercase tracking-widest text-gray-400 hover:text-indigo-600 disabled:opacity-30 transition-all"
             >
               Trước
             </button>
@@ -363,7 +407,7 @@ const MonHocManagement = () => {
               onClick={() =>
                 setFilters({ ...filters, page: pagination.current_page + 1 })
               }
-              className="px-3 py-1 rounded border bg-white text-blue-600 disabled:opacity-50"
+              className="px-4 py-2 rounded-xl border border-gray-100 bg-white text-xs font-black uppercase tracking-widest text-gray-400 hover:text-indigo-600 disabled:opacity-30 transition-all"
             >
               Sau
             </button>
@@ -373,7 +417,7 @@ const MonHocManagement = () => {
               onClick={() =>
                 setFilters({ ...filters, page: pagination.last_page })
               }
-              className="p-2 rounded border bg-white disabled:opacity-50"
+              className="p-2.5 rounded-xl border border-gray-100 bg-white text-gray-400 hover:text-indigo-600 disabled:opacity-30 transition-all"
             >
               »
             </button>

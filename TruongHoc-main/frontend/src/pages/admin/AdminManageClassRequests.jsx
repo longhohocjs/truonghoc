@@ -1,7 +1,17 @@
 import React, { useState, useEffect } from "react";
 import axiosClient from "@/api/axios";
 import toast from "react-hot-toast";
-import { Check, X, Trash2, Clock, Inbox, Filter } from "lucide-react";
+import {
+  Check,
+  X,
+  Trash2,
+  Clock,
+  Inbox,
+  Filter,
+  User,
+  BookOpen,
+  AlertCircle,
+} from "lucide-react";
 
 const AdminManageClassRequests = () => {
   const [requests, setRequests] = useState([]);
@@ -121,89 +131,72 @@ const AdminManageClassRequests = () => {
               filteredRequests.map((req) => (
                 <tr
                   key={req.YeuCauID}
-                  className="hover:bg-indigo-50/10 transition-colors group"
+                  className="hover:bg-gray-50/50 transition-all group"
                 >
-                  <td className="px-6 py-4">
+                  <td className="px-8 py-5">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs">
+                      <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-black text-xs border border-indigo-100">
                         {req.sinh_vien?.HoTen?.charAt(0) || "S"}
                       </div>
                       <div>
-                        <div className="text-sm font-bold text-gray-800">
+                        <div className="text-sm font-black text-gray-900 leading-tight">
                           {req.sinh_vien?.HoTen}
                         </div>
-                        <div className="text-[10px] text-gray-400 font-medium">
+                        <div className="text-[10px] text-indigo-500 font-bold uppercase tracking-tighter">
                           {req.sinh_vien?.MaSV}
                         </div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm font-bold text-indigo-600">
+                    <div className="text-sm font-bold text-gray-700 leading-tight">
                       {req.mon_hoc?.TenMon}
                     </div>
-                    <div className="text-[10px] text-gray-400 font-medium">
+                    <div className="text-[10px] text-gray-400 font-black uppercase">
                       {req.mon_hoc?.MaMon}
                     </div>
                   </td>
                   <td className="px-6 py-4 max-w-xs">
                     <p
-                      className="text-xs text-gray-600 line-clamp-2"
+                      className="text-xs text-gray-500 line-clamp-2 italic leading-relaxed"
                       title={req.LyDo}
                     >
                       {req.LyDo}
                     </p>
                   </td>
-                  <td className="px-6 py-4 text-xs text-gray-400">
-                    <div className="flex items-center gap-1">
-                      <Clock size={12} />
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400">
+                      <Clock size={14} className="text-gray-300" />
                       {new Date(req.created_at).toLocaleDateString("vi-VN")}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <span
-                      className={`px-2 py-1 rounded-md text-[10px] font-black uppercase ${
-                        req.TrangThai === 1
-                          ? "bg-green-100 text-green-600"
-                          : req.TrangThai === 2
-                            ? "bg-red-100 text-red-600"
-                            : "bg-orange-100 text-orange-600"
-                      }`}
-                    >
-                      {req.TrangThai === 1
-                        ? "Đã duyệt"
-                        : req.TrangThai === 2
-                          ? "Từ chối"
-                          : "Đang chờ"}
-                    </span>
+                    <StatusBadge status={req.TrangThai} />
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-8 py-5 text-right">
                     <div className="flex justify-end gap-2">
                       {req.TrangThai === 0 && (
                         <>
-                          <button
+                          <ActionButton
+                            icon={<Check size={16} />}
                             onClick={() => handleUpdateStatus(req.YeuCauID, 1)}
-                            className="p-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-600 hover:text-white transition-all"
-                            title="Phê duyệt"
-                          >
-                            <Check size={16} />
-                          </button>
-                          <button
+                            variant="success"
+                            tooltip="Phê duyệt"
+                          />
+                          <ActionButton
+                            icon={<X size={16} />}
                             onClick={() => handleUpdateStatus(req.YeuCauID, 2)}
-                            className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all"
-                            title="Từ chối"
-                          >
-                            <X size={16} />
-                          </button>
+                            variant="danger"
+                            tooltip="Từ chối"
+                          />
                         </>
                       )}
-                      <button
+                      <ActionButton
+                        icon={<Trash2 size={16} />}
                         onClick={() => handleDelete(req.YeuCauID)}
-                        className="p-1.5 bg-gray-50 text-gray-400 rounded-lg hover:bg-red-500 hover:text-white transition-all"
-                        title="Xóa yêu cầu"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                        variant="default"
+                        tooltip="Xóa vĩnh viễn"
+                      />
                     </div>
                   </td>
                 </tr>
@@ -213,6 +206,66 @@ const AdminManageClassRequests = () => {
         </table>
       </div>
     </div>
+  );
+};
+
+const StatBadge = ({ label, count, color }) => {
+  const colors = {
+    amber: "bg-amber-50 text-amber-600 border-amber-100",
+    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
+    rose: "bg-rose-50 text-rose-600 border-rose-100",
+  };
+  return (
+    <div
+      className={`flex items-center justify-between p-6 rounded-[2rem] border shadow-sm ${colors[color]}`}
+    >
+      <span className="text-[10px] font-black uppercase tracking-widest">
+        {label}
+      </span>
+      <span className="text-2xl font-black">{count}</span>
+    </div>
+  );
+};
+
+const StatusBadge = ({ status }) => {
+  const configs = {
+    0: {
+      label: "Đang chờ",
+      class: "bg-amber-50 text-amber-600 border-amber-100",
+    },
+    1: {
+      label: "Đã duyệt",
+      class: "bg-emerald-50 text-emerald-600 border-emerald-100",
+    },
+    2: { label: "Từ chối", class: "bg-rose-50 text-rose-600 border-rose-100" },
+  };
+  const config = configs[status] || configs[0];
+  return (
+    <span
+      className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border shadow-sm ${config.class}`}
+    >
+      {config.label}
+    </span>
+  );
+};
+
+const ActionButton = ({ icon, onClick, variant, tooltip }) => {
+  const variants = {
+    success:
+      "bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white border-emerald-100",
+    danger:
+      "bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white border-rose-100",
+    default:
+      "bg-gray-50 text-gray-400 hover:bg-gray-900 hover:text-white border-gray-100",
+  };
+  return (
+    <button
+      onClick={onClick}
+      title={tooltip}
+      className={`p-2.5 rounded-xl border transition-all shadow-sm active:scale-90 ${variants[variant]}`}
+    >
+      {icon}
+    </button>
   );
 };
 
