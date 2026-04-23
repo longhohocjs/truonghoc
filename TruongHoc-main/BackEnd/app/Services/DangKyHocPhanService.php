@@ -171,6 +171,7 @@ class DangKyHocPhanService
                 ->where('dk.SinhVienID', '=', $sinhVien->SinhVienID)
                 ->where('dk.TrangThai', '=', 'ThanhCong')
                 ->where('lt_cu.NgayThi', $ltMoi->NgayThi)
+                ->where('lt_cu.LopHocPhanID', '!=', $lopMoi->LopHocPhanID)
                 ->where(function ($q) use ($ltMoi) {
                     $q->where('lt_cu.GioBatDau', '<', $ltMoi->GioKetThuc)
                       ->where('lt_cu.GioKetThuc', '>', $ltMoi->GioBatDau);

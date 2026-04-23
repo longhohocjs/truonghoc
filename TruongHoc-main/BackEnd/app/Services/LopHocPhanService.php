@@ -36,6 +36,8 @@ class LopHocPhanService
                 'ma_lop_hp'       => $item->MaLopHP,
                 'ten_mon'         => $item->TenMon ?? 'Chưa có môn',
                 'so_tin_chi'      => $item->SoTinChi ?? 0,
+                'tiet_lt'         => $item->TietLyThuyet ?? 0,
+                'tiet_th'         => $item->TietThucHanh ?? 0,
                 'nam_hoc'         => $item->NamHoc ?? 'Chưa có',
                 'ten_hoc_ky'      => $item->TenHocKy,
                 'so_luong_toi_da' => $item->SoLuongToiDa,
@@ -157,6 +159,7 @@ class LopHocPhanService
                 'KhoahocAllowed' => $data['KhoahocAllowed'] ?? null,
                 'NgayBatDau'   => $data['NgayBatDau'],
                 'NgayKetThuc'  => $data['NgayKetThuc'],
+                'TrangThai'    => 1,
             ]);
 
             $this->log('TAO_LOP_HOC_PHAN', "Tạo lớp {$lop->MaLopHP} (ID: {$lop->LopHocPhanID})");

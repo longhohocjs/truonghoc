@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ChuongTrinhDaoTao;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ChuongTrinhDaoTaoController extends Controller
 {
@@ -88,12 +89,67 @@ class ChuongTrinhDaoTaoController extends Controller
         ], 201);
     }
 
+    public function import(Request $request)
+    {
+        $request->validate([
+            'NganhID' => 'required|exists:nganhdaotao,NganhID',
+            'file'    => 'required|mimes:xlsx,xls,csv|max:2048',
+            'clear_existing' => 'nullable|boolean'
+        ]);
+
+        try {
+            // Đọc dữ liệu từ Excel chuyển thành mảng
+            $data = Excel::toArray([], $request->file('file'))[0];
+            
+            // Loại bỏ dòng header và chuyển thành mảng associative
+            $header = array_shift($data);
+            $rows = array_map(function($row) {
+                return [
+                    'MaMon'     => $row[0] ?? null,
+                    'TenMon'    => $row[1] ?? '',
+                    'SoTinChi'  => $row[2] ?? 3,
+                    'KhoaID'    => $row[3] ?? null,
+                    'TietLyThuyet' => $row[4] ?? 0,
+                    'TietThucHanh' => $row[5] ?? 0,
+                    'HocKyGoiY' => $row[6] ?? 1,
+                    'BatBuoc'   => $row[7] ?? 1,
+                    'MonTienQuyet' => $row[8] ?? '', // Danh sách mã môn: MH001,MH002
+                    'MonSongHanh'  => $row[9] ?? '',
+                ];
+            }, $data);
+
+            $clearExisting = $request->boolean('clear_existing', false);
+            $result = $this->ctdtService->importChuongTrinh($request->NganhID, $rows, $clearExisting);
+
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Lỗi khi đọc file: ' . $e->getMessage()], 422);
+        }
+    }
+
     public function destroy($id)
     {
         try {
             $this->ctdtService->xoaMonKhoiCTDT($id);
             return response()->json([
                 'message' => 'Xóa môn khỏi chương trình đào tạo thành công'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function destroyByNganh($nganhId)
+    {
+        try {
+            // Kiểm tra ngành có tồn tại không
+            if (!\App\Models\Nganh::where('NganhID', $nganhId)->exists()) {
+                return response()->json(['message' => 'Ngành không tồn tại'], 404);
+            }
+            
+            $this->ctdtService->xoaToanBoCTDT($nganhId);
+            return response()->json([
+                'message' => 'Đã xóa toàn bộ chương trình đào tạo của ngành thành công'
             ]);
         } catch (\Exception $e) {
             return response()->json(['message' => $e->getMessage()], 422);

@@ -18,19 +18,49 @@ class UserController extends Controller
     public function storeSinhVien(Request $request)
     {
         $data = $request->validate([
-            'MaSV'        => 'required|unique:sinhvien,MaSV|unique:users,Username',
-            'HoTen'       => 'required',
-            'khoahoc'     => 'required',
+            'MaSV'        => 'nullable|string|max:50|unique:sinhvien,MaSV|unique:users,Username',
+            'HoTen'       => 'required|string',
+            'khoahoc'     => 'required|string',
             'KhoaID'      => 'required|exists:khoa,KhoaID',
             'NganhID'     => 'required|exists:nganhdaotao,NganhID',
             'sodienthoai' => 'nullable|string',
-            'email'       => 'nullable|email'
+            'email'       => 'nullable|email|unique:sinhvien,email',
+            'LopSinhHoatID' => 'nullable|exists:lopsinhhoat,LopSinhHoatID'
         ]);
 
         try {
             $result = $this->userService->createSinhVienWithAccount($data);
             return response()->json([
                 'status' => 'success',
+                'message' => 'Thêm sinh viên và tạo tài khoản thành công',
+                'data' => $result
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function storeGiangVienWithAccount(Request $request)
+    {
+        $data = $request->validate([
+            'MaGV'        => 'nullable|string|max:20|unique:giangvien,MaGV|unique:users,Username',
+            'HoTen'       => 'required|string',
+            'KhoaID'      => 'required|exists:khoa,KhoaID',
+            'email'       => 'nullable|email|unique:giangvien,email',
+            'sodienthoai' => 'nullable|string|max:20',
+            'HocVi'       => 'nullable|string',
+            'ChuyenMon'   => 'nullable|string',
+            'LoaiGiangVien' => 'nullable|string|in:Cơ hữu,Thỉnh giảng'
+        ]);
+
+        try {
+            $result = $this->userService->createGiangVienWithAccount($data);
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Tạo tài khoản giảng viên thành công',
                 'data' => $result
             ], 201);
         } catch (\Exception $e) {
@@ -51,13 +81,15 @@ class UserController extends Controller
             'sodienthoai' => 'nullable',
             'KhoaID' => 'required_if:RoleID,2|exists:khoa,KhoaID',
             'HocVi' => 'nullable',
-            'ChuyenMon' => 'nullable'
+            'ChuyenMon' => 'nullable',
+            'LoaiGiangVien' => 'nullable|string'
         ]);
 
         try {
             $profile = $this->userService->createStaffProfile($request->except('RoleID'), $request->RoleID);
             return response()->json([
                 'status' => 'success',
+                'message' => 'Tạo hồ sơ nhân sự thành công',
                 'data' => $profile
             ], 201);
         } catch (\Exception $e) {
@@ -98,7 +130,8 @@ class UserController extends Controller
 
         $filters = [
             'RoleID' => $roleId,
-            'search' => $request->input('search')
+            'search' => $request->input('search'),
+            'KhoaID' => $request->input('KhoaID')
         ];
 
         try {
@@ -128,6 +161,7 @@ class UserController extends Controller
             $user = $this->userService->createAccountForExistingStaff($request->all());
             return response()->json([
                 'status' => 'success',
+                'message' => 'Cấp tài khoản thành công',
                 'data' => $user
             ]);
         } catch (\Exception $e) {
@@ -144,7 +178,8 @@ class UserController extends Controller
             $user = $this->userService->updateUserStatus($request->UserID);
             return response()->json([
                 'status' => 'success',
-                'is_active' => $user->is_active
+                'is_active' => $user->is_active,
+                'message' => $user->is_active ? 'Đã kích hoạt tài khoản' : 'Đã khóa tài khoản'
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -190,7 +225,11 @@ class UserController extends Controller
             unset($data['SinhVienID']); // Xóa ID khỏi mảng dữ liệu update để tránh lỗi SQL
 
             $result = $this->userService->updateSinhVien($id, $data);
-            return response()->json(['status' => 'success', 'data' => $result]);
+            return response()->json([
+                'status' => 'success', 
+                'message' => 'Cập nhật thông tin sinh viên thành công',
+                'data' => $result
+            ]);
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
@@ -207,7 +246,8 @@ class UserController extends Controller
             'sodienthoai' => 'sometimes|nullable',
             'KhoaID'      => 'sometimes|required_if:RoleID,2|exists:khoa,KhoaID',
             'HocVi'       => 'sometimes|nullable',
-            'ChuyenMon'   => 'sometimes|nullable'
+            'ChuyenMon'   => 'sometimes|nullable',
+            'LoaiGiangVien' => 'sometimes|nullable|string'
         ]);
 
         try {
@@ -218,7 +258,7 @@ class UserController extends Controller
             $result = $this->userService->updateStaff($id, $data, $roleId);
             return response()->json(['status' => 'success', 'data' => $result]);
         } catch (\Exception $e) {
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
     }
 
@@ -228,7 +268,7 @@ class UserController extends Controller
             $this->userService->deleteUser($id);
             return response()->json(['status' => 'success', 'message' => 'Xóa tài khoản thành công']);
         } catch (\Exception $e) {
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
     }
 
@@ -238,7 +278,7 @@ class UserController extends Controller
             $this->userService->deleteStaffProfile($id, $roleId);
             return response()->json(['status' => 'success', 'message' => 'Xóa hồ sơ thành công']);
         } catch (\Exception $e) {
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
     }
 }

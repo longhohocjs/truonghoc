@@ -54,6 +54,10 @@ class UserService
             $query = Admin::with(['user']);
         }
 
+        if (!empty($filters['KhoaID']) && $roleId == 2) {
+            $query->where('KhoaID', $filters['KhoaID']);
+        }
+
         if (!empty($filters['search'])) {
             $query->where('HoTen', 'LIKE', '%' . $filters['search'] . '%');
         }
@@ -64,6 +68,13 @@ class UserService
     public function createSinhVienWithAccount(array $data)
     {
         return DB::transaction(function () use ($data) {
+            // 1. Tự động tạo mã sinh viên nếu không nhập
+            if (empty($data['MaSV'])) {
+                $year = date('y'); // Lấy 2 số cuối của năm hiện tại (VD: 24)
+                $lastId = SinhVien::max('SinhVienID') ?? 0;
+                $data['MaSV'] = 'SV' . $year . str_pad($lastId + 1, 5, '0', STR_PAD_LEFT);
+            }
+
             $password = !empty($data['sodienthoai']) ? $data['sodienthoai'] : '123456';
 
             $user = User::create([
@@ -82,7 +93,8 @@ class UserService
                 'NganhID'       => $data['NganhID'],
                 'email'         => $data['email'] ?? null,
                 'sodienthoai'   => $data['sodienthoai'] ?? null,
-                'TinhTrang'     => 'DangHoc'
+                'TinhTrang'     => 'DangHoc',
+                'LopSinhHoatID' => $data['LopSinhHoatID'] ?? null
             ]);
             $this->logService->write(
                 'CREATE_USER', 
@@ -92,6 +104,50 @@ class UserService
             );
 
             return $sinhVien;
+        });
+    }
+
+    public function createGiangVienWithAccount(array $data)
+    {
+        return DB::transaction(function () use ($data) {
+            // 1. Tự động tạo mã giảng viên nếu không nhập
+            if (empty($data['MaGV'])) {
+                $lastId = GiangVien::max('GiangVienID') ?? 0;
+                $data['MaGV'] = 'GV' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+            }
+
+            // 2. Tạo tài khoản User (Username = MaGV)
+            $password = !empty($data['sodienthoai']) ? $data['sodienthoai'] : '123456';
+
+            $user = User::create([
+                'Username'     => $data['MaGV'],
+                'PasswordHash' => Hash::make($password),
+                'RoleID'       => 2, // 2: Giảng viên
+                'is_active'    => true
+            ]);
+
+            // 3. Tạo hồ sơ Giảng viên
+            $giangVien = GiangVien::create([
+                'UserID'        => $user->UserID,
+                'MaGV'          => $data['MaGV'],
+                'HoTen'         => $data['HoTen'],
+                'KhoaID'        => $data['KhoaID'],
+                'email'         => $data['email'] ?? null,
+                'sodienthoai'   => $data['sodienthoai'] ?? null,
+                'HocVi'         => $data['HocVi'] ?? null,
+                'ChuyenMon'     => $data['ChuyenMon'] ?? null,
+                // Đảm bảo lấy đúng giá trị từ data gửi lên
+                'LoaiGiangVien' => (!empty($data['LoaiGiangVien'])) ? $data['LoaiGiangVien'] : 'Cơ hữu',
+            ]);
+
+            $this->logService->write(
+                'CREATE_USER', 
+                "Tạo tài khoản và hồ sơ cho GV: {$giangVien->HoTen} ({$giangVien->MaGV})", 
+                'giangvien', 
+                $giangVien->GiangVienID
+            );
+
+            return $giangVien->load('user');
         });
     }
 
@@ -109,8 +165,14 @@ class UserService
             }
         }
 
+        // Tự động tạo mã giảng viên nếu là GV và mã bị trống
+        if ($roleId == 2 && empty($insertData['MaGV'])) {
+            $lastId = GiangVien::max('GiangVienID') ?? 0;
+            $insertData['MaGV'] = 'GV' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+        }
+
         // Chuyển chuỗi rỗng thành null cho các trường có thể để trống
-        foreach (['email', 'sodienthoai', 'Email', 'SoDienThoai', 'HocVi', 'ChuyenMon', 'MaGV'] as $field) {
+        foreach (['email', 'sodienthoai', 'Email', 'SoDienThoai', 'HocVi', 'ChuyenMon', 'MaGV', 'LoaiGiangVien'] as $field) {
             if (isset($insertData[$field]) && $insertData[$field] === '') {
                 $insertData[$field] = null;
             }
@@ -233,6 +295,11 @@ class UserService
             $updateData['ChuyenMon'] = null;
         }
 
+        // Đảm bảo LoaiGiangVien luôn có giá trị hợp lệ nếu được gửi lên
+        if (isset($updateData['LoaiGiangVien'])) {
+            $updateData['LoaiGiangVien'] = ($updateData['LoaiGiangVien'] === '') ? 'Cơ hữu' : $updateData['LoaiGiangVien'];
+        }
+
         $this->logService->write('UPDATE_USER', "Cập nhật hồ sơ nhân sự ID: {$id}", 'staff', $id);        
         
         // Lọc chỉ lấy các trường hợp lệ trong fillable
@@ -245,6 +312,14 @@ class UserService
         return DB::transaction(function () use ($userId) {
             $user = User::findOrFail($userId);
             
+            // Kiểm tra ràng buộc nếu là giảng viên trước khi xóa bất kỳ dữ liệu nào
+            if ($user->RoleID == 2) {
+                $gv = GiangVien::where('UserID', $userId)->first();
+                if ($gv) {
+                    $this->checkGiangVienConstraints($gv->GiangVienID);
+                }
+            }
+
             // Tìm và xóa các hồ sơ liên quan trước khi xóa User
             if ($user->RoleID == 3) {
                 SinhVien::where('UserID', $userId)->delete();
@@ -268,6 +343,7 @@ class UserService
     public function deleteStaffProfile($id, $roleId)
     {
         if ($roleId == 2) {
+            $this->checkGiangVienConstraints($id);
             $profile = GiangVien::findOrFail($id);
             $this->logService->write('DELETE_STAFF', "Xóa hồ sơ giảng viên: {$profile->HoTen}", 'giangvien', $id);
         } else {
@@ -275,5 +351,43 @@ class UserService
             $this->logService->write('DELETE_STAFF', "Xóa hồ sơ Admin: {$profile->HoTen}", 'admin', $id);
         }
         return $profile->delete();
+    }
+
+    /**
+     * Kiểm tra các ràng buộc dữ liệu của Giảng viên trước khi thực hiện xóa
+     */
+    private function checkGiangVienConstraints($giangVienId)
+    {
+        $gv = GiangVien::findOrFail($giangVienId);
+        $errors = [];
+
+        // 1. Kiểm tra lớp học phần đang giảng dạy
+        $countLop = DB::table('lophocphan')->where('GiangVienID', $giangVienId)->count();
+        if ($countLop > 0) {
+            $errors[] = "đang giảng dạy {$countLop} lớp học phần";
+        }
+
+        // 2. Kiểm tra lớp sinh hoạt (Cố vấn học tập)
+        $countLopSH = DB::table('lopsinhhoat')->where('GiangVienID', $giangVienId)->count();
+        if ($countLopSH > 0) {
+            $errors[] = "đang là cố vấn học tập của {$countLopSH} lớp sinh hoạt";
+        }
+
+        // 3. Kiểm tra lịch dạy hiện có
+        $countLichHoc = DB::table('lichhoc')
+            ->join('lophocphan', 'lichhoc.LopHocPhanID', '=', 'lophocphan.LopHocPhanID')
+            ->where('lophocphan.GiangVienID', $giangVienId)->count();
+        if ($countLichHoc > 0) $errors[] = "có {$countLichHoc} buổi dạy trên thời khóa biểu";
+
+        // 4. Kiểm tra lịch thi được phân công
+        $countLichThi = DB::table('lichthi')
+            ->join('lophocphan', 'lichthi.LopHocPhanID', '=', 'lophocphan.LopHocPhanID')
+            ->where('lophocphan.GiangVienID', $giangVienId)->count();
+        if ($countLichThi > 0) $errors[] = "có {$countLichThi} lịch thi/coi thi";
+
+        if (!empty($errors)) {
+            $detail = implode(', ', $errors);
+            throw new \Exception("Không thể xóa giảng viên {$gv->HoTen} vì: {$detail}. Vui lòng gỡ bỏ phân công hoặc xóa dữ liệu liên quan trước khi thực hiện.");
+        }
     }
 }

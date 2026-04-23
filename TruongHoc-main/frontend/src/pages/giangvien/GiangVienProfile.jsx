@@ -127,6 +127,16 @@ const GiangVienProfile = () => {
               <span className="px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-black uppercase tracking-wider border border-indigo-100">
                 {profile.HocVi || profile.hoc_vi || "Giảng viên"}
               </span>
+              <span
+                className={`px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider border ${
+                  (profile.loai_giang_vien || profile.LoaiGiangVien) ===
+                  "Thỉnh giảng"
+                    ? "bg-orange-50 text-orange-600 border-orange-100"
+                    : "bg-blue-50 text-blue-600 border-blue-100"
+                }`}
+              >
+                {profile.loai_giang_vien || profile.LoaiGiangVien || "Cơ hữu"}
+              </span>
               <span className="px-4 py-1.5 bg-gray-50 text-gray-500 rounded-xl text-xs font-black uppercase tracking-wider border border-gray-100">
                 Mã GV: {profile.MaGV || profile.ma_gv}
               </span>
@@ -154,6 +164,13 @@ const GiangVienProfile = () => {
                   "N/A"
                 }
                 icon={<Globe size={16} className="text-indigo-400" />}
+              />
+              <DetailRow
+                label="Loại giảng viên"
+                value={
+                  profile.loai_giang_vien || profile.LoaiGiangVien || "Cơ hữu"
+                }
+                icon={<ShieldCheck size={16} className="text-indigo-400" />}
               />
               <DetailRow
                 label="Trình độ đào tạo"

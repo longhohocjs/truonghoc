@@ -10,7 +10,25 @@ class GiangVienProfileService
 {
     public function getProfile($giangVienID)
     {
-        return GiangVien::with(['khoa', 'user'])->findOrFail($giangVienID);
+        $gv = GiangVien::with(['khoa', 'user'])->findOrFail($giangVienID);
+        
+        return [
+            'success' => true,
+            'data' => [
+                'giang_vien_id'  => $gv->GiangVienID,
+                'user_id'        => $gv->UserID,
+                'username'       => $gv->user->Username ?? 'N/A',
+                'ma_gv'          => $gv->MaGV,
+                'ho_ten'         => $gv->HoTen,
+                'hoc_vi'         => $gv->HocVi,
+                'chuyen_mon'     => $gv->ChuyenMon,
+                'email'          => $gv->email,
+                'so_dien_thoai'  => $gv->sodienthoai,
+                'loai_giang_vien'=> $gv->LoaiGiangVien ?? 'Cơ hữu',
+                'ten_khoa'       => $gv->khoa->TenKhoa ?? 'N/A',
+                'role'           => 'giang_vien'
+            ]
+        ];
     }
 
     public function updateContactInfo($giangVienID, array $data)

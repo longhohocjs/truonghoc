@@ -16,7 +16,8 @@ class MonHoc extends Model
         'SoTinChi',
         'TietLyThuyet',
         'TietThucHanh',
-        'KhoaID'
+        'KhoaID',
+        'HinhThucHoc'
     ];
 
     public function chuongTrinhDaoTao()

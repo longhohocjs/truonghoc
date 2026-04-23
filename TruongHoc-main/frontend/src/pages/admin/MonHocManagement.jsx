@@ -248,6 +248,8 @@ const MonHocManagement = () => {
                 <th className="px-8 py-5">Định danh môn</th>
                 <th className="px-6 py-5">Tên môn học</th>
                 <th className="px-6 py-5 text-center">Tín chỉ</th>
+                <th className="px-6 py-5 text-center">Tiết (LT/TH)</th>
+                <th className="px-6 py-5">Hình thức</th>
                 <th className="px-6 py-5">Khoa quản lý</th>
                 <th className="px-6 py-5">Ràng buộc (TQ/SH)</th>
                 <th className="px-8 py-5 text-right">Thao tác</th>
@@ -286,6 +288,22 @@ const MonHocManagement = () => {
                     <td className="px-6 py-5 text-center">
                       <span className="text-xs font-bold text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
                         {item.SoTinChi} TC
+                      </span>
+                    </td>
+                    <td className="px-6 py-5">
+                      <span className="text-[10px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100">
+                        {item.TietLyThuyet} / {item.TietThucHanh}
+                      </span>
+                    </td>
+                    <td className="px-6 py-5">
+                      <span
+                        className={`text-[10px] font-black uppercase px-2 py-1 rounded-md border ${
+                          item.HinhThucHoc === "Trực tuyến"
+                            ? "bg-orange-50 text-orange-600 border-orange-100"
+                            : "bg-blue-50 text-blue-600 border-blue-100"
+                        }`}
+                      >
+                        {item.HinhThucHoc || "Trực tiếp"}
                       </span>
                     </td>
                     <td className="px-6 py-5">

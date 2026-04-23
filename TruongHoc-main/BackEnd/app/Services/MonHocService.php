@@ -57,10 +57,26 @@ class MonHocService
     public function createMonHoc(array $data): MonHoc
     {
         $monHoc = DB::transaction(function () use ($data) {
+            // 1. Kiểm tra trùng lặp: Nếu trùng Tên môn và Số tín chỉ thì không cho tạo
+            $exists = MonHoc::where('TenMon', $data['TenMon'])
+                ->where('SoTinChi', $data['SoTinChi'])
+                ->first();
+
+            if ($exists) {
+                throw new \Exception("Môn học '{$data['TenMon']}' với {$data['SoTinChi']} tín chỉ đã tồn tại (Mã: {$exists->MaMon}).");
+            }
+
+            // 2. Tự động tạo mã môn học dựa theo mã khoa (VD: CNTT001)
+            $khoa = \App\Models\Khoa::findOrFail($data['KhoaID']);
+            $prefix = $khoa->MaKhoa;
+            $countInFaculty = MonHoc::where('KhoaID', $data['KhoaID'])->count();
+            $nextCode = $prefix . str_pad($countInFaculty + 1, 3, '0', STR_PAD_LEFT);
+
             $newMon = MonHoc::create([
-                'MaMon'         => $data['MaMon'],
+                'MaMon'         => $nextCode,
                 'TenMon'        => $data['TenMon'],
                 'SoTinChi'      => $data['SoTinChi'] ?? 3,
+                'HinhThucHoc'   => $data['HinhThucHoc'] ?? 'Trực tiếp',
                 'TietLyThuyet'  => $data['TietLyThuyet'] ?? 0,
                 'TietThucHanh'  => $data['TietThucHanh'] ?? 0,
                 'KhoaID'        => $data['KhoaID'],
@@ -81,10 +97,22 @@ class MonHocService
         $monHoc = MonHoc::findOrFail($monHocId);
 
         DB::transaction(function () use ($monHoc, $data) {
+            // Kiểm tra trùng lặp khi cập nhật (loại trừ chính nó)
+            if (isset($data['TenMon']) && isset($data['SoTinChi'])) {
+                $exists = MonHoc::where('TenMon', $data['TenMon'])
+                    ->where('SoTinChi', $data['SoTinChi'])
+                    ->where('MonHocID', '!=', $monHoc->MonHocID)
+                    ->exists();
+                if ($exists) {
+                    throw new \Exception("Tên môn và số tín chỉ này đã tồn tại ở một môn học khác.");
+                }
+            }
+
             $monHoc->update([
                 'MaMon'        => $data['MaMon'] ?? $monHoc->MaMon,
                 'TenMon'       => $data['TenMon'] ?? $monHoc->TenMon,
                 'SoTinChi'     => $data['SoTinChi'] ?? $monHoc->SoTinChi,
+                'HinhThucHoc'  => $data['HinhThucHoc'] ?? $monHoc->HinhThucHoc,
                 'TietLyThuyet' => isset($data['TietLyThuyet']) ? $data['TietLyThuyet'] : $monHoc->TietLyThuyet,
                 'TietThucHanh' => isset($data['TietThucHanh']) ? $data['TietThucHanh'] : $monHoc->TietThucHanh,
                 'KhoaID'       => $data['KhoaID'] ?? $monHoc->KhoaID,

@@ -19,6 +19,7 @@ import {
 
 const QuanLyLopHocPhan = () => {
   const [lops, setLops] = useState([]);
+  const [activeTab, setActiveTab] = useState("opening"); // opening, closed, cancelled
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLichModalOpen, setIsLichModalOpen] = useState(false);
@@ -133,11 +134,31 @@ const QuanLyLopHocPhan = () => {
     }
   };
 
-  const filteredLops = lops.filter(
-    (l) =>
+  const getLopStatus = (lop) => {
+    if (lop.TrangThai === 0) return "cancelled";
+
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const ngayKetThuc = new Date(lop.NgayKetThuc);
+
+    return ngayKetThuc < now ? "closed" : "opening";
+  };
+
+  const filteredLops = lops.filter((l) => {
+    const matchesSearch =
       l.MaLopHP?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      l.mon_hoc?.TenMon?.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+      l.mon_hoc?.TenMon?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesTab = getLopStatus(l) === activeTab;
+
+    return matchesSearch && matchesTab;
+  });
+
+  const counts = {
+    opening: lops.filter((l) => getLopStatus(l) === "opening").length,
+    closed: lops.filter((l) => getLopStatus(l) === "closed").length,
+    cancelled: lops.filter((l) => getLopStatus(l) === "cancelled").length,
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fadeIn pb-10">
@@ -171,28 +192,44 @@ const QuanLyLopHocPhan = () => {
         </div>
       </div>
 
-      {/* Search & Stats Bar */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
+      {/* Tabs & Search Bar */}
+      <div className="flex flex-col lg:flex-row gap-6 justify-between items-end lg:items-center">
+        <div className="bg-white p-1.5 rounded-2xl border border-gray-100 flex gap-1 shadow-sm overflow-x-auto w-full lg:w-auto">
+          <TabButton
+            active={activeTab === "opening"}
+            onClick={() => setActiveTab("opening")}
+            label="Đang mở"
+            count={counts.opening}
+            color="indigo"
+          />
+          <TabButton
+            active={activeTab === "closed"}
+            onClick={() => setActiveTab("closed")}
+            label="Đã đóng"
+            count={counts.closed}
+            color="gray"
+          />
+          <TabButton
+            active={activeTab === "cancelled"}
+            onClick={() => setActiveTab("cancelled")}
+            label="Đã hủy"
+            count={counts.cancelled}
+            color="rose"
+          />
+        </div>
+
         <div className="relative flex-1 w-full md:w-auto">
           <Search
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+            className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400"
             size={18}
           />
           <input
             type="text"
-            placeholder="Tìm mã lớp, tên môn..."
-            className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm font-medium shadow-sm"
+            placeholder="Tìm kiếm trong danh sách này..."
+            className="w-full pl-14 pr-6 py-4 bg-white border border-gray-100 rounded-[1.5rem] outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-bold shadow-sm"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-        </div>
-        <div className="flex gap-4">
-          <div className="bg-white px-5 py-3 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-              {filteredLops.length} Lớp đang mở
-            </span>
-          </div>
         </div>
       </div>
 
@@ -204,7 +241,7 @@ const QuanLyLopHocPhan = () => {
               <tr>
                 <th className="px-8 py-5">Định danh Lớp</th>
                 <th className="px-6 py-5">Học phần / Giảng viên</th>
-                <th className="px-6 py-5">Học kỳ</th>
+                <th className="px-6 py-5">Học kỳ / Thời gian</th>
                 <th className="px-6 py-5 text-center">Tình trạng Sĩ số</th>
                 <th className="px-8 py-5 text-right">Thao tác</th>
               </tr>
@@ -263,17 +300,37 @@ const QuanLyLopHocPhan = () => {
                         <p className="text-sm font-black text-gray-900 leading-none">
                           {item.mon_hoc?.TenMon}
                         </p>
-                        <p className="text-xs font-bold text-gray-500">
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[10px] font-black text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded uppercase">
+                            {item.mon_hoc?.SoTinChi} Tín chỉ
+                          </span>
+                          <span className="text-[10px] font-black text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                            LT: {item.mon_hoc?.TietLyThuyet}
+                          </span>
+                          <span className="text-[10px] font-black text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                            TH: {item.mon_hoc?.TietThucHanh}
+                          </span>
+                          <span className="text-[10px] font-bold text-gray-400 border-l border-gray-200 pl-2 uppercase">
+                            {item.mon_hoc?.HinhThucHoc || "Trực tiếp"}
+                          </span>
+                        </div>
+                        <p className="text-xs font-bold text-gray-500 mt-1">
                           {item.giang_vien?.HoTen ||
                             "Chưa phân công giảng viên"}
                         </p>
                       </div>
                     </td>
                     <td className="px-6 py-5">
-                      <div className="text-xs font-bold text-gray-600">
-                        {item.hoc_ky?.TenHocKy}
-                        <p className="text-[10px] text-gray-400 font-medium uppercase tracking-tighter">
+                      <div className="flex flex-col gap-0.5">
+                        <p className="text-sm font-black text-gray-900 leading-none mb-1">
+                          {item.hoc_ky?.TenHocKy}
+                        </p>
+                        <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-tighter">
                           {item.hoc_ky?.nam_hoc?.TenNamHoc}
+                        </p>
+                        <p className="text-[9px] text-gray-400 font-bold mt-1">
+                          {item.NgayBatDau?.substring(0, 10)} →{" "}
+                          {item.NgayKetThuc?.substring(0, 10)}
                         </p>
                       </div>
                     </td>
@@ -371,6 +428,35 @@ const QuanLyLopHocPhan = () => {
         message="Bạn có chắc chắn muốn xóa lớp học phần này? Hệ thống sẽ ngăn chặn việc xóa nếu đã có sinh viên đăng ký học."
       />
     </div>
+  );
+};
+
+const TabButton = ({ active, onClick, label, count, color }) => {
+  const colors = {
+    indigo: active
+      ? "bg-indigo-600 text-white shadow-indigo-100"
+      : "text-gray-400 hover:text-indigo-600",
+    gray: active
+      ? "bg-gray-600 text-white shadow-gray-100"
+      : "text-gray-400 hover:text-gray-600",
+    rose: active
+      ? "bg-rose-600 text-white shadow-rose-100"
+      : "text-gray-400 hover:text-rose-600",
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-3 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-transparent
+        ${colors[color]}`}
+    >
+      {label}
+      <span
+        className={`px-2 py-0.5 rounded-lg text-[10px] ${active ? "bg-white/20 text-white" : "bg-gray-100 text-gray-500"}`}
+      >
+        {count}
+      </span>
+    </button>
   );
 };
 

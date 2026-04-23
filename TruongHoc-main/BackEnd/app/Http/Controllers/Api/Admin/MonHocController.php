@@ -38,7 +38,7 @@ class MonHocController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'MaMon'    => 'required|string|max:20|unique:monhoc,MaMon',
+            'MaMon'    => 'nullable',
             'TenMon'   => 'required|string',
             'SoTinChi' => 'required|integer|min:1|max:10',
             'KhoaID'   => 'required|exists:khoa,KhoaID',
@@ -62,7 +62,7 @@ class MonHocController extends Controller
     {
         $validated = $request->validate([
             'MonHocID' => 'required|exists:monhoc,MonHocID',
-            'MaMon'    => 'sometimes|required|string|max:20|unique:monhoc,MaMon,' . $request->MonHocID . ',MonHocID',
+            'MaMon'    => 'nullable',
             'TenMon'   => 'sometimes|string',
             'SoTinChi' => 'sometimes|integer|min:1|max:10',
             'KhoaID'   => 'sometimes|exists:khoa,KhoaID',

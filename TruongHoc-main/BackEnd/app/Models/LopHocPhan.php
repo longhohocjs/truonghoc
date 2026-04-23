@@ -18,7 +18,8 @@ class LopHocPhan extends Model
         'SoLuongToiDa',
         'KhoahocAllowed',
         'NgayBatDau',
-        'NgayKetThuc'
+        'NgayKetThuc',
+        'TrangThai' // 1: Bình thường, 0: Đã hủy
     ];
 
     // Đảm bảo các mối quan hệ luôn được thêm vào JSON/Array output

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axiosClient from "@/api/axios";
+import UserModal from "./UserModal";
 import {
   Users,
   UserPlus,
@@ -13,6 +14,7 @@ import {
   GraduationCap,
   UserCog,
   Briefcase,
+  Pencil,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -23,6 +25,8 @@ const UserManagement = () => {
   const [search, setSearch] = useState("");
   const [khoas, setKhoas] = useState([]);
   const [selectedKhoa, setSelectedKhoa] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
 
   useEffect(() => {
     fetchKhoas();
@@ -89,6 +93,72 @@ const UserManagement = () => {
     }
   };
 
+  const handleDelete = async (u) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa người dùng này vĩnh viễn?"))
+      return;
+
+    try {
+      let endpoint = "";
+      if (u.UserID) {
+        // Xóa thông qua UserID (Sẽ xóa cả account và profile liên quan)
+        endpoint = `/admin/users/${u.UserID}`;
+      } else {
+        // Trường hợp Staff/Giảng viên mới tạo hồ sơ (profile) nhưng chưa cấp account
+        const staffId = u.GiangVienID || u.AdminID;
+        const roleId = activeTab === "giangvien" ? 2 : 1;
+        endpoint = `/admin/users/profile/${staffId}/${roleId}`;
+      }
+
+      const res = await axiosClient.delete(endpoint);
+      toast.success(res.message || "Xóa người dùng thành công");
+      fetchUsers();
+    } catch (error) {
+      console.error("Lỗi khi xóa người dùng:", error);
+      const errorMsg =
+        error.response?.data?.message || "Không thể xóa người dùng vào lúc này";
+      toast.error(errorMsg);
+    }
+  };
+
+  const handleSaveUser = async (data) => {
+    try {
+      let endpoint = "";
+      let method = "post";
+
+      // Xác định endpoint và method dựa trên tab và hành động (Thêm/Sửa)
+      if (activeTab === "sinhvien") {
+        endpoint = "/admin/users/sinh-vien";
+        method = editingUser ? "patch" : "post";
+      } else if (activeTab === "giangvien") {
+        endpoint = editingUser
+          ? "/admin/users/staff"
+          : "/admin/users/giang-vien-with-account";
+        method = editingUser ? "patch" : "post";
+      } else {
+        endpoint = editingUser
+          ? "/admin/users/staff"
+          : "/admin/users/staff-profile";
+        method = editingUser ? "patch" : "post";
+      }
+
+      const payload = { ...data };
+      // Bổ sung các trường định danh khi cập nhật hoặc cho Staff
+      if (activeTab !== "sinhvien") {
+        payload.RoleID = activeTab === "giangvien" ? 2 : 1;
+        if (editingUser) {
+          payload.StaffID = editingUser.GiangVienID || editingUser.AdminID;
+        }
+      }
+
+      const res = await axiosClient[method](endpoint, payload);
+      toast.success(res.message || "Thao tác thành công");
+      setIsModalOpen(false);
+      fetchUsers();
+    } catch (error) {
+      // Lỗi validation đã được axios interceptor hiển thị qua toast
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fadeIn pb-10">
       {/* Header Section */}
@@ -110,7 +180,13 @@ const UserManagement = () => {
               </p>
             </div>
           </div>
-          <button className="flex items-center gap-2 bg-gray-900 text-white px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl shadow-gray-200 active:scale-95">
+          <button
+            onClick={() => {
+              setEditingUser(null);
+              setIsModalOpen(true);
+            }}
+            className="flex items-center gap-2 bg-gray-900 text-white px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl shadow-gray-200 active:scale-95"
+          >
             <UserPlus size={18} /> Thêm người dùng
           </button>
         </div>
@@ -228,15 +304,32 @@ const UserManagement = () => {
                       <p className="text-xs font-bold text-gray-600">
                         {u.khoa?.TenKhoa || u.TenKhoa || "Hệ thống"}
                       </p>
-                      <p className="text-[10px] text-gray-400 font-medium uppercase">
-                        {u.nganh?.TenNganh || u.hoc_vi || ""}
-                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-[10px] text-gray-400 font-medium uppercase">
+                          {u.nganh?.TenNganh || u.hoc_vi || ""}
+                        </p>
+                        {u.LoaiGiangVien && (
+                          <span
+                            className={`text-[9px] px-1.5 py-0.5 rounded font-black uppercase ${u.LoaiGiangVien === "Thỉnh giảng" ? "bg-orange-50 text-orange-600" : "bg-blue-50 text-blue-600"}`}
+                          >
+                            {u.LoaiGiangVien}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-5">
                       <StatusBadge active={u.user?.is_active ?? u.is_active} />
                     </td>
                     <td className="px-8 py-5">
                       <div className="flex justify-end items-center gap-2">
+                        <ActionButton
+                          icon={<Pencil size={16} />}
+                          onClick={() => {
+                            setEditingUser(u);
+                            setIsModalOpen(true);
+                          }}
+                          tooltip="Chỉnh sửa hồ sơ"
+                        />
                         <ActionButton
                           icon={<KeyRound size={16} />}
                           onClick={() => handleResetPassword(u.UserID)}
@@ -264,7 +357,7 @@ const UserManagement = () => {
                         />
                         <ActionButton
                           icon={<Trash2 size={16} />}
-                          onClick={() => {}}
+                          onClick={() => handleDelete(u)}
                           variant="danger"
                           tooltip="Xóa vĩnh viễn"
                         />
@@ -277,6 +370,16 @@ const UserManagement = () => {
           </table>
         </div>
       </div>
+
+      {/* Modal Thêm/Sửa */}
+      <UserModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSaveUser}
+        editingUser={editingUser}
+        type={activeTab}
+        faculties={khoas}
+      />
     </div>
   );
 };

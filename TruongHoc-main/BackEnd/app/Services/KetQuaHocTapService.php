@@ -18,7 +18,7 @@ class KetQuaHocTapService
         // Sử dụng DangKyHocPhan model để đảm bảo cột TrangThai tồn tại
         $query = DangKyHocPhan::where('SinhVienID', $sv->SinhVienID)
             ->where('TrangThai', 'ThanhCong')
-            ->with(['lopHocPhan.monHoc', 'lopHocPhan.hocKy', 'diemSo']);
+            ->with(['lopHocPhan.monHoc', 'lopHocPhan.hocKy', 'lopHocPhan.giangVien', 'diemSo']);
 
         if ($hocKyId) {
             $query->whereHas('lopHocPhan', fn($q) => $q->where('HocKyID', $hocKyId));
@@ -33,6 +33,9 @@ class KetQuaHocTapService
                 'ma_mon'       => $item->lopHocPhan->monHoc->MaMon ?? 'N/A',
                 'ten_mon'      => $item->lopHocPhan->monHoc->TenMon ?? 'N/A',
                 'so_tin_chi'   => $item->lopHocPhan->monHoc->SoTinChi ?? 0,
+                'giang_vien'   => $item->lopHocPhan->giangVien->HoTen ?? 'N/A',
+                'tiet_lt'      => $item->lopHocPhan->monHoc->TietLyThuyet ?? 0,
+                'tiet_th'      => $item->lopHocPhan->monHoc->TietThucHanh ?? 0,
                 'diem_cc'      => $item->diemSo->DiemChuyenCan ?? $item->diemSo->diem_chuyen_can ?? null,
                 'diem_gk'      => $item->diemSo->DiemGiuaKy ?? $item->diemSo->diem_giua_ky ?? null,
                 'diem_thi'     => $item->diemSo->DiemThi ?? $item->diemSo->diem_thi ?? null,

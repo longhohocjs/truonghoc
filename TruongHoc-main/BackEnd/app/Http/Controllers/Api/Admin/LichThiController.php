@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\LichThiService;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Http\Request;
 use Exception;
 
@@ -32,8 +33,10 @@ class LichThiController extends Controller
             $res = $this->service->createLichThi($validatedData);
 
             return response()->json($res, 201);
+        } catch (ValidationException $e) {
+            return response()->json(['errors' => $e->errors()], 422);
         } catch (\Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
+            return response()->json(['message' => $e->getMessage()], 400);
         }
     }
 
@@ -53,8 +56,10 @@ class LichThiController extends Controller
             $res = $this->service->updateLichThi($id, $validatedData);
             
             return response()->json($res);
+        } catch (ValidationException $e) {
+            return response()->json(['errors' => $e->errors()], 422);
         } catch (\Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
+            return response()->json(['message' => $e->getMessage()], 400);
         }
     }
 }

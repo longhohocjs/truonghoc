@@ -12,6 +12,9 @@ const MonHocModal = ({
     MaMon: "",
     TenMon: "",
     SoTinChi: 3,
+    HinhThucHoc: "Trực tiếp",
+    TietLyThuyet: 0,
+    TietThucHanh: 0,
     KhoaID: "",
     mon_tien_quyet: [],
     mon_song_hanh: [],
@@ -21,6 +24,8 @@ const MonHocModal = ({
     if (editingMonHoc) {
       setFormData({
         ...editingMonHoc,
+        TietLyThuyet: editingMonHoc.TietLyThuyet || 0,
+        TietThucHanh: editingMonHoc.TietThucHanh || 0,
         // Chuyển đổi mảng object sang mảng ID để dễ quản lý trong select
         mon_tien_quyet:
           editingMonHoc.mon_tien_quyet?.map((m) => m.MonHocID || m.id) || [],
@@ -32,6 +37,9 @@ const MonHocModal = ({
         MaMon: "",
         TenMon: "",
         SoTinChi: 3,
+        HinhThucHoc: "Trực tiếp",
+        TietLyThuyet: 0,
+        TietThucHanh: 0,
         KhoaID: "",
         mon_tien_quyet: [],
         mon_song_hanh: [],
@@ -43,7 +51,15 @@ const MonHocModal = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(formData);
+    // Đảm bảo dữ liệu gửi lên đúng kiểu số để tránh lỗi 422
+    const submitData = {
+      ...formData,
+      SoTinChi: Number(formData.SoTinChi),
+      TietLyThuyet: Number(formData.TietLyThuyet),
+      TietThucHanh: Number(formData.TietThucHanh),
+      KhoaID: Number(formData.KhoaID),
+    };
+    onSave(submitData);
   };
 
   // Lọc danh sách môn có thể chọn (không bao gồm chính môn đang sửa)
@@ -88,8 +104,9 @@ const MonHocModal = ({
               </label>
               <input
                 type="text"
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                disabled={!editingMonHoc}
+                placeholder={!editingMonHoc ? "Hệ thống tự động tạo" : ""}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 disabled:bg-gray-100 disabled:text-gray-500 font-bold"
                 value={formData.MaMon}
                 onChange={(e) =>
                   setFormData({ ...formData, MaMon: e.target.value })
@@ -110,6 +127,59 @@ const MonHocModal = ({
                   setFormData({
                     ...formData,
                     SoTinChi: parseInt(e.target.value),
+                  })
+                }
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                Hình thức học
+              </label>
+              <select
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                value={formData.HinhThucHoc}
+                onChange={(e) =>
+                  setFormData({ ...formData, HinhThucHoc: e.target.value })
+                }
+              >
+                <option value="Trực tiếp">Trực tiếp (Offline)</option>
+                <option value="Trực tuyến">Trực tuyến (Online)</option>
+                <option value="Hybrid">Hybrid (Kết hợp)</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                Tiết lý thuyết
+              </label>
+              <input
+                type="number"
+                min="0"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                value={formData.TietLyThuyet}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    TietLyThuyet: parseInt(e.target.value) || 0,
+                  })
+                }
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                Tiết thực hành
+              </label>
+              <input
+                type="number"
+                min="0"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                value={formData.TietThucHanh}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    TietThucHanh: parseInt(e.target.value) || 0,
                   })
                 }
               />

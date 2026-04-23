@@ -196,10 +196,22 @@ class DangKyHocPhanController extends Controller
     {
         $sinhVien = $request->user()->sinhVien;
 
-        $dot = DotDangKy::where('TrangThai', 1)->first();
+        // Tìm đợt đăng ký đang mở phù hợp với thời gian hiện tại
+        $dot = DotDangKy::where('TrangThai', 1)
+            ->where('NgayBatDau', '<=', now())
+            ->where('NgayKetThuc', '>=', now())
+            ->first();
+
+        // Nếu không có đợt đang mở, lấy đợt gần nhất để xem lại kết quả đã đăng ký
+        if (!$dot) {
+            $dot = DotDangKy::where('TrangThai', 1)
+                ->orderByDesc('NgayKetThuc')
+                ->first();
+        }
+
         if (!$dot) {
             return response()->json([
-                'message' => 'Hiện tại không có đợt đăng ký nào đang mở.'
+                'message' => 'Hiện tại không có thông tin đợt đăng ký nào.'
             ], 404);
         }
 

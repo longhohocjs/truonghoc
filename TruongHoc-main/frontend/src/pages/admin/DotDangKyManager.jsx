@@ -265,9 +265,21 @@ const DotDangKyManager = () => {
                       className="hover:bg-gray-50/50 transition-all group"
                     >
                       <td className="px-8 py-5">
-                        <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg">
-                          {lop.MaLopHP}
-                        </span>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg w-fit">
+                            {lop.MaLopHP}
+                          </span>
+                          {new Date() > new Date(selectedDot.NgayKetThuc) &&
+                            (lop.dang_ky_hoc_phan_count || 0) <
+                              lop.SoLuongToiDa * 0.5 && (
+                              <span
+                                title="Không thể mở lớp học phần vì không đủ số lượng sinh viên (Dưới 50%)"
+                                className="flex items-center gap-1 text-[8px] font-black text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 uppercase w-fit animate-pulse"
+                              >
+                                <ShieldAlert size={8} /> Không đủ SL mở lớp
+                              </span>
+                            )}
+                        </div>
                       </td>
                       <td className="px-6 py-5">
                         <p className="text-sm font-black text-gray-900">
@@ -289,25 +301,47 @@ const DotDangKyManager = () => {
                       </td>
                       <td className="px-6 py-5 text-center">
                         <div className="inline-flex flex-col items-center">
-                          <span className="text-xs font-black text-gray-800">
+                          <span
+                            className={`text-xs font-black ${
+                              new Date() > new Date(selectedDot.NgayKetThuc) &&
+                              (lop.dang_ky_hoc_phan_count || 0) <
+                                lop.SoLuongToiDa * 0.5
+                                ? "text-rose-600"
+                                : "text-gray-800"
+                            }`}
+                          >
                             {lop.dang_ky_hoc_phan_count || 0}/{lop.SoLuongToiDa}
                           </span>
                           <div className="w-16 h-1 bg-gray-100 rounded-full mt-1 overflow-hidden">
                             <div
-                              className="h-full bg-indigo-500"
+                              className={`h-full ${
+                                new Date() >
+                                  new Date(selectedDot.NgayKetThuc) &&
+                                (lop.dang_ky_hoc_phan_count || 0) <
+                                  lop.SoLuongToiDa * 0.5
+                                  ? "bg-rose-500"
+                                  : "bg-indigo-500"
+                              }`}
                               style={{
                                 width: `${Math.min(100, ((lop.dang_ky_hoc_phan_count || 0) / lop.SoLuongToiDa) * 100)}%`,
                               }}
                             />
                           </div>
+                          {new Date() > new Date(selectedDot.NgayKetThuc) &&
+                            (lop.dang_ky_hoc_phan_count || 0) <
+                              lop.SoLuongToiDa * 0.5 && (
+                              <span className="text-[7px] font-black text-rose-500 uppercase mt-1 text-center leading-tight">
+                                Dưới 50%
+                              </span>
+                            )}
                         </div>
                       </td>
                       <td className="px-8 py-5 text-right">
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">
-                          Bắt đầu: {lop.NgayBatDau}
+                          Bắt đầu: {lop.NgayBatDau?.substring(0, 10)}
                         </p>
                         <p className="text-[10px] font-black text-indigo-400 uppercase tracking-tighter">
-                          Kết thúc: {lop.NgayKetThuc}
+                          Kết thúc: {lop.NgayKetThuc?.substring(0, 10)}
                         </p>
                       </td>
                     </tr>
@@ -420,7 +454,7 @@ const DotDangKyManager = () => {
                     </p>
                     <div className="flex items-center gap-1.5 text-xs font-bold text-gray-700">
                       <Calendar size={14} className="text-indigo-400" />{" "}
-                      {dot.NgayBatDau}
+                      {dot.NgayBatDau?.substring(0, 10)}
                     </div>
                   </div>
                   <div className="w-px h-8 bg-gray-100" />
@@ -430,7 +464,7 @@ const DotDangKyManager = () => {
                     </p>
                     <div className="flex items-center gap-1.5 text-xs font-bold text-gray-700">
                       <Calendar size={14} className="text-rose-400" />{" "}
-                      {dot.NgayKetThuc}
+                      {dot.NgayKetThuc?.substring(0, 10)}
                     </div>
                   </div>
                 </div>

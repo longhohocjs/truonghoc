@@ -7,6 +7,7 @@ use App\Models\NamHoc;
 use App\Models\HocKy;
 use App\Services\QuanLyNamHocService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class NamHocController extends Controller
 {
@@ -17,21 +18,40 @@ class NamHocController extends Controller
         $this->namHocService = $namHocService;
     }
 
-    public function storeNamHoc(Request $request)
-    {
-        $request->validate([
-            'TenNamHoc'   => 'required|string|max:50|unique:namhoc,TenNamHoc',
-            'NgayBatDau'  => 'required|date',
-            'NgayKetThuc' => 'required|date|after_or_equal:NgayBatDau',
-        ]);
+    public function storeNamHoc(Request $request) {
+    $data = $request->validate([
+        'TenNamHoc' => 'required|string',
+        'NgayBatDau' => 'required|date',
+        'NgayKetThuc' => 'required|date',
+    ]);
 
-        $namHoc = $this->namHocService->taoNamHoc($request->all());
+    return DB::transaction(function () use ($data) {
+        $namHoc = NamHoc::create($data);
+        
+        // Lấy năm từ TenNamHoc (ví dụ "2024-2025" lấy 2024) hoặc từ NgayBatDau
+        preg_match('/\d{4}/', $namHoc->TenNamHoc, $matches);
+        $year = $matches[0] ?? date('Y', strtotime($namHoc->NgayBatDau));
 
-        return response()->json([
-            'message' => 'Thêm năm học thành công',
-            'data'    => $namHoc
-        ], 201);
-    }
+        // Cấu hình 3 học kỳ mặc định theo yêu cầu
+        $semesters = [
+            ['Ten' => 'Học kỳ 1', 'Loai' => 'HK1', 'S' => "$year-01-01", 'E' => "$year-03-31"],
+            ['Ten' => 'Học kỳ 2', 'Loai' => 'HK2', 'S' => "$year-05-01", 'E' => "$year-07-31"],
+            ['Ten' => 'Học kỳ Hè', 'Loai' => 'He', 'S' => "$year-09-01", 'E' => "$year-12-31"],
+        ];
+
+        foreach ($semesters as $s) {
+            HocKy::create([
+                'NamHocID'   => $namHoc->NamHocID,
+                'TenHocKy'   => $s['Ten'],
+                'LoaiHocKy'  => $s['Loai'],
+                'NgayBatDau' => $s['S'],
+                'NgayKetThuc' => $s['E'],
+            ]);
+        }
+
+        return response()->json($namHoc, 201);
+    });
+}
 
     public function updateNamHoc(Request $request, $id)
     {
@@ -98,12 +118,25 @@ class NamHocController extends Controller
     public function getDanhSachHocKy(Request $request)
     {
         $query = HocKy::with('namHoc');
+        $now = now()->toDateString();
 
         if ($request->filled('nam_hoc_id')) {
             $query->where('NamHocID', $request->nam_hoc_id);
         }
 
-        $list = $query->orderByDesc('NamHocID')->orderBy('LoaiHocKy')->get();
+        $list = $query->orderByDesc('NamHocID')->orderBy('LoaiHocKy')->get()->map(function($hk) use ($now) {
+            if ($hk->NgayKetThuc < $now) {
+                $hk->TrangThaiHienTai = 'Đã qua';
+                $hk->TrangThaiCode = 'PAST';
+            } elseif ($hk->NgayBatDau > $now) {
+                $hk->TrangThaiHienTai = 'Chưa học';
+                $hk->TrangThaiCode = 'FUTURE';
+            } else {
+                $hk->TrangThaiHienTai = 'Đang học';
+                $hk->TrangThaiCode = 'CURRENT';
+            }
+            return $hk;
+        });
 
         return response()->json([
             'message' => 'Lấy danh sách học kỳ thành công',
@@ -113,7 +146,20 @@ class NamHocController extends Controller
 
     public function getDanhSachNamHoc()
     {
-        $list = NamHoc::orderByDesc('NamHocID')->get();
+        $now = now()->toDateString();
+        $list = NamHoc::orderByDesc('NamHocID')->get()->map(function($nh) use ($now) {
+            if ($nh->NgayKetThuc < $now) {
+                $nh->TrangThaiHienTai = 'Đã qua';
+                $nh->TrangThaiCode = 'PAST';
+            } elseif ($nh->NgayBatDau > $now) {
+                $nh->TrangThaiHienTai = 'Chưa học';
+                $nh->TrangThaiCode = 'FUTURE';
+            } else {
+                $nh->TrangThaiHienTai = 'Đang học';
+                $nh->TrangThaiCode = 'CURRENT';
+            }
+            return $nh;
+        });
 
         return response()->json([
             'message' => 'Lấy danh sách năm học thành công',

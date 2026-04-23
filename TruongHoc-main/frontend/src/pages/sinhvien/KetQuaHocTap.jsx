@@ -181,6 +181,7 @@ const KetQuaHocTap = () => {
                   <tr>
                     <th className="px-8 py-4">Mã môn</th>
                     <th className="px-8 py-4">Tên môn học</th>
+                    <th className="px-4 py-4">Giảng viên</th>
                     <th className="px-4 py-4 text-center">Tín chỉ</th>
                     <th className="px-4 py-4 text-center">CC</th>
                     <th className="px-4 py-4 text-center">GK</th>
@@ -202,6 +203,9 @@ const KetQuaHocTap = () => {
                         <span className="font-bold text-gray-800 text-sm group-hover:text-indigo-600 transition-colors">
                           {item.ten_mon || item.TenMon}
                         </span>
+                      </td>
+                      <td className="px-4 py-5 text-gray-500 text-xs font-bold">
+                        {item.giang_vien || "N/A"}
                       </td>
                       <td className="px-4 py-5 text-center font-bold text-gray-600 text-sm">
                         {item.so_tin_chi || item.SoTinChi}

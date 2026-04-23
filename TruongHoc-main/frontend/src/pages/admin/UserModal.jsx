@@ -20,6 +20,7 @@ const UserModal = ({
     sodienthoai: "",
     HocVi: "",
     ChuyenMon: "",
+    LoaiGiangVien: "Cơ hữu",
   });
 
   const [majors, setMajors] = useState([]);
@@ -53,6 +54,8 @@ const UserModal = ({
           "",
         HocVi: editingUser.HocVi || editingUser.hoc_vi || "",
         ChuyenMon: editingUser.ChuyenMon || editingUser.chuyen_mon || "",
+        LoaiGiangVien:
+          editingUser.LoaiGiangVien || editingUser.loai_giang_vien || "Cơ hữu",
       });
 
       if (editingUser.KhoaID || editingUser.khoa?.KhoaID) {
@@ -70,6 +73,7 @@ const UserModal = ({
         sodienthoai: "",
         HocVi: "",
         ChuyenMon: "",
+        LoaiGiangVien: "Cơ hữu",
       });
     }
   }, [editingUser, isOpen]);
@@ -204,6 +208,25 @@ const UserModal = ({
                     {f.TenKhoa}
                   </option>
                 ))}
+              </select>
+            </div>
+          )}
+
+          {type === "giangvien" && (
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                Loại giảng viên
+              </label>
+              <select
+                name="LoaiGiangVien"
+                className="w-full px-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm font-bold text-gray-600 appearance-none"
+                value={formData.LoaiGiangVien || "Cơ hữu"}
+                onChange={(e) =>
+                  setFormData({ ...formData, LoaiGiangVien: e.target.value })
+                }
+              >
+                <option value="Cơ hữu">Giảng viên Cơ hữu</option>
+                <option value="Thỉnh giảng">Giảng viên Thỉnh giảng</option>
               </select>
             </div>
           )}

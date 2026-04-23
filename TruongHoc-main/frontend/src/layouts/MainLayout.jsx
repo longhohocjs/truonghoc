@@ -30,6 +30,7 @@ import {
   User,
   LogOut,
   Bell,
+  Wallet,
 } from "lucide-react";
 
 const MainLayout = () => {
@@ -111,6 +112,11 @@ const MainLayout = () => {
         path: "/admin/diem-so",
         label: "Quản lý Điểm",
         icon: <ClipboardList size={18} />,
+      },
+      {
+        path: "/admin/hoc-phi",
+        label: "Quản lý Học phí",
+        icon: <Wallet size={18} />,
       },
       {
         path: "/admin/thong-ke",
@@ -195,6 +201,11 @@ const MainLayout = () => {
         path: "/sinh-vien/lich-thi",
         label: "Lịch thi",
         icon: <PenTool size={18} />,
+      },
+      {
+        path: "/sinh-vien/hoc-phi",
+        label: "Học phí & Lệ phí",
+        icon: <Wallet size={18} />,
       },
       {
         path: "/sinh-vien/xin-mo-lop",

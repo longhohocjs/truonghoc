@@ -48,7 +48,7 @@ class SinhVienChuongTrinhDaoTaoService
 
         $dangKy = $sv->dangKyHocPhan()
             ->where('TrangThai', 'ThanhCong')
-            ->with(['lopHocPhan.monHoc', 'diemSo'])
+            ->with(['lopHocPhan.monHoc', 'lopHocPhan.giangVien', 'diemSo'])
             ->get();
 
         $grouped = $dangKy->groupBy(function ($dk) {
@@ -58,7 +58,9 @@ class SinhVienChuongTrinhDaoTaoService
         });
 
         $result = $grouped->map(function ($group) {
-            $mon = $group->first()->lopHocPhan->monHoc;
+            $firstRecord = $group->first();
+            $mon = $firstRecord->lopHocPhan->monHoc;
+            $giangVien = $firstRecord->lopHocPhan->giangVien->HoTen ?? 'N/A';
 
             $diemCacLan = $group->map(function ($dk) {
                 return $dk->diemSo ? $dk->diemSo->DiemTongKet : null;
@@ -72,9 +74,10 @@ class SinhVienChuongTrinhDaoTaoService
                 'ma_mon'        => $mon->MaMon ?? 'N/A',
                 'ten_mon'       => $mon->TenMon ?? 'N/A',
                 'tin_chi'       => $mon->SoTinChi ?? null,
+                'giang_vien'    => $giangVien,
                 'diem_tot_nhat' => $diemTotNhat,
                 'so_lan_hoc'    => $soLanHoc,
-                'da_dat'        => $diemTotNhat !== null && $diemTotNhat >= 5.0,
+                'da_dat'        => $diemTotNhat !== null && $diemTotNhat >= 4.0,
             ];
         })->values();
 
@@ -94,6 +97,7 @@ class SinhVienChuongTrinhDaoTaoService
                     'ma_mon'       => $item['ma_mon'],
                     'ten_mon'      => $item['ten_mon'],
                     'tin_chi'      => $item['tin_chi'],
+                    'giang_vien'   => $item['giang_vien'],
                     'diem'         => $item['diem_tot_nhat'],
                     'so_lan_hoc'   => $item['so_lan_hoc'],
                 ];
@@ -126,19 +130,27 @@ class SinhVienChuongTrinhDaoTaoService
         $monDaHoc = $this->getMonDaHocVaDiemTotNhat($user)
             ->keyBy('mon_hoc_id');
 
-        $conThieu = $ctdt->filter(function ($monCT) use ($monDaHoc) {
+        $monNo = [];
+        $monChuaHoc = [];
+
+        foreach ($ctdt as $monCT) {
             $daHoc = $monDaHoc->get($monCT['mon_hoc_id']);
-            return !$daHoc || !$daHoc['da_dat'];
-        })->map(function ($monCT) use ($monDaHoc) {
-            $daHoc = $monDaHoc->get($monCT['mon_hoc_id']);
 
-            $monCT['diem_tot_nhat'] = $daHoc ? $daHoc['diem_tot_nhat'] : null;
-            $monCT['so_lan_hoc']    = $daHoc ? $daHoc['so_lan_hoc'] : 0;
-            $monCT['da_dat']        = false;
+            if (!$daHoc) {
+                // Trường hợp: Chưa bao giờ đăng ký học
+                $monChuaHoc[] = $monCT;
+            } elseif (!$daHoc['da_dat']) {
+                // Trường hợp: Đã học nhưng điểm cao nhất vẫn < 4.0
+                $monCT['diem_tot_nhat'] = $daHoc['diem_tot_nhat'];
+                $monCT['so_lan_hoc']    = $daHoc['so_lan_hoc'];
+                $monCT['giang_vien']    = $daHoc['giang_vien'];
+                $monNo[] = $monCT;
+            }
+        }
 
-            return $monCT;
-        })->values()->toArray();
-
-        return $conThieu;
+        return [
+            'mon_no' => $monNo,
+            'mon_chua_hoc' => $monChuaHoc
+        ];
     }
 }

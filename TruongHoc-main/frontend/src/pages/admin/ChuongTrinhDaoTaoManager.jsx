@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axiosClient from "@/api/axios";
 import toast from "react-hot-toast";
+import ChuongTrinhImportModal from "./ChuongTrinhImportModal";
+import ConfirmModal from "@/components/ConfirmModal";
 import {
   GraduationCap,
   Plus,
@@ -12,6 +14,7 @@ import {
   BookOpenCheck,
   ChevronLeft,
   ChevronRight,
+  FileSpreadsheet,
 } from "lucide-react";
 
 const ChuongTrinhDaoTaoManager = () => {
@@ -22,6 +25,11 @@ const ChuongTrinhDaoTaoManager = () => {
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState({
+    isOpen: false,
+    nganhId: null,
+  });
   const [editingItem, setEditingItem] = useState(null);
   const [filters, setFilters] = useState({
     KhoaID: "",
@@ -101,6 +109,20 @@ const ChuongTrinhDaoTaoManager = () => {
       toast.error("Không thể tải danh sách chương trình đào tạo");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteAllByNganh = async () => {
+    const nganhId = confirmDeleteAll.nganhId;
+    if (!nganhId) return;
+
+    try {
+      await axiosClient.delete(`/admin/chuong-trinh-dao-tao/nganh/${nganhId}`);
+      toast.success("Đã xóa toàn bộ chương trình đào tạo của ngành thành công");
+      setConfirmDeleteAll({ isOpen: false, nganhId: null });
+      fetchPrograms();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Lỗi khi xóa dữ liệu");
     }
   };
 
@@ -228,22 +250,45 @@ const ChuongTrinhDaoTaoManager = () => {
               </p>
             </div>
           </div>
-          <button
-            onClick={() => {
-              setEditingItem(null);
-              setFormData({
-                NganhID: "",
-                MonHocID: "",
-                KhoaID: "",
-                HocKyGoiY: 1,
-                BatBuoc: true,
-              });
-              setShowModal(true);
-            }}
-            className="flex items-center gap-2 bg-gray-900 text-white px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl shadow-gray-200 active:scale-95"
-          >
-            <Plus size={18} /> Thêm môn vào CTĐT
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="flex items-center gap-2 bg-emerald-600 text-white px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100 active:scale-95"
+            >
+              <FileSpreadsheet size={18} /> Import Excel
+            </button>
+
+            {filters.NganhID && (
+              <button
+                onClick={() =>
+                  setConfirmDeleteAll({
+                    isOpen: true,
+                    nganhId: filters.NganhID,
+                  })
+                }
+                className="flex items-center gap-2 bg-rose-600 text-white px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-rose-700 transition-all shadow-xl shadow-rose-100 active:scale-95"
+              >
+                <Trash2 size={18} /> Xóa sạch CTĐT
+              </button>
+            )}
+
+            <button
+              onClick={() => {
+                setEditingItem(null);
+                setFormData({
+                  NganhID: "",
+                  MonHocID: "",
+                  KhoaID: "", // Add KhoaID to formData for modal
+                  HocKyGoiY: 1,
+                  BatBuoc: true,
+                });
+                setShowModal(true);
+              }}
+              className="flex items-center gap-2 bg-gray-900 text-white px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl shadow-gray-200 active:scale-95"
+            >
+              <Plus size={18} /> Thêm môn vào CTĐT
+            </button>
+          </div>
         </div>
       </div>
 
@@ -642,6 +687,24 @@ const ChuongTrinhDaoTaoManager = () => {
           </form>
         </div>
       )}
+
+      <ChuongTrinhImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onSuccess={() => {
+          setShowImportModal(false);
+          fetchPrograms();
+        }}
+        nganhs={allMajors}
+      />
+
+      <ConfirmModal
+        isOpen={confirmDeleteAll.isOpen}
+        onClose={() => setConfirmDeleteAll({ isOpen: false, nganhId: null })}
+        onConfirm={handleDeleteAllByNganh}
+        title="Xóa toàn bộ chương trình đào tạo"
+        message="Hành động này sẽ xóa sạch các môn học trong chương trình đào tạo của ngành này. Bạn có chắc chắn muốn tiếp tục?"
+      />
     </div>
   );
 };

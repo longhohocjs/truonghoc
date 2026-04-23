@@ -19,7 +19,8 @@ class GiangVien extends Model
         'HocVi', 
         'ChuyenMon', 
         'KhoaID', 
-        'email',      
+        'email',
+        'LoaiGiangVien',      
         'sodienthoai' 
     ];
 

@@ -36,10 +36,10 @@ const LopHocPhanModal = ({
         HocKyID: editingLop.HocKyID || "",
         SoLuongToiDa: editingLop.SoLuongToiDa || 50,
         NgayBatDau: editingLop.NgayBatDau
-          ? editingLop.NgayBatDau.split(" ")[0]
+          ? editingLop.NgayBatDau.substring(0, 10)
           : "",
         NgayKetThuc: editingLop.NgayKetThuc
-          ? editingLop.NgayKetThuc.split(" ")[0]
+          ? editingLop.NgayKetThuc.substring(0, 10)
           : "",
       });
     } else {
@@ -59,15 +59,8 @@ const LopHocPhanModal = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (
-      !formData.NgayBatDau ||
-      !formData.NgayKetThuc ||
-      !formData.MonHocID ||
-      !formData.HocKyID
-    ) {
-      alert(
-        "Vui lòng nhập đầy đủ các thông tin bắt buộc (Môn học, Học kỳ, Ngày bắt đầu/kết thúc).",
-      );
+    if (!formData.MonHocID || !formData.HocKyID) {
+      alert("Vui lòng chọn Môn học và Học kỳ.");
       return;
     }
 
@@ -123,9 +116,11 @@ const LopHocPhanModal = ({
               <div className="relative">
                 <input
                   type="text"
-                  required
-                  placeholder="VD: LHP001"
-                  className="w-full px-5 py-3.5 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700"
+                  disabled={!editingLop}
+                  placeholder={
+                    !editingLop ? "Hệ thống tự động tạo" : "VD: LHP001"
+                  }
+                  className="w-full px-5 py-3.5 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700 disabled:opacity-60 disabled:cursor-not-allowed"
                   value={formData.MaLopHP}
                   onChange={(e) =>
                     setFormData({ ...formData, MaLopHP: e.target.value })
@@ -141,9 +136,18 @@ const LopHocPhanModal = ({
               <select
                 className="w-full px-5 py-3.5 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700"
                 value={formData.HocKyID}
-                onChange={(e) =>
-                  setFormData({ ...formData, HocKyID: e.target.value })
-                }
+                onChange={(e) => {
+                  const hkId = e.target.value;
+                  const selectedHk = dropdownData.hocKys.find(
+                    (hk) => hk.HocKyID == hkId,
+                  );
+                  setFormData({
+                    ...formData,
+                    HocKyID: hkId,
+                    NgayBatDau: selectedHk?.NgayBatDau?.split(" ")[0] || "",
+                    NgayKetThuc: selectedHk?.NgayKetThuc?.split(" ")[0] || "",
+                  });
+                }}
               >
                 <option value="">-- Chọn học kỳ --</option>
                 {(dropdownData.hocKys || []).map((hk) => (
@@ -152,6 +156,18 @@ const LopHocPhanModal = ({
                   </option>
                 ))}
               </select>
+              {formData.HocKyID && (
+                <div className="flex items-center gap-2 mt-1 ml-1">
+                  <div className="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[9px] font-black rounded-md uppercase border border-indigo-100">
+                    Năm học:{" "}
+                    {
+                      dropdownData.hocKys.find(
+                        (hk) => hk.HocKyID == formData.HocKyID,
+                      )?.nam_hoc?.TenNamHoc
+                    }
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -229,12 +245,9 @@ const LopHocPhanModal = ({
               </label>
               <input
                 type="date"
-                required
-                className="w-full px-5 py-3.5 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700"
+                disabled
+                className="w-full px-5 py-3.5 bg-gray-100 border-none rounded-2xl outline-none font-bold text-gray-500 cursor-not-allowed"
                 value={formData.NgayBatDau}
-                onChange={(e) =>
-                  setFormData({ ...formData, NgayBatDau: e.target.value })
-                }
               />
             </div>
             <div className="space-y-1.5">
@@ -243,12 +256,9 @@ const LopHocPhanModal = ({
               </label>
               <input
                 type="date"
-                required
-                className="w-full px-5 py-3.5 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700"
+                disabled
+                className="w-full px-5 py-3.5 bg-gray-100 border-none rounded-2xl outline-none font-bold text-gray-500 cursor-not-allowed"
                 value={formData.NgayKetThuc}
-                onChange={(e) =>
-                  setFormData({ ...formData, NgayKetThuc: e.target.value })
-                }
               />
             </div>
           </div>

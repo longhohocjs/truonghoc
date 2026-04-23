@@ -62,9 +62,17 @@ class LichHocService
 
                 // Lặp qua từng tuần cho đến ngày kết thúc
                 while ($dateToSave->lte($lopNgayKetThuc)) {
-                    // Kiểm tra trùng lịch sinh viên
+                    // 1. Kiểm tra trùng lịch sinh viên (những người đã đăng ký lớp này)
                     $this->checkTrungLichSinhVien(
                         $lopHocPhanID,
+                        $dateToSave->toDateString(),
+                        $item['TietBatDau'],
+                        $item['SoTiet']
+                    );
+
+                    // 2. Kiểm tra trùng lịch giảng viên (người phụ trách lớp này)
+                    $this->checkTrungLichGiangVien(
+                        $lopHocPhan->GiangVienID,
                         $dateToSave->toDateString(),
                         $item['TietBatDau'],
                         $item['SoTiet']
@@ -120,6 +128,31 @@ class LichHocService
 
         if ($trungLich->exists()) {
             throw new Exception("Trùng lịch học của sinh viên đã đăng ký lớp này!");
+        }
+    }
+
+    private function checkTrungLichGiangVien($gvID, $ngayHoc, $tietBD, $soTiet, $excludeLopId = null)
+    {
+        if (!$gvID) return;
+        $tietKT = $tietBD + $soTiet - 1;
+
+        // Kiểm tra trong bảng lịch học
+        $trungLichHoc = DB::table('lichhoc as lh')
+            ->join('lophocphan as lhp', 'lh.LopHocPhanID', '=', 'lhp.LopHocPhanID')
+            ->where('lhp.GiangVienID', $gvID)
+            ->where('lh.NgayHoc', $ngayHoc)
+            ->where(function($q) use ($tietBD, $tietKT) {
+                $q->whereBetween('lh.TietBatDau', [$tietBD, $tietKT])
+                  ->orWhereRaw('? BETWEEN lh.TietBatDau AND (lh.TietBatDau + lh.SoTiet - 1)', [$tietBD]);
+            });
+
+        if ($excludeLopId) {
+            $trungLichHoc->where('lh.LopHocPhanID', '!=', $excludeLopId);
+        }
+
+        if ($trungLichHoc->exists()) {
+            $info = $trungLichHoc->first();
+            throw new Exception("Giảng viên đã có lịch dạy lớp khác vào ngày {$ngayHoc} (Tiết {$info->TietBatDau})!");
         }
     }
 }

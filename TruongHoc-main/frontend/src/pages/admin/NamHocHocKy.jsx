@@ -10,6 +10,9 @@ import {
   Clock,
   Calendar as CalendarIcon,
   ArrowRight,
+  CircleDot,
+  CheckCircle2,
+  Timer,
 } from "lucide-react";
 
 const NamHocHocKy = () => {
@@ -84,6 +87,37 @@ const NamHocHocKy = () => {
   const handleAddSemester = async (e) => {
     e.preventDefault();
     try {
+      // Logic kiểm tra ràng buộc thời gian mặc định
+      const yearData = namHocs.find((y) => y.NamHocID == newSemester.NamHocID);
+      if (yearData) {
+        const yearNum =
+          yearData.TenNamHoc.match(/\d{4}/)?.[0] || new Date().getFullYear();
+        let minStart, maxEnd;
+
+        if (newSemester.LoaiHocKy === "HK1") {
+          [minStart, maxEnd] = [`${yearNum}-01-01`, `${yearNum}-03-31`];
+        } else if (newSemester.LoaiHocKy === "HK2") {
+          [minStart, maxEnd] = [`${yearNum}-05-01`, `${yearNum}-07-31`];
+        } else if (newSemester.LoaiHocKy === "He") {
+          [minStart, maxEnd] = [`${yearNum}-09-01`, `${yearNum}-12-31`];
+        }
+
+        if (minStart && maxEnd) {
+          // Không cho phép bắt đầu muộn hơn mốc mặc định
+          if (new Date(newSemester.NgayBatDau) > new Date(minStart)) {
+            return toast.error(
+              `Học kỳ này phải bắt đầu từ ${minStart} hoặc sớm hơn.`,
+            );
+          }
+          // Không cho phép kết thúc sớm hơn mốc mặc định
+          if (new Date(newSemester.NgayKetThuc) < new Date(maxEnd)) {
+            return toast.error(
+              `Học kỳ này phải kết thúc ít nhất vào ngày ${maxEnd}.`,
+            );
+          }
+        }
+      }
+
       console.log("Dữ liệu gửi đi (Học kỳ):", newSemester);
       const apiCall = editingSemester
         ? axiosClient.put(
@@ -167,6 +201,28 @@ const NamHocHocKy = () => {
     setShowAddSemester(true);
   };
 
+  const renderStatusBadge = (code, text) => {
+    const styles = {
+      CURRENT: "bg-emerald-50 text-emerald-600 border-emerald-100",
+      PAST: "bg-gray-50 text-gray-400 border-gray-100",
+      FUTURE: "bg-blue-50 text-blue-600 border-blue-100",
+    };
+    const icons = {
+      CURRENT: <CircleDot size={12} className="animate-pulse" />,
+      PAST: <CheckCircle2 size={12} />,
+      FUTURE: <Timer size={12} />,
+    };
+
+    return (
+      <div
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-tight ${styles[code] || styles.PAST}`}
+      >
+        {icons[code] || icons.PAST}
+        {text}
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fadeIn pb-10">
       {/* Unified Header */}
@@ -219,8 +275,16 @@ const NamHocHocKy = () => {
             className="bg-white p-8 rounded-[2.5rem] w-full max-w-md space-y-6 shadow-2xl border border-gray-100"
           >
             <h3 className="text-xl font-black text-gray-900">
-              {editingYear ? "Cập nhật Năm học" : "Thêm Năm học mới"}
+              {editingYear
+                ? "Cập nhật Năm học"
+                : "Mở Năm học & Tự động tạo Học kỳ"}
             </h3>
+            {!editingYear && (
+              <p className="text-[10px] text-indigo-500 font-bold bg-indigo-50 p-2 rounded-lg">
+                * Hệ thống sẽ tự động tạo 3 học kỳ: HK1 (T1-3), HK2 (T5-7), HK
+                Hè (T9-12)
+              </p>
+            )}
             <div className="space-y-4">
               <div>
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] ml-1">
@@ -440,6 +504,9 @@ const NamHocHocKy = () => {
                 <h4 className="text-xl font-black text-gray-900 tracking-tight mb-2 uppercase">
                   {y.TenNamHoc}
                 </h4>
+                <div className="mb-3">
+                  {renderStatusBadge(y.TrangThaiCode, y.TrangThaiHienTai)}
+                </div>
                 <div className="flex items-center gap-2 text-[10px] font-black text-indigo-400 uppercase tracking-tighter">
                   <span>
                     {formatDateForInput(y.NgayBatDau || y.ngay_bat_dau)}
@@ -469,6 +536,7 @@ const NamHocHocKy = () => {
                 <tr>
                   <th className="px-8 py-5">Năm học</th>
                   <th className="px-6 py-5">Tên học kỳ</th>
+                  <th className="px-6 py-5 text-center">Trạng thái</th>
                   <th className="px-6 py-5 text-center">Bắt đầu</th>
                   <th className="px-6 py-5 text-center">Kết thúc</th>
                   <th className="px-8 py-5 text-right">Thao tác</th>
@@ -510,6 +578,12 @@ const NamHocHocKy = () => {
                             {hk.TenHocKy}
                           </span>
                         </div>
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        {renderStatusBadge(
+                          hk.TrangThaiCode,
+                          hk.TrangThaiHienTai,
+                        )}
                       </td>
                       <td className="px-6 py-5 text-center">
                         <span className="text-xs font-bold text-gray-500 bg-gray-100/50 px-3 py-1 rounded-lg">

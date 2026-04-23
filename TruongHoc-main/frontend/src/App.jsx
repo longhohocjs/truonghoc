@@ -28,6 +28,7 @@ import DiemManagement from "@/pages/admin/DiemManagement";
 import DiemDetail from "@/pages/admin/DiemDetail";
 import ThongKeBaoCao from "@/pages/admin/ThongKeBaoCao";
 import AdminManageClassRequests from "@/pages/admin/AdminManageClassRequests";
+import HocPhiManagement from "@/pages/admin/HocPhiManagement";
 
 // Giang Vien Pages
 import GiangVienProfile from "@/pages/giangvien/GiangVienProfile";
@@ -48,6 +49,7 @@ import StudentRequestClass from "@/pages/sinhvien/StudentRequestClass";
 import ChuongTrinhDaoTao from "@/pages/sinhvien/ChuongTrinhDaoTao";
 import MonDaHoanThanh from "@/pages/sinhvien/MonDaHoanThanh";
 import MonConThieu from "@/pages/sinhvien/MonConThieu";
+import HocPhi from "@/pages/sinhvien/HocPhi";
 
 const Unauthorized = () => (
   <div className="p-10 text-center text-red-500 font-bold text-2xl">
@@ -137,6 +139,7 @@ function App() {
                   path="/admin/yeu-cau-mo-lop"
                   element={<AdminManageClassRequests />}
                 />
+                <Route path="/admin/hoc-phi" element={<HocPhiManagement />} />
                 <Route path="/admin/thong-ke" element={<ThongKeBaoCao />} />
               </Route>
 
@@ -201,6 +204,7 @@ function App() {
                 />
                 <Route path="/sinh-vien/lich-hoc" element={<LichHoc />} />
                 <Route path="/sinh-vien/lich-thi" element={<LichThi />} />
+                <Route path="/sinh-vien/hoc-phi" element={<HocPhi />} />
               </Route>
             </Route>
           </Route>

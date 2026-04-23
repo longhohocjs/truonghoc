@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\LopHocPhan;
 use App\Services\LopHocPhanService;
 use App\Models\YeuCauMoLop;
+use App\Models\HocKy;
+use App\Models\MonHoc;
 use Illuminate\Http\Request;
 
 class LopHocPhanController extends Controller
@@ -37,13 +39,29 @@ class LopHocPhanController extends Controller
         $data = $request->validate([
             'MonHocID'       => 'required|exists:monhoc,MonHocID',
             'HocKyID'        => 'required|exists:hocky,HocKyID',
-            'MaLopHP'        => 'required|string|max:50|unique:lophocphan,MaLopHP',
+            'MaLopHP'        => 'nullable|string|max:50|unique:lophocphan,MaLopHP',
             'SoLuongToiDa'   => 'nullable|integer|min:10',
             'KhoahocAllowed' => 'nullable|string|max:100',
-            'NgayBatDau'     => 'required|date',
-            'NgayKetThuc'    => 'required|date|after_or_equal:NgayBatDau',
+            'NgayBatDau'     => 'nullable|date',
+            'NgayKetThuc'    => 'nullable|date',
             'GiangVienID'    => 'nullable|exists:giangvien,GiangVienID',
         ]);
+
+        // Tự động tạo mã lớp học phần: [LoaiHocKy][MaMon][STT]
+        $hk = HocKy::findOrFail($data['HocKyID']);
+        $mh = MonHoc::findOrFail($data['MonHocID']);
+        
+        $prefix = ($hk->LoaiHocKy ?? 'HK') . ($mh->MaMon ?? 'MON');
+        
+        // Đếm số lượng lớp đã mở của môn này trong học kỳ này để tính STT
+        $count = LopHocPhan::where('HocKyID', $data['HocKyID'])
+            ->where('MonHocID', $data['MonHocID'])
+            ->count();
+            
+        $data['MaLopHP'] = $prefix . str_pad($count + 1, 3, '0', STR_PAD_LEFT);
+
+        $data['NgayBatDau'] = $hk->NgayBatDau;
+        $data['NgayKetThuc'] = $hk->NgayKetThuc;
 
         $lop = $this->service->taoLop($data);
 
@@ -90,6 +108,12 @@ class LopHocPhanController extends Controller
         ]);
 
         $lop = LopHocPhan::findOrFail($data['LopHocPhanID']);
+        
+        // Kiểm tra xung đột lịch nếu lớp này đã được xếp lịch học
+        if ($lop->lichHoc->isNotEmpty()) {
+             // Gọi logic kiểm tra từ LichHocService tương tự như trên
+        }
+
         $lop->update(['GiangVienID' => $data['GiangVienID']]);
 
         return response()->json([

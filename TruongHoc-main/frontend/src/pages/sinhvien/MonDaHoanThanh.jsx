@@ -72,6 +72,7 @@ const MonDaHoanThanh = () => {
               <tr>
                 <th className="px-6 py-4">Mã môn</th>
                 <th className="px-6 py-4">Tên môn học</th>
+                <th className="px-6 py-4">Giảng viên</th>
                 <th className="px-6 py-4 text-center">Tín chỉ</th>
                 <th className="px-6 py-4 text-center">Điểm đạt</th>
                 <th className="px-6 py-4 text-center">Số lần học</th>
@@ -103,6 +104,9 @@ const MonDaHoanThanh = () => {
                           {item.TenMon || item.ten_mon}
                         </span>
                       </div>
+                    </td>
+                    <td className="px-6 py-5 text-gray-500 font-bold text-xs">
+                      {item.giang_vien || "N/A"}
                     </td>
                     <td className="px-6 py-5 text-center font-bold text-gray-600 text-sm">
                       {item.SoTinChi || item.so_tin_chi || item.tin_chi}

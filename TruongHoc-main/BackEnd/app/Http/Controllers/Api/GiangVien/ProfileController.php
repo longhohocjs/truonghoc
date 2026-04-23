@@ -32,8 +32,8 @@ class ProfileController extends Controller
         ], 404);
     }
 
-    $profile = $this->profileService->getProfile($giangVien->GiangVienID);
-    return response()->json(['status' => 'success', 'data' => $profile], 200);
+    $result = $this->profileService->getProfile($giangVien->GiangVienID);
+    return response()->json($result, 200);
 }
 
     /**

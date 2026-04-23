@@ -27,6 +27,9 @@ use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\Admin\DiemSoController;
 use App\Http\Controllers\Api\Admin\ThongKeController;
 use App\Http\Controllers\Api\Admin\ThongBaoController;
+use App\Http\Controllers\Api\SinhVien\HocPhiController;
+use App\Http\Controllers\Api\Admin\HocPhiController as AdminHocPhiController;
+
 
 
 
@@ -52,6 +55,7 @@ Route::middleware(['auth:api', \App\Http\Middleware\CheckActiveUser::class])->gr
         Route::get('lich-hoc', [LichHocController::class, 'xemLichHoc']);
         Route::get('lich-thi', [LichThiController::class, 'xemLichThi']);
         Route::post('ket-qua-hoc-tap', [KetQuaHocTapController::class, 'xemKetQua']);
+        Route::get('/hoc-phi', [HocPhiController::class, 'index']);
 
         // Đăng ký học phần: Các route lấy danh sách (không cần ID lớp cụ thể)
         Route::get('lop-mo', [DangKyHocPhanController::class, 'getLopMo']);
@@ -155,7 +159,9 @@ Route::middleware(['auth:api', \App\Http\Middleware\CheckActiveUser::class])->gr
         Route::post('chuong-trinh-dao-tao', [AdminChuongTrinhDaoTaoController::class, 'store']);
         Route::patch('chuong-trinh-dao-tao', [AdminChuongTrinhDaoTaoController::class, 'update']);
         Route::delete('chuong-trinh-dao-tao/{id}', [AdminChuongTrinhDaoTaoController::class, 'destroy']);
+        Route::delete('chuong-trinh-dao-tao/nganh/{nganhId}', [AdminChuongTrinhDaoTaoController::class, 'destroyByNganh']);
         Route::post('chuong-trinh-dao-tao/gan-nhieu-mon', [AdminChuongTrinhDaoTaoController::class, 'ganNhieuMon']);
+        Route::post('chuong-trinh/import', [AdminChuongTrinhDaoTaoController::class, 'import']);
         
         Route::post('mon-hoc/list', [MonHocController::class, 'index']);
         Route::post('mon-hoc', [MonHocController::class, 'store']); 
@@ -172,6 +178,7 @@ Route::middleware(['auth:api', \App\Http\Middleware\CheckActiveUser::class])->gr
         Route::post('lop-sinh-hoat/remove-student', [AdminLopSinhHoatController::class, 'removeStudent']);
 
         Route::post('users/sinh-vien', [UserController::class, 'storeSinhVien']);
+        Route::post('users/giang-vien-with-account', [UserController::class, 'storeGiangVienWithAccount']);
         Route::post('users/staff-profile', [UserController::class, 'storeStaffProfile']);
         Route::post('users/assign-account', [UserController::class, 'assignAccount']);
         Route::post('users/toggle-status', [UserController::class, 'toggleStatus']);
@@ -196,6 +203,10 @@ Route::middleware(['auth:api', \App\Http\Middleware\CheckActiveUser::class])->gr
         Route::post('diem-so/nhap-diem-ren-luyen', [DiemSoController::class, 'updateRenLuyen']);
         Route::post('diem-so/khoa-diem', [DiemSoController::class, 'lockDiem']);
         Route::post('diem-so/mo-khoa-diem', [DiemSoController::class, 'unlockDiem']);
+
+        // Quản lý học phí
+        Route::get('hoc-phi', [AdminHocPhiController::class, 'index']);
+        Route::post('hoc-phi/confirm', [AdminHocPhiController::class, 'confirmPayment']);
 
         Route::post('thong-ke/sinh-vien-khoa', [ThongKeController::class, 'sinhVienTheoKhoa']);
         Route::post('thong-ke/si-so-lop', [ThongKeController::class, 'thongKeSiSoLop']);
