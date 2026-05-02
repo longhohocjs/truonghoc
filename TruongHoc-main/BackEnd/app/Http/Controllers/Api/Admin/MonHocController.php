@@ -44,6 +44,7 @@ class MonHocController extends Controller
             'KhoaID'   => 'required|exists:khoa,KhoaID',
             'TietLyThuyet' => 'nullable|integer|min:0',
             'TietThucHanh' => 'nullable|integer|min:0',
+            'LoaiMonHoc'   => 'required|string|in:Lý thuyết,Thực hành,Đồ án,Thực tập,Tích hợp',
             // Thêm validation cho các mảng ID môn điều kiện
             'mon_tien_quyet'   => 'nullable|array',
             'mon_tien_quyet.*' => 'exists:monhoc,MonHocID',
@@ -68,6 +69,7 @@ class MonHocController extends Controller
             'KhoaID'   => 'sometimes|exists:khoa,KhoaID',
             'TietLyThuyet' => 'sometimes|integer|min:0',
             'TietThucHanh' => 'sometimes|integer|min:0',
+            'LoaiMonHoc'   => 'sometimes|string|in:Lý thuyết,Thực hành,Đồ án,Thực tập,Tích hợp',
             'mon_tien_quyet'   => 'nullable|array',
             'mon_tien_quyet.*' => 'exists:monhoc,MonHocID',
             'mon_song_hanh'    => 'nullable|array',

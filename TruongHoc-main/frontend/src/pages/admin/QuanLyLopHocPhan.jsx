@@ -15,6 +15,7 @@ import {
   Trash2,
   CheckCircle2,
   AlertCircle,
+  ShieldAlert,
 } from "lucide-react";
 
 const QuanLyLopHocPhan = () => {
@@ -36,6 +37,7 @@ const QuanLyLopHocPhan = () => {
     monHocs: [],
     giangViens: [],
     hocKys: [],
+    dots: [],
   });
 
   const fetchData = async () => {
@@ -49,11 +51,12 @@ const QuanLyLopHocPhan = () => {
         return [];
       };
 
-      const [resLops, resMons, resGVs, resHKs] = await Promise.all([
+      const [resLops, resMons, resGVs, resHKs, resDots] = await Promise.all([
         axiosClient.get("/admin/lop-hoc-phan"),
         axiosClient.post("/admin/mon-hoc/list"),
         axiosClient.post("/admin/users/giang-vien/index"),
         axiosClient.get("/admin/hoc-ky"),
+        axiosClient.post("/admin/dot-dang-ky/filter", { HocKyID: "" }),
       ]);
 
       setLops(getArray(resLops));
@@ -61,6 +64,7 @@ const QuanLyLopHocPhan = () => {
         monHocs: getArray(resMons),
         giangViens: getArray(resGVs),
         hocKys: getArray(resHKs),
+        dots: getArray(resDots),
       });
     } catch (error) {
       console.error("Lỗi khi tải dữ liệu lớp học phần:", error);
@@ -134,8 +138,25 @@ const QuanLyLopHocPhan = () => {
     }
   };
 
+  // Hàm kiểm tra logic lớp có đủ điều kiện mở hay không (dựa trên 50% sĩ số sau khi hết hạn đăng ký)
+  const isFailedQuota = (lop) => {
+    const now = new Date();
+    // Tìm các đợt đăng ký thuộc học kỳ của lớp này
+    const relevantDots =
+      dropdownData.dots?.filter((d) => d.HocKyID === lop.HocKyID) || [];
+    if (relevantDots.length === 0) return false;
+
+    // Kiểm tra xem tất cả các đợt đăng ký của học kỳ này đã kết thúc chưa
+    const allDotsEnded = relevantDots.every(
+      (d) => now > new Date(d.NgayKetThuc),
+    );
+
+    // Nếu đã hết hạn đăng ký mà sĩ số hiện tại < 50% sĩ số tối đa
+    return allDotsEnded && (lop.SoLuongHienTai || 0) < lop.SoLuongToiDa * 0.5;
+  };
+
   const getLopStatus = (lop) => {
-    if (lop.TrangThai === 0) return "cancelled";
+    if (lop.TrangThai === 0 || isFailedQuota(lop)) return "cancelled";
 
     const now = new Date();
     now.setHours(0, 0, 0, 0);
@@ -290,6 +311,15 @@ const QuanLyLopHocPhan = () => {
                           ) : (
                             <span className="flex items-center gap-1 text-[9px] font-bold text-gray-300 uppercase tracking-tighter">
                               <Calendar size={10} /> Trống thi
+                            </span>
+                          )}
+                          {/* Hiển thị cảnh báo không đủ số lượng tương tự như bên Quản lý đợt đăng ký */}
+                          {isFailedQuota(item) && (
+                            <span
+                              title="Lớp học phần không đủ số lượng sinh viên tối thiểu (50%) sau khi kết thúc đợt đăng ký"
+                              className="flex items-center gap-1 text-[9px] font-black text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 uppercase w-fit animate-pulse"
+                            >
+                              <ShieldAlert size={10} /> Không đủ SL mở lớp
                             </span>
                           )}
                         </div>

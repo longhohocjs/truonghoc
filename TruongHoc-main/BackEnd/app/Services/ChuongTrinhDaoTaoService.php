@@ -136,7 +136,7 @@ class ChuongTrinhDaoTaoService
         // Điều này cho phép một môn học có thể xuất hiện ở nhiều ngành khác nhau (dùng chung môn).
         return ChuongTrinhDaoTao::updateOrCreate(
             ['NganhID' => $data['NganhID'], 'MonHocID' => $data['MonHocID']],
-            ['HocKyGoiY' => $data['HocKyGoiY'], 'BatBuoc' => $data['BatBuoc']]
+            ['HocKyGoiY' => $data['HocKyGoiY'], 'BatBuoc' => $data['BatBuoc'], 'KhoiKienThuc' => $data['KhoiKienThuc'] ?? 'DaiCuong']
         );
     }
 
@@ -162,6 +162,7 @@ class ChuongTrinhDaoTaoService
                     'MonHocID' => $monHocID,
                     'HocKyGoiY' => $data['HocKyGoiY'],
                     'BatBuoc' => $data['BatBuoc'],
+                    'KhoiKienThuc' => $data['KhoiKienThuc'],
                 ]);
                 $insertedCount++;
             } catch (\Exception $e) {

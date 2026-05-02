@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Services\UserService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
@@ -102,7 +103,7 @@ class UserController extends Controller
 
     public function indexSinhVien(Request $request)
     {
-        $filters = $request->only(['KhoaID', 'NganhID', 'khoahoc', 'search']);
+        $filters = $request->only(['KhoaID', 'NganhID', 'khoahoc', 'search', 'page', 'per_page']);
 
         try {
             $data = $this->userService->getSinhVienList($filters);
@@ -130,8 +131,10 @@ class UserController extends Controller
 
         $filters = [
             'RoleID' => $roleId,
-            'search' => $request->input('search'),
-            'KhoaID' => $request->input('KhoaID')
+            'search'   => $request->input('search'),
+            'KhoaID'   => $request->input('KhoaID'),
+            'page'     => $request->input('page'),
+            'per_page' => $request->input('per_page'),
         ];
 
         try {
@@ -209,12 +212,16 @@ class UserController extends Controller
     {
         $data = $request->validate([
             'SinhVienID'  => 'required|exists:sinhvien,SinhVienID',
-            'MaSV'        => 'sometimes|required|unique:sinhvien,MaSV,' . $request->SinhVienID . ',SinhVienID',
+            'MaSV'        => [
+                'sometimes',
+                'required',
+                Rule::unique('sinhvien', 'MaSV')->ignore($request->SinhVienID, 'SinhVienID')
+            ],
             'HoTen'       => 'sometimes|required',
             'NgaySinh'    => 'sometimes|nullable|date',
             'KhoaID'      => 'sometimes|required|exists:khoa,KhoaID',
             'NganhID'     => 'sometimes|required|exists:nganhdaotao,NganhID',
-            'email'       => 'sometimes|nullable|email',
+            'email'       => ['sometimes', 'nullable', 'email', Rule::unique('sinhvien', 'email')->ignore($request->SinhVienID, 'SinhVienID')],
             'sodienthoai' => 'sometimes|nullable',
             'TinhTrang'   => 'sometimes|required',
             'khoahoc'     => 'sometimes|nullable'

@@ -5,7 +5,7 @@ import { Toaster } from "react-hot-toast";
 // Context & Auth
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import Login from "@/pages/auth/Login";
+import Login from "@/pages/Login";
 
 // Layout & Common
 import MainLayout from "@/layouts/MainLayout";

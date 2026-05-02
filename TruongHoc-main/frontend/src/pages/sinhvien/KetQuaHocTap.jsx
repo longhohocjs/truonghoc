@@ -1,10 +1,19 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axiosClient from "@/api/axios";
-import { TrendingUp, Award, BookOpen, PieChart, Activity } from "lucide-react";
+import {
+  TrendingUp,
+  Award,
+  BookOpen,
+  PieChart,
+  Activity,
+  Lock,
+} from "lucide-react";
 
 const KetQuaHocTap = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   // Hàm quy đổi điểm số sang điểm chữ (Hệ 4 chuẩn Việt Nam)
   const quyDoiDiemChu = (diem) => {
@@ -39,6 +48,43 @@ const KetQuaHocTap = () => {
     return (
       <div className="p-10 text-center font-medium">Đang tải bảng điểm...</div>
     );
+
+  // Xử lý khi tài khoản bị khóa do nợ học phí
+  if (data?.is_locked) {
+    return (
+      <div className="max-w-4xl mx-auto mt-20 p-12 bg-white rounded-[2.5rem] border border-rose-100 shadow-xl shadow-rose-50 text-center space-y-6 animate-fadeIn">
+        <div className="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mx-auto text-rose-500 animate-bounce">
+          <Lock size={48} />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-black text-gray-800">
+            Truy cập bị hạn chế
+          </h2>
+          <p className="text-gray-500 font-medium leading-relaxed">
+            Hệ thống ghi nhận bạn chưa hoàn thành học phí học kỳ hiện tại.
+            <br />
+            Quyền lợi xem kết quả học tập tạm thời bị khóa cho đến khi thanh
+            toán hoàn tất.
+          </p>
+        </div>
+        <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 w-fit mx-auto">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+            Hạn chót nộp phí
+          </p>
+          <p className="text-sm font-bold text-rose-600">
+            {new Date(data.han_nop).toLocaleDateString("vi-VN")}
+          </p>
+        </div>
+        <button
+          onClick={() => navigate("/sinh-vien/hoc-phi")}
+          className="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 active:scale-95"
+        >
+          Đến trang thanh toán
+        </button>
+      </div>
+    );
+  }
+
   if (!data)
     return (
       <div className="p-10 text-center text-red-500">
@@ -117,44 +163,6 @@ const KetQuaHocTap = () => {
           </div>
         </div>
       </div>
-
-      {/* Tóm tắt GPA hiện tại */}
-      {(gpa_hoc_ky || diem_chi_tiet.length > 0) && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-          <SummaryCard
-            title="GPA Hệ 10"
-            value={gpa_hệ_10}
-            subValue="Học kỳ hiện tại"
-            color="text-indigo-600"
-            icon={<PieChart size={16} />}
-          />
-          <SummaryCard
-            title="GPA Hệ 4"
-            value={
-              gpa_hoc_ky?.gpa_he_4 || (parseFloat(gpa_hệ_10) * 0.4).toFixed(2)
-            }
-            subValue="Quy đổi"
-            color="text-blue-600"
-            icon={<Activity size={16} />}
-          />
-          <SummaryCard
-            title="Số tín chỉ đạt"
-            value={tong_tin_chi}
-            subValue="Tích lũy học kỳ"
-            color="text-emerald-600"
-            icon={<Award size={16} />}
-          />
-          <SummaryCard
-            title="Số môn học"
-            value={
-              gpa_hoc_ky?.so_mon || gpa_hoc_ky?.SoMon || diem_chi_tiet.length
-            }
-            subValue="Đã hoàn thành"
-            color="text-orange-600"
-            icon={<BookOpen size={16} />}
-          />
-        </div>
-      )}
 
       {/* Hiển thị bảng điểm theo từng học kỳ */}
       {Object.keys(groupedBySemester).length === 0 ? (

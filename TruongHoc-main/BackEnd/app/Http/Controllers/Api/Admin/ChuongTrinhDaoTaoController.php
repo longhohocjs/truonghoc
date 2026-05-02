@@ -41,6 +41,7 @@ class ChuongTrinhDaoTaoController extends Controller
             'MonHocID'    => 'required|exists:monhoc,MonHocID',
             'HocKyGoiY'   => 'required|integer|min:1|max:12',
             'BatBuoc'     => 'required|boolean',
+            'KhoiKienThuc' => 'required|string|in:DaiCuong,CoSoNganh,ChuyenNganh,TotNghiep,ChuanDauRa',
         ]);
 
         try {
@@ -60,6 +61,7 @@ class ChuongTrinhDaoTaoController extends Controller
             'ID'          => 'required|exists:chuongtrinhdaotao,ID',
             'HocKyGoiY'   => 'sometimes|required|integer|min:1|max:12',
             'BatBuoc'     => 'sometimes|required|boolean',
+            'KhoiKienThuc' => 'sometimes|required|string|in:DaiCuong,CoSoNganh,ChuyenNganh,TotNghiep,ChuanDauRa',
         ]);
 
         $ctdt = ChuongTrinhDaoTao::findOrFail($data['ID']);
@@ -79,6 +81,7 @@ class ChuongTrinhDaoTaoController extends Controller
             'MonHocIDs.*' => 'exists:monhoc,MonHocID',
             'HocKyGoiY'   => 'required|integer|min:1|max:12',
             'BatBuoc'     => 'required|boolean',
+            'KhoiKienThuc' => 'required|string|in:DaiCuong,CoSoNganh,ChuyenNganh,TotNghiep,ChuanDauRa',
         ]);
 
         $inserted = $this->ctdtService->ganNhieuMonVaoCTDT($data);

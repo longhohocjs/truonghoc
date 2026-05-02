@@ -27,25 +27,27 @@ class NamHocController extends Controller
 
     return DB::transaction(function () use ($data) {
         $namHoc = NamHoc::create($data);
-        
-        // Lấy năm từ TenNamHoc (ví dụ "2024-2025" lấy 2024) hoặc từ NgayBatDau
-        preg_match('/\d{4}/', $namHoc->TenNamHoc, $matches);
-        $year = $matches[0] ?? date('Y', strtotime($namHoc->NgayBatDau));
+        $startDate = \Carbon\Carbon::parse($namHoc->NgayBatDau);
 
-        // Cấu hình 3 học kỳ mặc định theo yêu cầu
+        // Cấu hình 3 học kỳ, mỗi kỳ đúng 4 tháng (Chia đều 12 tháng)
         $semesters = [
-            ['Ten' => 'Học kỳ 1', 'Loai' => 'HK1', 'S' => "$year-01-01", 'E' => "$year-03-31"],
-            ['Ten' => 'Học kỳ 2', 'Loai' => 'HK2', 'S' => "$year-05-01", 'E' => "$year-07-31"],
-            ['Ten' => 'Học kỳ Hè', 'Loai' => 'He', 'S' => "$year-09-01", 'E' => "$year-12-31"],
+            ['Ten' => 'Học kỳ 1', 'Loai' => 'HK1'],
+            ['Ten' => 'Học kỳ 2', 'Loai' => 'HK2'],
+            ['Ten' => 'Học kỳ 3', 'Loai' => 'He'],
         ];
 
-        foreach ($semesters as $s) {
+        foreach ($semesters as $index => $s) {
+            // Kỳ 1 bắt đầu từ ngày bắt đầu năm học, các kỳ sau cộng thêm 4 tháng
+            $hkStart = $startDate->copy()->addMonths($index * 4);
+            // Kết thúc là 1 ngày trước khi bắt đầu kỳ kế tiếp
+            $hkEnd = $hkStart->copy()->addMonths(4)->subDay();
+
             HocKy::create([
                 'NamHocID'   => $namHoc->NamHocID,
                 'TenHocKy'   => $s['Ten'],
                 'LoaiHocKy'  => $s['Loai'],
-                'NgayBatDau' => $s['S'],
-                'NgayKetThuc' => $s['E'],
+                'NgayBatDau' => $hkStart->toDateString(),
+                'NgayKetThuc' => $hkEnd->toDateString(),
             ]);
         }
 

@@ -15,9 +15,26 @@ class KetQuaHocTapService
             return ['success' => false, 'data' => null, 'message' => 'Không tìm thấy sinh viên'];
         }
 
+        // Kiểm tra logic nợ học phí để chặn quyền lợi học tập
+        $hocPhiService = app(\App\Services\HocPhiService::class);
+        $hocPhiStatus = $hocPhiService->getHocPhiHienTai($sv->SinhVienID);
+        
+        if ($hocPhiStatus && ($hocPhiStatus['is_locked'] ?? false)) {
+            return [
+                'success' => false,
+                'data' => [
+                    'is_locked' => true,
+                    'han_nop'   => $hocPhiStatus['han_nop']
+                ],
+                'message' => 'Tài khoản của bạn đã bị khóa chức năng xem điểm do quá hạn nộp học phí.'
+            ];
+        }
+
         // Sử dụng DangKyHocPhan model để đảm bảo cột TrangThai tồn tại
         $query = DangKyHocPhan::where('SinhVienID', $sv->SinhVienID)
             ->where('TrangThai', 'ThanhCong')
+            // Chỉ hiện các môn đã hoàn thành nghĩa vụ học phí
+            ->where('TrangThaiThanhToan', 1)
             ->with(['lopHocPhan.monHoc', 'lopHocPhan.hocKy', 'lopHocPhan.giangVien', 'diemSo']);
 
         if ($hocKyId) {

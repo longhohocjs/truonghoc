@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axiosClient from "@/api/axios";
 import toast from "react-hot-toast";
 import ChuongTrinhImportModal from "./ChuongTrinhImportModal";
+import ChuongTrinhDaoTaoModal from "./ChuongTrinhDaoTaoModal";
 import ConfirmModal from "@/components/ConfirmModal";
 import {
   GraduationCap,
   Plus,
   Search,
   Filter,
+  Layers,
   Pencil,
   Trash2,
   Building2,
@@ -172,41 +174,74 @@ const ChuongTrinhDaoTaoManager = () => {
     return pages.filter((item, index) => pages.indexOf(item) === index);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // Phân tích và nhóm dữ liệu theo khối kiến thức
+  const groupedPrograms = useMemo(() => {
+    const groups = {
+      DaiCuong: {
+        label: "1. Khối Đại cương",
+        items: [],
+        credits: 0,
+        color: "blue",
+      },
+      CoSoNganh: {
+        label: "2. Khối Cơ sở ngành",
+        items: [],
+        credits: 0,
+        color: "indigo",
+      },
+      ChuyenNganh: {
+        label: "3. Khối Chuyên ngành",
+        items: [],
+        credits: 0,
+        color: "purple",
+      },
+      TotNghiep: {
+        label: "4. Khối Tốt nghiệp",
+        items: [],
+        credits: 0,
+        color: "emerald",
+      },
+      ChuanDauRa: {
+        label: "5. Chuẩn đầu ra",
+        items: [],
+        credits: 0,
+        color: "amber",
+      },
+    };
+
+    programs.forEach((item) => {
+      const key = item.KhoiKienThuc || "DaiCuong";
+      if (groups[key]) {
+        groups[key].items.push(item);
+        groups[key].credits += Number(item.mon_hoc?.SoTinChi || 0);
+      }
+    });
+    return groups;
+  }, [programs]);
+
+  const handleSaveManual = async (formData) => {
     try {
       if (editingItem) {
-        // Gọi API cập nhật (PATCH)
         await axiosClient.patch("/admin/chuong-trinh-dao-tao", {
-          ...formData,
           ID: editingItem.ID,
+          HocKyGoiY: formData.HocKyGoiY,
+          BatBuoc: formData.BatBuoc,
+          KhoiKienThuc: formData.KhoiKienThuc,
         });
-        toast.success("Cập nhật chương trình đào tạo thành công");
+        toast.success("Cập nhật thành công");
       } else {
-        // Gọi API tạo mới (POST)
-        await axiosClient.post("/admin/chuong-trinh-dao-tao", formData);
-        toast.success("Thêm môn học vào chương trình thành công");
+        // Sử dụng endpoint gan-nhieu-mon để hỗ trợ chọn nhiều
+        await axiosClient.post("/admin/chuong-trinh-dao-tao/gan-nhieu-mon", {
+          NganhID: formData.NganhID,
+          MonHocIDs: formData.MonHocIDs,
+          HocKyGoiY: formData.HocKyGoiY,
+          BatBuoc: formData.BatBuoc,
+          KhoiKienThuc: formData.KhoiKienThuc,
+        });
+        toast.success(`Đã thêm thành công vào CTĐT`);
       }
-
       setShowModal(false);
-      setEditingItem(null);
-      setFormData({
-        NganhID: "",
-        MonHocID: "",
-        KhoaID: "",
-        HocKyGoiY: 1,
-        BatBuoc: true,
-      });
-
-      // Reset toàn bộ bộ lọc để thấy môn vừa thêm ở đầu danh sách trang 1
-      setFilters((prev) => ({
-        ...prev, // Giữ lại per_page
-        KhoaID: "",
-        NganhID: "",
-        HocKyGoiY: "",
-        page: 1,
-        search: "",
-      }));
+      fetchPrograms();
     } catch (error) {
       toast.error(error.response?.data?.message || "Lỗi khi lưu dữ liệu");
     }
@@ -275,13 +310,6 @@ const ChuongTrinhDaoTaoManager = () => {
             <button
               onClick={() => {
                 setEditingItem(null);
-                setFormData({
-                  NganhID: "",
-                  MonHocID: "",
-                  KhoaID: "", // Add KhoaID to formData for modal
-                  HocKyGoiY: 1,
-                  BatBuoc: true,
-                });
                 setShowModal(true);
               }}
               className="flex items-center gap-2 bg-gray-900 text-white px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl shadow-gray-200 active:scale-95"
@@ -291,6 +319,38 @@ const ChuongTrinhDaoTaoManager = () => {
           </div>
         </div>
       </div>
+
+      {/* Khung chương trình đào tạo - Tổng quan tín chỉ */}
+      {filters.NganhID && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {Object.entries(groupedPrograms).map(([key, group]) => (
+            <div
+              key={key}
+              className={`bg-white p-4 rounded-3xl border border-${group.color}-100 shadow-sm`}
+            >
+              <p
+                className={`text-[10px] font-black text-${group.color}-500 uppercase tracking-widest mb-1`}
+              >
+                {group.label.split(". ")[1]}
+              </p>
+              <div className="flex items-end gap-1">
+                <span className="text-xl font-black text-gray-900">
+                  {group.credits}
+                </span>
+                <span className="text-[10px] font-bold text-gray-400 pb-1 uppercase">
+                  Tín chỉ
+                </span>
+              </div>
+              <div className="w-full h-1 bg-gray-50 rounded-full mt-2 overflow-hidden">
+                <div
+                  className={`h-full bg-${group.color}-500`}
+                  style={{ width: `${(group.credits / 150) * 100}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Bộ lọc */}
       <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
@@ -389,75 +449,80 @@ const ChuongTrinhDaoTaoManager = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {loading ? (
-                <tr>
-                  <td colSpan="6" className="px-8 py-20 text-center">
-                    <div className="inline-block w-8 h-8 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
-                  </td>
-                </tr>
-              ) : programs.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan="6"
-                    className="px-8 py-20 text-center text-gray-400 font-medium italic"
-                  >
-                    Không tìm thấy môn học nào trong CTĐT
-                  </td>
-                </tr>
-              ) : (
-                programs.map((item) => (
-                  <tr
-                    key={item.ID}
-                    className="hover:bg-gray-50/50 transition-all group"
-                  >
-                    <td className="px-8 py-5">
-                      <p className="text-sm font-black text-gray-900">
-                        {item.nganh_dao_tao?.TenNganh}
-                      </p>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">
-                        {item.nganh_dao_tao?.khoa?.TenKhoa}
-                      </p>
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-bold text-indigo-600">
-                          {item.mon_hoc?.TenMon}
+              {Object.entries(groupedPrograms).map(([key, group]) => (
+                <React.Fragment key={key}>
+                  {group.items.length > 0 && (
+                    <tr className={`bg-${group.color}-50/30`}>
+                      <td colSpan="6" className="px-8 py-3">
+                        <div className="flex items-center gap-2">
+                          <Layers
+                            size={14}
+                            className={`text-${group.color}-500`}
+                          />
+                          <span
+                            className={`text-[11px] font-black uppercase text-${group.color}-600 tracking-widest`}
+                          >
+                            {group.label} ({group.credits} tín chỉ)
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  {group.items.map((item) => (
+                    <tr
+                      key={item.ID}
+                      className="hover:bg-gray-50/50 transition-all group"
+                    >
+                      {/* ... (giữ nguyên cấu trúc td của bạn) ... */}
+                      <td className="px-8 py-5">
+                        <p className="text-sm font-black text-gray-900">
+                          {item.nganh_dao_tao?.TenNganh}
+                        </p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">
+                          {item.nganh_dao_tao?.khoa?.TenKhoa}
+                        </p>
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-indigo-600">
+                            {item.mon_hoc?.TenMon}
+                          </span>
+                          <span className="text-[10px] text-gray-400 font-black">
+                            {item.mon_hoc?.MaMon}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2.5 py-1 rounded-lg">
+                          {item.mon_hoc?.SoTinChi} TC
                         </span>
-                        <span className="text-[10px] text-gray-400 font-black">
-                          {item.mon_hoc?.MaMon}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-5 text-center">
-                      <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2.5 py-1 rounded-lg">
-                        {item.mon_hoc?.SoTinChi} TC
-                      </span>
-                    </td>
-                    <td className="px-6 py-5 text-center font-black text-gray-700 text-sm">
-                      {item.HocKyGoiY}
-                    </td>
-                    <td className="px-6 py-5 text-center">
-                      <StatusBadge active={item.BatBuoc} />
-                    </td>
-                    <td className="px-8 py-5">
-                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => handleEdit(item)}
-                          className="p-2.5 bg-white text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all shadow-sm border border-gray-100"
-                        >
-                          <Pencil size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(item.ID)}
-                          className="p-2.5 bg-white text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all shadow-sm border border-gray-100"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
+                      </td>
+                      <td className="px-6 py-5 text-center font-black text-gray-700 text-sm">
+                        {item.HocKyGoiY}
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        <StatusBadge active={item.BatBuoc} />
+                      </td>
+                      <td className="px-8 py-5 text-right">
+                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => handleEdit(item)}
+                            className="p-2.5 bg-white text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all shadow-sm border border-gray-100"
+                          >
+                            <Pencil size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(item.ID)}
+                            className="p-2.5 bg-white text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all shadow-sm border border-gray-100"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </React.Fragment>
+              ))}
             </tbody>
           </table>
         </div>
@@ -487,7 +552,10 @@ const ChuongTrinhDaoTaoManager = () => {
               <button
                 disabled={pagination.current_page === 1}
                 onClick={() =>
-                  setFilters({ ...filters, page: pagination.current_page - 1 })
+                  setFilters({
+                    ...filters,
+                    page: pagination.current_page - 1,
+                  })
                 }
                 className="px-4 py-2 rounded-xl border border-gray-100 bg-white text-xs font-black uppercase tracking-widest text-gray-400 hover:text-indigo-600 disabled:opacity-30 transition-all"
               >
@@ -520,7 +588,10 @@ const ChuongTrinhDaoTaoManager = () => {
               <button
                 disabled={pagination.current_page === pagination.last_page}
                 onClick={() =>
-                  setFilters({ ...filters, page: pagination.current_page + 1 })
+                  setFilters({
+                    ...filters,
+                    page: pagination.current_page + 1,
+                  })
                 }
                 className="px-4 py-2 rounded-xl border border-gray-100 bg-white text-xs font-black uppercase tracking-widest text-gray-400 hover:text-indigo-600 disabled:opacity-30 transition-all"
               >
@@ -543,150 +614,15 @@ const ChuongTrinhDaoTaoManager = () => {
         )}
       </div>
 
-      {/* Modal thêm mới */}
-      {showModal && (
-        <div className="fixed inset-0 z-[100] bg-gray-900/40 backdrop-blur-sm flex items-center justify-center animate-fadeIn p-4">
-          <form
-            onSubmit={handleSubmit}
-            className="bg-white p-10 rounded-[2.5rem] w-full max-w-lg space-y-8 shadow-2xl border border-gray-50"
-          >
-            <h3 className="text-2xl font-black text-gray-900 tracking-tight">
-              {editingItem ? "Cập nhật CTĐT" : "Thêm môn học vào chương trình"}
-            </h3>
-            <div className="space-y-5">
-              <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] ml-1">
-                  Lựa chọn Môn học
-                </label>
-                <select
-                  required
-                  disabled={!!editingItem} // Không cho đổi môn khi đang sửa
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={formData.MonHocID}
-                  onChange={(e) =>
-                    setFormData({ ...formData, MonHocID: e.target.value })
-                  }
-                >
-                  <option value="">-- Chọn môn học --</option>
-                  {subjects.map((s) => (
-                    <option key={s.MonHocID} value={s.MonHocID}>
-                      {s.MaMon} - {s.TenMon}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] ml-1">
-                    Học kỳ đào tạo
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="10"
-                    required
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none"
-                    value={formData.HocKyGoiY}
-                    onChange={(e) =>
-                      setFormData({ ...formData, HocKyGoiY: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] ml-1">
-                    Tính chất học phần
-                  </label>
-                  <select
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none"
-                    value={formData.BatBuoc}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        BatBuoc: e.target.value === "true",
-                      })
-                    }
-                  >
-                    <option value="true">Bắt buộc</option>
-                    <option value="false">Tự chọn</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Lưu ý: NganhID cần lấy từ một danh sách ngành chuẩn */}
-              <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] ml-1">
-                  Khoa quản lý
-                </label>
-                <select
-                  required
-                  disabled={!!editingItem}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={formData.KhoaID}
-                  onChange={(e) => {
-                    setFormData({
-                      ...formData,
-                      KhoaID: e.target.value,
-                      NganhID: "",
-                    }); // Reset NganhID when KhoaID changes
-                  }}
-                >
-                  <option value="">-- Chọn Khoa --</option>
-                  {faculties.map((f) => (
-                    <option key={f.KhoaID} value={f.KhoaID}>
-                      {f.TenKhoa}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] ml-1">
-                  Ngành đào tạo áp dụng
-                </label>
-                <select
-                  required
-                  disabled={!!editingItem} // Không cho đổi ngành khi đang sửa
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={formData.NganhID}
-                  onChange={(e) =>
-                    setFormData({ ...formData, NganhID: e.target.value })
-                  }
-                >
-                  <option value="">-- Chọn ngành --</option>
-                  {allMajors
-                    .filter((m) => m.KhoaID == formData.KhoaID)
-                    .map(
-                      (
-                        m, // Filter by selected Khoa in modal
-                      ) => (
-                        <option key={m.NganhID} value={m.NganhID}>
-                          {m.TenNganh} ({m.MaNganh})
-                        </option>
-                      ),
-                    )}
-                </select>
-              </div>
-            </div>
-
-            <div className="flex gap-4 pt-4">
-              <button
-                type="button"
-                onClick={() => setShowModal(false)}
-                className="flex-1 py-4 text-sm font-bold text-gray-400 hover:text-gray-600 transition-colors uppercase tracking-widest"
-              >
-                Hủy
-              </button>
-              <button
-                type="submit"
-                className="flex-[2] bg-indigo-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all"
-              >
-                Lưu thiết lập
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+      <ChuongTrinhDaoTaoModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onSave={handleSaveManual}
+        editingItem={editingItem}
+        faculties={faculties}
+        allMajors={allMajors}
+        subjects={subjects}
+      />
 
       <ChuongTrinhImportModal
         isOpen={showImportModal}

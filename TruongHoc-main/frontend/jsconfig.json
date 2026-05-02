@@ -8,6 +8,6 @@
     "moduleResolution": "node",
     "target": "ESNext"
   },
-  "include": ["src"],
+  "include": ["src", "src/pages/Login.jsx"],
   "exclude": ["node_modules"]
 }

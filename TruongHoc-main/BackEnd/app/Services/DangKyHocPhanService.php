@@ -36,6 +36,10 @@ class DangKyHocPhanService
             throw new Exception('Hiện tại không trong thời gian đăng ký học phần cho học kỳ này.');
         }
 
+        if ($lop->TrangThai === 0) {
+            throw new Exception('Lớp học phần này đã bị hủy và không thể đăng ký.');
+        }
+
         if ($this->daDangKyMonTrongHocKy($sinhVien->SinhVienID, $lop->MonHocID, $lop->HocKyID)) {
             throw new Exception('Bạn đã đăng ký một lớp khác của môn học này trong học kỳ hiện tại.');
         }

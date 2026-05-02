@@ -18,26 +18,66 @@ const HocPhiManagement = () => {
   const [students, setStudents] = useState([]);
   const [semesters, setSemesters] = useState([]);
   const [selectedSemester, setSelectedSemester] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [khoas, setKhoas] = useState([]);
+  const [nganhs, setNganhs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(null);
+
+  const [filters, setFilters] = useState({
+    KhoaID: "",
+    NganhID: "",
+    search: "",
+    per_page: 20,
+    page: 1,
+  });
+
+  const [pagination, setPagination] = useState({
+    current_page: 1,
+    last_page: 1,
+    total: 0,
+  });
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [resStudents, resSemesters] = await Promise.all([
-        axiosClient.get("/admin/hoc-phi", { params: { search: searchTerm } }),
-        axiosClient.get("/admin/hoc-ky"),
-      ]);
+      // Chuẩn hóa tham số: Loại bỏ các filter rỗng để tránh lỗi 500 ở phía Server
+      // và bổ sung selectedSemester vào params để Backend lọc dữ liệu tối ưu hơn
+      const queryParams = { ...filters };
+      Object.keys(queryParams).forEach((key) => {
+        if (queryParams[key] === "" || queryParams[key] === null)
+          delete queryParams[key];
+      });
 
-      // Xử lý dữ liệu sinh viên từ phân trang Laravel
-      const studentData = resStudents.data?.data || resStudents.data || [];
-      setStudents(
-        Array.isArray(studentData) ? studentData : studentData.data || [],
-      );
+      if (selectedSemester) queryParams.HocKyID = selectedSemester;
+
+      const [resStudents, resSemesters, resKhoas, resNganhs] =
+        await Promise.all([
+          axiosClient.get("/admin/hoc-phi", {
+            params: {
+              ...queryParams,
+              per_page: filters.per_page,
+              page: filters.page,
+            },
+          }),
+          axiosClient.get("/admin/hoc-ky"),
+          axiosClient.post("/admin/khoa/list"),
+          axiosClient.get("/admin/nganh/list"),
+        ]);
+
+      const studentPayload = resStudents.data?.data
+        ? resStudents.data
+        : resStudents;
+      setStudents(studentPayload.data || []);
+      setPagination({
+        current_page: studentPayload.current_page || 1,
+        last_page: studentPayload.last_page || 1,
+        total: studentPayload.total || 0,
+      });
 
       const semesterData = resSemesters.data?.data || resSemesters.data || [];
       setSemesters(semesterData);
+      setKhoas(resKhoas.data || []);
+      setNganhs(resNganhs.data?.data || resNganhs.data || []);
 
       // Mặc định chọn học kỳ mới nhất nếu chưa chọn
       if (!selectedSemester && semesterData.length > 0) {
@@ -53,7 +93,7 @@ const HocPhiManagement = () => {
 
   useEffect(() => {
     fetchData();
-  }, [searchTerm]);
+  }, [filters, selectedSemester]);
 
   const handleConfirmPayment = async (sinhVienID) => {
     if (!selectedSemester) return toast.error("Vui lòng chọn học kỳ");
@@ -86,17 +126,26 @@ const HocPhiManagement = () => {
       ) || [];
 
     const tongTinChi = registrationsInSemester.reduce(
-      (sum, dk) => sum + (dk.lop_hoc_phan?.mon_hoc?.SoTinChi || 0),
+      (sum, dk) =>
+        sum +
+        (dk.lop_hoc_phan?.mon_hoc?.SoTinChi ||
+          dk.lop_hoc_phan?.monHoc?.SoTinChi ||
+          0),
       0,
     );
     const allPaid =
       registrationsInSemester.length > 0 &&
       registrationsInSemester.every((dk) => dk.TrangThaiThanhToan === 1);
 
+    const hasStudentSignal = registrationsInSemester.some(
+      (dk) => dk.SinhVienXacNhan === 1,
+    );
+
     return {
       tongTinChi,
       tongTien: tongTinChi * DON_GIA_TIN_CHI,
       allPaid,
+      hasStudentSignal,
       hasData: registrationsInSemester.length > 0,
     };
   };
@@ -133,9 +182,52 @@ const HocPhiManagement = () => {
             type="text"
             placeholder="Tìm theo Mã SV hoặc Họ tên..."
             className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-medium shadow-sm"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={filters.search}
+            onChange={(e) =>
+              setFilters({ ...filters, search: e.target.value, page: 1 })
+            }
           />
+        </div>
+        <div className="flex items-center gap-2 bg-white px-4 py-3 rounded-2xl border border-gray-100 shadow-sm w-full md:w-auto">
+          <Filter size={16} className="text-gray-400" />
+          <select
+            className="outline-none text-sm font-bold text-gray-600 cursor-pointer bg-transparent w-full"
+            value={filters.KhoaID}
+            onChange={(e) =>
+              setFilters({
+                ...filters,
+                KhoaID: e.target.value,
+                NganhID: "",
+                page: 1,
+              })
+            }
+          >
+            <option value="">Tất cả Khoa</option>
+            {khoas.map((k) => (
+              <option key={k.KhoaID} value={k.KhoaID}>
+                {k.TenKhoa}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-2 bg-white px-4 py-3 rounded-2xl border border-gray-100 shadow-sm w-full md:w-auto">
+          <Filter size={16} className="text-gray-400" />
+          <select
+            className="outline-none text-sm font-bold text-gray-600 cursor-pointer bg-transparent w-full"
+            value={filters.NganhID}
+            onChange={(e) =>
+              setFilters({ ...filters, NganhID: e.target.value, page: 1 })
+            }
+          >
+            <option value="">Tất cả Ngành</option>
+            {nganhs
+              .filter((n) => !filters.KhoaID || n.KhoaID == filters.KhoaID)
+              .map((n) => (
+                <option key={n.NganhID} value={n.NganhID}>
+                  {n.TenNganh}
+                </option>
+              ))}
+          </select>
         </div>
         <div className="flex items-center gap-2 bg-white px-4 py-3 rounded-2xl border border-gray-100 shadow-sm w-full md:w-auto">
           <Filter size={16} className="text-gray-400" />
@@ -229,9 +321,16 @@ const HocPhiManagement = () => {
                             <CheckCircle2 size={12} /> Đã hoàn thành
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-black text-rose-500 bg-rose-50 px-2 py-1 rounded-md border border-rose-100 uppercase">
-                            <AlertCircle size={12} /> Còn nợ phí
-                          </span>
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-black text-rose-500 bg-rose-50 px-2 py-1 rounded-md border border-rose-100 uppercase">
+                              <AlertCircle size={12} /> Còn nợ phí
+                            </span>
+                            {feeInfo.hasStudentSignal && (
+                              <span className="text-[8px] font-black text-blue-600 bg-blue-50 px-1.5 rounded animate-bounce">
+                                SV BÁO ĐÃ NỘP
+                              </span>
+                            )}
+                          </div>
                         )}
                       </td>
                       <td className="px-8 py-5 text-right">
@@ -280,6 +379,32 @@ const HocPhiManagement = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+const ActionButton = ({
+  icon,
+  onClick,
+  variant = "default",
+  tooltip,
+  disabled,
+}) => {
+  const variants = {
+    default:
+      "bg-white text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 border-gray-100",
+    danger:
+      "bg-white text-gray-400 hover:text-rose-600 hover:bg-rose-50 border-gray-100",
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={tooltip}
+      className={`p-2.5 rounded-xl border transition-all shadow-sm active:scale-90 disabled:opacity-50 ${variants[variant]}`}
+    >
+      {icon}
+    </button>
   );
 };
 

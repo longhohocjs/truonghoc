@@ -4,9 +4,10 @@ import { CalendarDays, ChevronLeft, ChevronRight, Printer } from "lucide-react";
 
 const LichHoc = () => {
   const [schedule, setSchedule] = useState({});
-  const [rawLichData, setRawLichData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hocKy, setHocKy] = useState("");
+  const [semesters, setSemesters] = useState([]);
+  const [selectedSemester, setSelectedSemester] = useState("");
 
   // Hàm lấy ngày Thứ 2 của tuần chứa ngày được chọn
   const getStartOfWeek = (date) => {
@@ -32,65 +33,101 @@ const LichHoc = () => {
 
   const timeSlots = Array.from({ length: 12 }, (_, i) => i + 1); // Tiết 1 đến tiết 12
 
-  useEffect(() => {
-    const fetchLichHoc = async () => {
-      try {
-        const response = await axiosClient.get("/sinh-vien/da-dang-ky");
-        if (response.data) {
-          setHocKy(response.hoc_ky);
-          setRawLichData(response.data);
-          processSchedule(response.data, currentWeekStart);
-        }
-      } catch (error) {
-        console.error("Lỗi khi tải lịch học:", error);
-      } finally {
-        setLoading(false);
+  const fetchLichHoc = async (hkId = null, date = null) => {
+    setLoading(true);
+    try {
+      const params = {};
+      // Nếu hkId không được truyền (null), sử dụng selectedSemester hiện tại
+      const activeHkId = hkId !== null ? hkId : selectedSemester;
+      if (activeHkId) params.hocKyId = activeHkId;
+
+      if (date) {
+        // Tránh lệch múi giờ khi gửi lên Backend
+        const targetDate = date instanceof Date ? date : new Date(date);
+        const y = targetDate.getFullYear();
+        const m = String(targetDate.getMonth() + 1).padStart(2, "0");
+        const d = String(targetDate.getDate()).padStart(2, "0");
+        params.date = `${y}-${m}-${d}`;
       }
-    };
-    fetchLichHoc();
-  }, []);
 
-  // Chạy lại logic xử lý lịch mỗi khi đổi tuần
-  useEffect(() => {
-    if (rawLichData.length > 0) {
-      processSchedule(rawLichData, currentWeekStart);
-    }
-  }, [currentWeekStart, rawLichData]);
+      const response = await axiosClient.get("/sinh-vien/lich-hoc", { params });
 
-  const processSchedule = (data, weekStart) => {
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 6);
-    weekEnd.setHours(23, 59, 59, 999);
-
-    const mappedSchedule = {};
-    data.forEach((item) => {
-      const lop = item.lop_hoc_phan;
-      lop.lich_hoc?.forEach((lich) => {
-        const ngayHoc = new Date(lich.NgayHoc);
-
-        // Chỉ lấy các buổi học nằm trong khoảng từ Thứ 2 đến Chủ Nhật của tuần đang chọn
-        if (ngayHoc >= weekStart && ngayHoc <= weekEnd) {
-          let thuVal = ngayHoc.getDay();
-          thuVal = thuVal === 0 ? 8 : thuVal + 1;
-
-          const key = `${thuVal}-${lich.TietBatDau || lich.tiet_bat_dau}`;
-          mappedSchedule[key] = {
-            tenMon: lop.mon_hoc?.TenMon || lop.mon_hoc?.ten_mon,
-            maLop: lop.MaLopHP || lop.ma_lop_hp,
-            phong: lich.PhongHoc || lich.phong_hoc || "Đang cập nhật",
-            giangVien: lop.giang_vien?.HoTen || lop.giang_vien?.ho_ten,
-            soTiet: lich.SoTiet || lich.so_tiet,
-          };
+      if (response.success) {
+        setHocKy(response.hoc_ky);
+        // Đồng bộ ngày hiển thị trên lịch với range mà Backend trả về
+        if (response.range?.start) {
+          // Tách chuỗi YYYY-MM-DD để tạo Date local, tránh lỗi UTC jump ngày
+          const [y, m, d] = response.range.start.split("-");
+          setCurrentWeekStart(new Date(y, m - 1, d));
         }
-      });
-    });
-    setSchedule(mappedSchedule);
+
+        // Map dữ liệu vào grid: { "thu-tiet": { data } }
+        const mapped = {};
+        response.data.forEach((item) => {
+          // Chuyển đổi tên Thứ sang số (2-8) - Normalize chữ thường để tránh lỗi so khớp
+          const dayMap = {
+            "thứ hai": 2,
+            "thứ ba": 3,
+            "thứ tư": 4,
+            "thứ năm": 5,
+            "thứ sáu": 6,
+            "thứ bảy": 7,
+            "chủ nhật": 8,
+          };
+          const thuLabel = item.thu?.toLowerCase();
+          const thuVal = dayMap[thuLabel] || 2;
+          const key = `${thuVal}-${item.tiet_bd}`;
+          mapped[key] = {
+            tenMon: item.ten_mon,
+            maLop: item.ma_lop_hp,
+            phong: item.phong,
+            giangVien: item.giang_vien,
+            soTiet: item.so_tiet,
+          };
+        });
+        setSchedule(mapped);
+      }
+    } catch (error) {
+      console.error("Lỗi khi tải lịch học:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const changeWeek = (offset) => {
-    const newDate = new Date(currentWeekStart);
-    newDate.setDate(newDate.getDate() + offset * 7);
-    setCurrentWeekStart(newDate);
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const resHk = await axiosClient.get("/sinh-vien/hoc-ky");
+        if (resHk.data && Array.isArray(resHk.data)) {
+          setSemesters(resHk.data);
+        }
+        // Gọi lần đầu để lấy lịch tuần hiện tại
+        await fetchLichHoc();
+      } catch (e) {}
+    };
+    init();
+  }, []);
+
+  const handleSemesterChange = async (e) => {
+    const hkId = e.target.value;
+    setSelectedSemester(hkId);
+    // Truyền date = null để Backend tự nhảy về ngày bắt đầu học kỳ đó
+    await fetchLichHoc(hkId, null);
+  };
+
+  const changeWeek = async (offset) => {
+    const nextDate = new Date(currentWeekStart);
+    nextDate.setDate(nextDate.getDate() + offset * 7);
+
+    // Phải fetch trước hoặc dùng giá trị nextDate trực tiếp để tránh dùng state cũ
+    await fetchLichHoc(selectedSemester, nextDate);
+    setCurrentWeekStart(nextDate);
+  };
+
+  const handleGoToToday = () => {
+    const today = getStartOfWeek(new Date());
+    setCurrentWeekStart(today);
+    fetchLichHoc(selectedSemester, today);
   };
 
   const weekEnd = new Date(currentWeekStart);
@@ -113,9 +150,20 @@ const LichHoc = () => {
               <h2 className="text-2xl font-black text-gray-900 tracking-tight">
                 Thời khóa biểu cá nhân
               </h2>
-              <p className="text-gray-500 text-sm font-medium">
-                Học kỳ: {hocKy || "Đang cập nhật"}
-              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <select
+                  className="text-indigo-600 font-bold bg-indigo-50 border-none rounded-lg py-1 px-2 outline-none text-sm cursor-pointer"
+                  value={selectedSemester}
+                  onChange={handleSemesterChange}
+                >
+                  <option value="">Học kỳ hiện tại</option>
+                  {semesters.map((s) => (
+                    <option key={s.HocKyID} value={s.HocKyID}>
+                      {s.TenHocKy}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
@@ -139,7 +187,7 @@ const LichHoc = () => {
               </button>
             </div>
             <button
-              onClick={() => setCurrentWeekStart(getStartOfWeek(new Date()))}
+              onClick={handleGoToToday}
               className="px-4 py-2 bg-gray-50 text-gray-600 rounded-xl text-xs font-bold hover:bg-gray-100 transition-all border border-gray-100"
             >
               Tuần này

@@ -16,14 +16,17 @@ use App\Services\LogService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Collection;
+use Carbon\Carbon; // Import Carbon for date manipulation
 
 class LopHocPhanService
 {
     protected $logService;
+    protected $lichThiService; // Inject LichThiService
 
-    public function __construct(LogService $logService)
+    public function __construct(LogService $logService, LichThiService $lichThiService) // Update constructor
     {
         $this->logService = $logService;
+        $this->lichThiService = $lichThiService; // Assign injected service
     }
 
     public function getLopPhanCong($giangVienID)
@@ -164,6 +167,31 @@ class LopHocPhanService
 
             $this->log('TAO_LOP_HOC_PHAN', "Tạo lớp {$lop->MaLopHP} (ID: {$lop->LopHocPhanID})");
 
+            // --- Logic tự động tạo lịch thi mặc định ---
+            try {
+                $ngayKetThucHoc = Carbon::parse($lop->NgayKetThuc);
+                $ngayThiMacDinh = $ngayKetThucHoc->addWeeks(2); // 2 tuần sau ngày kết thúc học phần
+
+                $defaultLichThi = [
+                    [
+                        'NgayThi' => $ngayThiMacDinh->toDateString(),
+                        'GioBatDau' => '07:30:00',
+                        'GioKetThuc' => '09:00:00',
+                        'PhongThi' => 'TBD', // To Be Determined - Sẽ được Admin cập nhật sau
+                        'HinhThucThi' => 'Tự luận', // Default
+                    ]
+                ];
+
+                $this->lichThiService->createLichThi([
+                    'LopHocPhanID' => $lop->LopHocPhanID,
+                    'lich_thi' => $defaultLichThi
+                ]);
+                $this->log('TAO_LICH_THI_MAC_DINH', "Tạo lịch thi mặc định cho lớp {$lop->MaLopHP} vào ngày {$ngayThiMacDinh->toDateString()}", $lop->LopHocPhanID);
+            } catch (\Exception $e) {
+                $this->log('LOI_TAO_LICH_THI_MAC_DINH', "Không thể tạo lịch thi mặc định cho lớp {$lop->MaLopHP}: " . $e->getMessage(), $lop->LopHocPhanID);
+            }
+            // --- Kết thúc logic tự động tạo lịch thi mặc định ---
+
             return $lop;
         });
     }
@@ -181,6 +209,58 @@ class LopHocPhanService
         $this->log('CAP_NHAT_LOP_HP', "Cập nhật lớp {$lop->MaLopHP}");
 
         return $lop;
+    }
+
+    /**
+     * Tự động hủy các lớp không đủ 50% sĩ số sau khi hết hạn đăng ký
+     */
+    public function xuLyLopThieuSiSo($hocKyID)
+    {
+        $now = now();
+
+        // 0. Tự động đóng các đợt đăng ký đã quá thời gian kết thúc nhưng vẫn đang để trạng thái Mở (1)
+        DB::table('dotdangky')
+            ->where('HocKyID', $hocKyID)
+            ->where('TrangThai', 1)
+            ->where('NgayKetThuc', '<', $now)
+            ->update(['TrangThai' => 0]);
+
+        // 1. Kiểm tra xem tất cả các đợt đăng ký của học kỳ này đã kết thúc chưa
+        $conDotMo = DB::table('dotdangky')
+            ->where('HocKyID', $hocKyID)
+            ->where('NgayKetThuc', '>=', $now)
+            ->exists();
+
+        // Nếu vẫn còn đợt đăng ký đang mở, chưa thực hiện hủy tự động
+        if ($conDotMo) return;
+
+        // 2. Tìm các lớp đang mở (TrangThai = 1) của học kỳ này
+        $lops = LopHocPhan::where('HocKyID', $hocKyID)
+            ->where('TrangThai', 1)
+            ->get();
+
+        foreach ($lops as $lop) {
+            $siSoHienTai = DB::table('dangkyhocphan')
+                ->where('LopHocPhanID', $lop->LopHocPhanID)
+                ->where('TrangThai', 'ThanhCong')
+                ->count();
+
+            // Nếu sĩ số < 50% số lượng tối đa
+            if ($siSoHienTai < ($lop->SoLuongToiDa * 0.5)) {
+                DB::transaction(function () use ($lop, $siSoHienTai) {
+                    // Chuyển trạng thái lớp sang Đã hủy (0)
+                    $lop->update(['TrangThai' => 0]);
+
+                    // Chuyển tất cả đăng ký của sinh viên trong lớp này sang 'DaHuy'
+                    DB::table('dangkyhocphan')
+                        ->where('LopHocPhanID', $lop->LopHocPhanID)
+                        ->where('TrangThai', 'ThanhCong')
+                        ->update(['TrangThai' => 'DaHuy']);
+
+                    $this->log('TU_DONG_HUY_LOP', "Hủy lớp {$lop->MaLopHP} do thiếu sĩ số ({$siSoHienTai}/{$lop->SoLuongToiDa})", $lop->LopHocPhanID);
+                });
+            }
+        }
     }
 
     public function phanCongGiangVien(LopHocPhan $lop, ?int $giangVienId): LopHocPhan

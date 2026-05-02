@@ -20,7 +20,6 @@ import {
   Calendar,
   PenTool,
   ClipboardList,
-  BarChart3,
   Inbox,
   UserCircle,
   CheckCircle2,
@@ -117,11 +116,6 @@ const MainLayout = () => {
         path: "/admin/hoc-phi",
         label: "Quản lý Học phí",
         icon: <Wallet size={18} />,
-      },
-      {
-        path: "/admin/thong-ke",
-        label: "Thống kê báo cáo",
-        icon: <BarChart3 size={18} />,
       },
       {
         path: "/admin/yeu-cau-mo-lop",

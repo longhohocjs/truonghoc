@@ -10,6 +10,7 @@ import {
   Wallet,
   Lock,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 
 const SummaryCard = ({ label, value, sub, color, highlight }) => (
@@ -29,6 +30,7 @@ const SummaryCard = ({ label, value, sub, color, highlight }) => (
 const HocPhi = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchHocPhi = async () => {
@@ -45,6 +47,22 @@ const HocPhi = () => {
     };
     fetchHocPhi();
   }, []);
+
+  const handleStudentConfirm = async () => {
+    setSubmitting(true);
+    try {
+      const res = await axiosClient.post("/sinh-vien/hoc-phi/confirm");
+      // Sử dụng toast để hiển thị thông báo
+      if (res.success) {
+        toast.success(res.message);
+        window.location.reload(); // Tải lại để cập nhật trạng thái giao diện
+      }
+    } catch (error) {
+      toast.error("Gửi xác nhận thất bại");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (loading)
     return (
@@ -207,9 +225,25 @@ const HocPhi = () => {
               <p className="text-[10px] text-gray-400 font-bold uppercase text-center tracking-tighter">
                 Quét mã bằng ứng dụng Ngân hàng hoặc Ví điện tử
               </p>
-              <button className="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2">
-                Xác nhận đã nộp <ArrowRight size={14} />
-              </button>
+              {!data.trang_thai_thanh_toan && (
+                <button
+                  onClick={handleStudentConfirm}
+                  disabled={submitting}
+                  className="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 disabled:bg-gray-700"
+                >
+                  {submitting ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <CheckCircle2 size={16} />
+                  )}
+                  {data.chi_tiet?.some(
+                    (i) =>
+                      i.sinh_vien_xac_nhan === 1 || i.SinhVienXacNhan === 1,
+                  )
+                    ? "ĐÃ GỬI BÁO CÁO"
+                    : "XÁC NHẬN ĐÃ NỘP"}
+                </button>
+              )}
             </div>
           </div>
         </div>

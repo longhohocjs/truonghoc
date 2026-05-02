@@ -41,7 +41,7 @@ class UserService
             });
         }
 
-        return $query->orderBy('SinhVienID', 'desc')->paginate(15);
+        return $query->orderBy('SinhVienID', 'desc')->paginate($filters['per_page'] ?? 15);
     }
 
     public function getStaffList(array $filters)
@@ -62,7 +62,7 @@ class UserService
             $query->where('HoTen', 'LIKE', '%' . $filters['search'] . '%');
         }
 
-        return $query->orderBy('created_at', 'desc')->paginate(15);
+        return $query->orderBy('created_at', 'desc')->paginate($filters['per_page'] ?? 15);
     }
 
     public function createSinhVienWithAccount(array $data)
@@ -252,10 +252,14 @@ class UserService
                 }
             }
 
+            // Loại bỏ các trường ID không được phép thay đổi trực tiếp qua update()
+            $updateData = array_diff_key($data, array_flip(['SinhVienID', 'UserID']));
+
             $this->logService->write('UPDATE_USER', "Cập nhật hồ sơ SV: {$sv->MaSV}", 'sinhvien', $sv->SinhVienID);            
             
             // Chỉ lấy các trường có trong fillable của model để tránh gửi thừa dữ liệu gây lỗi trigger
-            $sv->update(array_intersect_key($data, array_flip($sv->getFillable())));
+            $sv->update(array_intersect_key($updateData, array_flip($sv->getFillable())));
+            
             return $sv->fresh();
         });
     }

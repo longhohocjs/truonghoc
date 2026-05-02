@@ -200,11 +200,6 @@ const MonHocManagement = () => {
               }
             />
           </div>
-          <input
-            type="number"
-            placeholder="Số tín..."
-            className="w-24 px-4 py-3.5 bg-white border border-gray-100 rounded-2xl outline-none text-sm font-bold text-center focus:ring-2 focus:ring-indigo-500/20 shadow-sm"
-          />
         </div>
 
         <div className="flex items-center gap-3 w-full md:w-auto">
@@ -225,17 +220,6 @@ const MonHocManagement = () => {
               ))}
             </select>
           </div>
-          <select
-            className="bg-white border border-gray-100 px-4 py-3.5 rounded-2xl outline-none text-sm font-bold text-gray-400 focus:ring-2 focus:ring-indigo-500/20 shadow-sm"
-            value={filters.per_page}
-            onChange={(e) =>
-              setFilters({
-                ...filters,
-                per_page: parseInt(e.target.value),
-                page: 1,
-              })
-            }
-          />
         </div>
       </div>
 
@@ -247,9 +231,9 @@ const MonHocManagement = () => {
               <tr>
                 <th className="px-8 py-5">Định danh môn</th>
                 <th className="px-6 py-5">Tên môn học</th>
-                <th className="px-6 py-5 text-center">Tín chỉ</th>
+                <th className="px-8 py-5 text-center">Tín chỉ</th>
                 <th className="px-6 py-5 text-center">Tiết (LT/TH)</th>
-                <th className="px-6 py-5">Hình thức</th>
+                <th className="px-8 py-5">Hình thức</th>
                 <th className="px-6 py-5">Khoa quản lý</th>
                 <th className="px-6 py-5">Ràng buộc (TQ/SH)</th>
                 <th className="px-8 py-5 text-right">Thao tác</th>

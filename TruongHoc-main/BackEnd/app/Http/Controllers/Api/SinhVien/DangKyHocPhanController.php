@@ -18,6 +18,7 @@ class DangKyHocPhanController extends Controller
 {
     public function getLopMo()
     {
+        $sinhVienID = auth()->user()->sinhVien->SinhVienID;
         $dotMo = DotDangKy::where('TrangThai', 1)
             ->where('NgayBatDau', '<=', now())
             ->where('NgayKetThuc', '>=', now())
@@ -39,14 +40,48 @@ class DangKyHocPhanController extends Controller
             ->whereIn('HocKyID', $dotMo)
             ->get();
 
+        // Lấy danh sách các môn mà sinh viên này ĐÃ đăng ký thành công
+        $monDaDangKy = DangKyHocPhan::where('SinhVienID', $sinhVienID)
+            ->where('TrangThai', 'ThanhCong')
+            ->join('lophocphan', 'dangkyhocphan.LopHocPhanID', '=', 'lophocphan.LopHocPhanID')
+            ->pluck('lophocphan.MonHocID')
+            ->toArray();
+
+        // Lấy danh sách các lớp tạm (Yêu cầu mở lớp) đang chờ duyệt cho các học kỳ đang mở
+        $lopTam = YeuCauMoLop::with('mon_hoc')
+            ->whereIn('MonHocID', function($q) use ($dotMo) {
+                $q->select('MonHocID')->from('chuongtrinhdaotao'); // Hoặc logic lọc môn theo HK
+            })
+            ->select('MonHocID', DB::raw('count(*) as SoLuongHienTai'))
+            ->where('TrangThai', 0) // 0: Đang chờ
+            ->groupBy('MonHocID')
+            ->get();
+
         // Map dữ liệu để thêm chuỗi tên môn tiên quyết/song hành cho sinh viên dễ xem
         $data = $lops->map(function ($lop) {
             $lop->MonTienQuyet = $lop->monHoc->monTienQuyet->pluck('TenMon')->implode(', ') ?: 'Không có';
             $lop->MonSongHanh = $lop->monHoc->monSongHanh->pluck('TenMon')->implode(', ') ?: 'Không có';
+            $lop->IsFull = $lop->SoLuongHienTai >= $lop->SoLuongToiDa;
             return $lop;
         });
 
-        return response()->json($data);
+        // Trộn thêm các "Lớp tạm" vào danh sách nếu sinh viên chưa đăng ký môn đó
+        $tempClasses = $lopTam->filter(fn($lt) => !in_array($lt->MonHocID, $monDaDangKy))
+            ->map(fn($lt) => [
+                'LopHocPhanID' => 'TEMP_' . $lt->MonHocID,
+                'MaLopHP' => 'Lớp tạm: ' . ($lt->mon_hoc->MaMon ?? 'N/A'),
+                'TenMon' => $lt->mon_hoc->TenMon ?? 'N/A',
+                'SoTinChi' => $lt->mon_hoc->SoTinChi ?? 0,
+                'SoLuongHienTai' => $lt->SoLuongHienTai,
+                'SoLuongToiDa' => 50, // Định mức gợi ý để mở lớp
+                'IsTemp' => true,
+                'TrangThai' => 'Chờ Admin duyệt mở lớp'
+            ]);
+
+        return response()->json([
+            'lop_chinh_thuc' => $data,
+            'lop_tam' => $tempClasses
+        ]);
     }
 
     public function dangKy(Request $request)
@@ -247,11 +282,31 @@ class DangKyHocPhanController extends Controller
     public function guiYeuCauMoLop(Request $request) {
         $validated = $request->validate([
             'monHocID' => 'required|integer|exists:monhoc,MonHocID',
-            'lyDo'     => 'required|string|max:1000',
+            'lyDo'     => 'nullable|string|max:1000',
         ]);
 
         $sinhVien = $request->user()->sinhVien;
         if (!$sinhVien) return response()->json(['message' => 'Không tìm thấy SV'], 404);
+
+        // 1. Kiểm tra sinh viên đã đăng ký môn này trong kỳ này chưa
+        $exists = DangKyHocPhan::where('SinhVienID', $sinhVien->SinhVienID)
+            ->where('TrangThai', 'ThanhCong')
+            ->whereHas('lopHocPhan', fn($q) => $q->where('MonHocID', $validated['monHocID']))
+            ->exists();
+        if ($exists) return response()->json(['message' => 'Bạn đã đăng ký môn học này rồi.'], 400);
+
+        // 2. Kiểm tra xem có lớp nào còn chỗ không (Chỉ cho xin mở khi tất cả các lớp đã full)
+        $allFull = LopHocPhan::where('MonHocID', $validated['monHocID'])
+            ->where('TrangThai', 1)
+            ->get()
+            ->every(function($lop) {
+                $count = DangKyHocPhan::where('LopHocPhanID', $lop->LopHocPhanID)->where('TrangThai', 'ThanhCong')->count();
+                return $count >= $lop->SoLuongToiDa;
+            });
+        
+        if (!$allFull && LopHocPhan::where('MonHocID', $validated['monHocID'])->where('TrangThai', 1)->exists()) {
+            return response()->json(['message' => 'Vẫn còn lớp học phần còn chỗ trống, vui lòng đăng ký lớp hiện có.'], 400);
+        }
 
         YeuCauMoLop::create([
             'SinhVienID' => $sinhVien->SinhVienID,

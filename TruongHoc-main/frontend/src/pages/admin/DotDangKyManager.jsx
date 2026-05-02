@@ -444,7 +444,10 @@ const DotDangKyManager = () => {
                       {dot.TenDot}
                     </h3>
                   </div>
-                  <StatusBadge active={dot.TrangThai === 1} />
+                  <StatusBadge
+                    active={dot.TrangThai === 1}
+                    expired={new Date() > new Date(dot.NgayKetThuc)}
+                  />
                 </div>
 
                 <div className="flex items-center gap-4 py-4 border-y border-gray-50">
@@ -470,18 +473,21 @@ const DotDangKyManager = () => {
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  <ActionButton
-                    icon={
-                      dot.TrangThai === 1 ? (
-                        <ShieldAlert size={16} />
-                      ) : (
-                        <ShieldCheck size={16} />
-                      )
-                    }
-                    label={dot.TrangThai === 1 ? "Đóng đợt" : "Mở đợt"}
-                    onClick={() => handleToggleStatus(dot)}
-                    variant={dot.TrangThai === 1 ? "danger" : "success"}
-                  />
+                  {/* Chỉ cho phép đóng/mở thủ công nếu chưa hết thời gian quy định */}
+                  {!(new Date() > new Date(dot.NgayKetThuc)) && (
+                    <ActionButton
+                      icon={
+                        dot.TrangThai === 1 ? (
+                          <ShieldAlert size={16} />
+                        ) : (
+                          <ShieldCheck size={16} />
+                        )
+                      }
+                      label={dot.TrangThai === 1 ? "Đóng đợt" : "Mở đợt"}
+                      onClick={() => handleToggleStatus(dot)}
+                      variant={dot.TrangThai === 1 ? "danger" : "success"}
+                    />
+                  )}
                   <ActionButton
                     icon={<BookOpen size={16} />}
                     label="Học phần"
@@ -621,22 +627,39 @@ const DotDangKyManager = () => {
   );
 };
 
-const StatusBadge = ({ active }) => (
-  <div
-    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border ${
-      active
-        ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-        : "bg-rose-50 text-rose-600 border-rose-100"
-    }`}
-  >
+const StatusBadge = ({ active, expired }) => {
+  const isTrulyActive = active && !expired;
+
+  let colorClass = "bg-rose-50 text-rose-600 border-rose-100";
+  let label = "Đã đóng";
+
+  if (expired) {
+    colorClass = "bg-gray-100 text-gray-500 border-gray-200";
+    label = "Hết hạn";
+  } else if (active) {
+    colorClass = "bg-emerald-50 text-emerald-600 border-emerald-100";
+    label = "Đang mở";
+  }
+
+  return (
     <div
-      className={`w-1.5 h-1.5 rounded-full ${active ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`}
-    />
-    <span className="text-[10px] font-black uppercase tracking-tight">
-      {active ? "Đang mở" : "Đã đóng"}
-    </span>
-  </div>
-);
+      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border ${colorClass}`}
+    >
+      <div
+        className={`w-1.5 h-1.5 rounded-full ${
+          isTrulyActive
+            ? "bg-emerald-500 animate-pulse"
+            : expired
+              ? "bg-gray-400"
+              : "bg-rose-500"
+        }`}
+      />
+      <span className="text-[10px] font-black uppercase tracking-tight">
+        {label}
+      </span>
+    </div>
+  );
+};
 
 const ActionButton = ({ icon, label, onClick, variant = "default" }) => {
   const variants = {

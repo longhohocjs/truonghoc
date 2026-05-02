@@ -44,7 +44,7 @@ class LichHocService
         $lopNgayBatDau = Carbon::parse($lopHocPhan->NgayBatDau);
         $lopNgayKetThuc = Carbon::parse($lopHocPhan->NgayKetThuc);
 
-        return DB::transaction(function () use ($lopHocPhanID, $lichHocItems, $lopNgayBatDau, $lopNgayKetThuc) {
+        return DB::transaction(function () use ($lopHocPhanID, $lichHocItems, $lopNgayBatDau, $lopNgayKetThuc, $lopHocPhan) {
             // Xóa tất cả lịch học cũ của lớp học phần này trước khi thêm mới (Sync logic)
             LichHoc::where('LopHocPhanID', $lopHocPhanID)->delete();
 

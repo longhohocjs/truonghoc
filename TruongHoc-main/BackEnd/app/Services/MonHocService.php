@@ -72,13 +72,35 @@ class MonHocService
             $countInFaculty = MonHoc::where('KhoaID', $data['KhoaID'])->count();
             $nextCode = $prefix . str_pad($countInFaculty + 1, 3, '0', STR_PAD_LEFT);
 
+            // Logic tính toán tiết học tự động
+            $tinChi = $data['SoTinChi'] ?? 3;
+            $loai = $data['LoaiMonHoc'] ?? 'Lý thuyết';
+            $tietLT = 0; $tietTH = 0;
+
+            switch ($loai) {
+                case 'Thực hành': case 'Thực tập':
+                    $tietTH = $tinChi * 30; // 1 tín TH = 30 tiết
+                    break;
+                case 'Tích hợp':
+                    // Ưu tiên chia 2 LT + 1 TH cho môn 3 tín
+                    $tietLT = ($tinChi - 1) * 15;
+                    $tietTH = 1 * 30;
+                    break;
+                case 'Đồ án':
+                    $tietTH = $tinChi * 45; // Đồ án cần nhiều thời gian hướng dẫn/tự học hơn
+                    break;
+                default: // Lý thuyết
+                    $tietLT = $tinChi * 15; // 1 tín LT = 15 tiết
+            }
+
             $newMon = MonHoc::create([
                 'MaMon'         => $nextCode,
                 'TenMon'        => $data['TenMon'],
-                'SoTinChi'      => $data['SoTinChi'] ?? 3,
+                'SoTinChi'      => $tinChi,
                 'HinhThucHoc'   => $data['HinhThucHoc'] ?? 'Trực tiếp',
-                'TietLyThuyet'  => $data['TietLyThuyet'] ?? 0,
-                'TietThucHanh'  => $data['TietThucHanh'] ?? 0,
+                'TietLyThuyet'  => $tietLT,
+                'TietThucHanh'  => $tietTH,
+                'LoaiMonHoc'    => $loai,
                 'KhoaID'        => $data['KhoaID'],
             ]);
 
@@ -108,13 +130,26 @@ class MonHocService
                 }
             }
 
+            $loai = $data['LoaiMonHoc'] ?? $monHoc->LoaiMonHoc;
+            $tinChi = $data['SoTinChi'] ?? $monHoc->SoTinChi;
+            $tietLT = $data['TietLyThuyet'] ?? $monHoc->TietLyThuyet;
+            $tietTH = $data['TietThucHanh'] ?? $monHoc->TietThucHanh;
+
+            // Cập nhật lại logic nếu loại môn học thay đổi trong khi update
+            if (isset($data['LoaiMonHoc'])) {
+                if ($loai === 'Lý thuyết') { $tinChi = 2; $tietLT = 30; $tietTH = 0; }
+                elseif ($loai === 'Tích hợp') { $tinChi = 3; $tietLT = 30; $tietTH = 30; }
+                elseif (in_array($loai, ['Đồ án', 'Thực tập'])) { $tinChi = 5; $tietLT = 0; $tietTH = 150; }
+            }
+
             $monHoc->update([
                 'MaMon'        => $data['MaMon'] ?? $monHoc->MaMon,
                 'TenMon'       => $data['TenMon'] ?? $monHoc->TenMon,
-                'SoTinChi'     => $data['SoTinChi'] ?? $monHoc->SoTinChi,
+                'SoTinChi'     => $tinChi,
                 'HinhThucHoc'  => $data['HinhThucHoc'] ?? $monHoc->HinhThucHoc,
-                'TietLyThuyet' => isset($data['TietLyThuyet']) ? $data['TietLyThuyet'] : $monHoc->TietLyThuyet,
-                'TietThucHanh' => isset($data['TietThucHanh']) ? $data['TietThucHanh'] : $monHoc->TietThucHanh,
+                'TietLyThuyet' => $tietLT,
+                'TietThucHanh' => $tietTH,
+                'LoaiMonHoc'   => $loai,
                 'KhoaID'       => $data['KhoaID'] ?? $monHoc->KhoaID,
             ]);
 

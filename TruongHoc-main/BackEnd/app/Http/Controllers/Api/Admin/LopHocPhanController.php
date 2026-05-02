@@ -21,6 +21,12 @@ class LopHocPhanController extends Controller
 
     public function index()
     {
+        // Thực hiện quét và cập nhật trạng thái các lớp thiếu sĩ số cho các học kỳ hiện hành
+        $hocKyIDs = \App\Models\HocKy::orderByDesc('HocKyID')->take(2)->pluck('HocKyID');
+        foreach($hocKyIDs as $id) {
+            $this->service->xuLyLopThieuSiSo($id);
+        }
+
         // Lấy toàn bộ danh sách lớp học phần kèm các quan hệ để hiển thị ở Frontend
         // Thêm withCount để đếm sĩ số thực tế dựa trên trạng thái 'ThanhCong'
         $lops = LopHocPhan::withCount(['dangKyHocPhan as SoLuongHienTai' => function($query) {
@@ -188,5 +194,52 @@ class LopHocPhanController extends Controller
     {
         YeuCauMoLop::destroy($id);
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * Duyệt các yêu cầu mở lớp và chuyển thành lớp học phần thật
+     */
+    public function approveAndCreateClass(Request $request)
+    {
+        $data = $request->validate([
+            'MonHocID' => 'required|exists:monhoc,MonHocID',
+            'HocKyID'  => 'required|exists:hocky,HocKyID',
+            'SoLuongToiDa' => 'required|integer|min:20',
+        ]);
+
+        return DB::transaction(function () use ($data) {
+            // 1. Lấy danh sách sinh viên đã xin mở môn này
+            $requests = YeuCauMoLop::where('MonHocID', $data['MonHocID'])
+                ->where('TrangThai', 0)
+                ->get();
+
+            if ($requests->isEmpty()) {
+                throw new \Exception("Không có yêu cầu nào cho môn học này.");
+            }
+
+            // 2. Tạo lớp học phần thật (sử dụng logic auto-code có sẵn)
+            $lopData = [
+                'MonHocID' => $data['MonHocID'],
+                'HocKyID'  => $data['HocKyID'],
+                'SoLuongToiDa' => $data['SoLuongToiDa'],
+            ];
+            // Gọi logic store có sẵn hoặc copy logic tạo mã vào đây
+            $newClassResponse = $this->store(new Request($lopData));
+            $newLop = $newClassResponse->original['data'];
+
+            // 3. Tự động đăng ký cho những sinh viên đã xin mở lớp
+            foreach ($requests as $req) {
+                DangKyHocPhan::create([
+                    'SinhVienID' => $req->SinhVienID,
+                    'LopHocPhanID' => $newLop->LopHocPhanID,
+                    'TrangThai' => 'ThanhCong',
+                    'ThoiGianDangKy' => now(),
+                ]);
+                // Cập nhật trạng thái yêu cầu
+                $req->update(['TrangThai' => 1]); // 1: Đã duyệt
+            }
+
+            return response()->json(['message' => "Đã tạo lớp {$newLop->MaLopHP} và tự động ghi danh " . $requests->count() . " sinh viên."]);
+        });
     }
 }

@@ -28,7 +28,10 @@ use App\Http\Controllers\Api\Admin\DiemSoController;
 use App\Http\Controllers\Api\Admin\ThongKeController;
 use App\Http\Controllers\Api\Admin\ThongBaoController;
 use App\Http\Controllers\Api\SinhVien\HocPhiController;
-use App\Http\Controllers\Api\Admin\HocPhiController as AdminHocPhiController;
+use App\Http\Controllers\Api\Admin\AdminHocPhiController;
+
+
+
 
 
 
@@ -55,8 +58,10 @@ Route::middleware(['auth:api', \App\Http\Middleware\CheckActiveUser::class])->gr
         Route::get('lich-hoc', [LichHocController::class, 'xemLichHoc']);
         Route::get('lich-thi', [LichThiController::class, 'xemLichThi']);
         Route::post('ket-qua-hoc-tap', [KetQuaHocTapController::class, 'xemKetQua']);
-        Route::get('/hoc-phi', [HocPhiController::class, 'index']);
+        Route::get('hoc-phi', [HocPhiController::class, 'index']);
+        Route::get('hoc-ky', [NamHocController::class, 'getDanhSachHocKy']);
 
+        Route::post('/hoc-phi/confirm', [HocPhiController::class, 'studentConfirm']);
         // Đăng ký học phần: Các route lấy danh sách (không cần ID lớp cụ thể)
         Route::get('lop-mo', [DangKyHocPhanController::class, 'getLopMo']);
         Route::get('da-dang-ky', [DangKyHocPhanController::class, 'getDaDangKy']);

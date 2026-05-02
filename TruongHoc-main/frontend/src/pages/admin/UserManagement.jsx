@@ -22,19 +22,29 @@ const UserManagement = () => {
   const [activeTab, setActiveTab] = useState("sinhvien"); // sinhvien, giangvien, admin
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
   const [khoas, setKhoas] = useState([]);
-  const [selectedKhoa, setSelectedKhoa] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [filters, setFilters] = useState({
+    KhoaID: "",
+    search: "",
+    per_page: 15, // Mặc định 15 người dùng mỗi trang
+    page: 1,
+  });
+
+  const [pagination, setPagination] = useState({
+    current_page: 1,
+    last_page: 1,
+    total: 0,
+  });
 
   useEffect(() => {
     fetchKhoas();
   }, []);
 
   useEffect(() => {
-    fetchUsers();
-  }, [activeTab, selectedKhoa]);
+    fetchUsers(filters);
+  }, [activeTab, filters]);
 
   const fetchKhoas = async () => {
     try {
@@ -45,23 +55,46 @@ const UserManagement = () => {
     }
   };
 
-  const fetchUsers = async () => {
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setFilters((prev) => ({ ...prev, page: 1, KhoaID: "" })); // Reset về trang 1 và xóa lọc khoa khi đổi tab
+  };
+
+  const fetchUsers = async (currentFilters) => {
     setLoading(true);
     try {
       let endpoint = "";
-      let payload = { search, KhoaID: selectedKhoa };
+      let payload = { ...currentFilters, page: currentFilters.page || 1 };
 
       if (activeTab === "sinhvien") {
         endpoint = "/admin/users/sinh-vien/index";
+        payload.KhoaID = currentFilters.KhoaID; // Đảm bảo KhoaID được truyền đúng
       } else {
         endpoint = "/admin/users/staff/index";
         payload.RoleID = activeTab === "giangvien" ? 2 : 1;
+        payload.KhoaID = currentFilters.KhoaID; // Đảm bảo KhoaID được truyền đúng
       }
 
       const res = await axiosClient.post(endpoint, payload);
-      const rawData = res.data?.data || res.data || [];
-      // Xử lý dữ liệu phân trang hoặc mảng phẳng
-      setUsers(Array.isArray(rawData) ? rawData : rawData.data || []);
+      // Laravel Controller bọc kết quả vào res.data (với phân trang)
+      const payloadData = res.data || res;
+
+      if (payloadData && payloadData.data && Array.isArray(payloadData.data)) {
+        setUsers(payloadData.data);
+        setPagination({
+          current_page: payloadData.current_page || 1,
+          last_page: payloadData.last_page || 1,
+          total: payloadData.total || 0,
+        });
+      } else {
+        const dataArray = Array.isArray(payloadData) ? payloadData : [];
+        setUsers(dataArray);
+        setPagination({
+          current_page: 1,
+          last_page: 1,
+          total: dataArray.length,
+        });
+      }
     } catch (error) {
       toast.error("Không thể tải danh sách người dùng");
     } finally {
@@ -77,7 +110,7 @@ const UserManagement = () => {
       toast.success(
         res.is_active ? "Đã kích hoạt tài khoản" : "Đã khóa tài khoản",
       );
-      fetchUsers();
+      fetchUsers(filters); // Truyền filters để giữ nguyên trang hiện tại
     } catch (error) {
       toast.error("Thao tác thất bại");
     }
@@ -111,7 +144,7 @@ const UserManagement = () => {
 
       const res = await axiosClient.delete(endpoint);
       toast.success(res.message || "Xóa người dùng thành công");
-      fetchUsers();
+      fetchUsers(filters);
     } catch (error) {
       console.error("Lỗi khi xóa người dùng:", error);
       const errorMsg =
@@ -142,21 +175,50 @@ const UserManagement = () => {
       }
 
       const payload = { ...data };
-      // Bổ sung các trường định danh khi cập nhật hoặc cho Staff
-      if (activeTab !== "sinhvien") {
-        payload.RoleID = activeTab === "giangvien" ? 2 : 1;
-        if (editingUser) {
+      if (editingUser) {
+        if (activeTab === "sinhvien") {
+          payload.SinhVienID = editingUser.SinhVienID;
+        } else {
           payload.StaffID = editingUser.GiangVienID || editingUser.AdminID;
+          payload.RoleID = activeTab === "giangvien" ? 2 : 1;
         }
+      } else if (activeTab !== "sinhvien") {
+        payload.RoleID = activeTab === "giangvien" ? 2 : 1;
       }
 
       const res = await axiosClient[method](endpoint, payload);
       toast.success(res.message || "Thao tác thành công");
       setIsModalOpen(false);
-      fetchUsers();
+      setFilters((prev) => ({
+        ...prev,
+        page: 1, // Reset về trang 1 sau khi thêm/sửa
+      }));
     } catch (error) {
       // Lỗi validation đã được axios interceptor hiển thị qua toast
     }
+  };
+
+  // Hàm tạo dải số trang hiển thị (Logic rút gọn số trang)
+  const getPageNumbers = () => {
+    const { current_page, last_page } = pagination;
+    const pages = [];
+    const delta = 2; // Số lượng trang hiển thị xung quanh trang hiện tại
+
+    for (let i = 1; i <= last_page; i++) {
+      if (
+        i === 1 ||
+        i === last_page ||
+        (i >= current_page - delta && i <= current_page + delta)
+      ) {
+        pages.push(i);
+      } else if (
+        (i === current_page - delta - 1 && i > 1) ||
+        (i === current_page + delta + 1 && i < last_page)
+      ) {
+        pages.push("...");
+      }
+    }
+    return pages.filter((item, index) => pages.indexOf(item) === index);
   };
 
   return (
@@ -197,19 +259,19 @@ const UserManagement = () => {
         <div className="bg-white p-1.5 rounded-2xl border border-gray-100 flex gap-1 shadow-sm">
           <TabButton
             active={activeTab === "sinhvien"}
-            onClick={() => setActiveTab("sinhvien")}
+            onClick={() => handleTabChange("sinhvien")}
             icon={<GraduationCap size={16} />}
             label="Sinh viên"
           />
           <TabButton
             active={activeTab === "giangvien"}
-            onClick={() => setActiveTab("giangvien")}
+            onClick={() => handleTabChange("giangvien")}
             icon={<Briefcase size={16} />}
             label="Giảng viên"
           />
           <TabButton
             active={activeTab === "admin"}
-            onClick={() => setActiveTab("admin")}
+            onClick={() => handleTabChange("admin")}
             icon={<UserCog size={16} />}
             label="Quản trị"
           />
@@ -225,17 +287,24 @@ const UserManagement = () => {
               type="text"
               placeholder="Tìm tên, mã số..."
               className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm font-medium"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && fetchUsers()}
+              value={filters.search}
+              onChange={(e) =>
+                setFilters({ ...filters, search: e.target.value, page: 1 })
+              }
+              onKeyPress={(e) => e.key === "Enter" && fetchUsers(filters)}
             />
           </div>
           <select
             className="bg-white border border-gray-100 px-4 py-3.5 rounded-2xl outline-none text-sm font-bold text-gray-600 focus:ring-2 focus:ring-indigo-500/20 cursor-pointer"
-            value={selectedKhoa}
-            onChange={(e) => setSelectedKhoa(e.target.value)}
+            value={filters.KhoaID}
+            onChange={(e) =>
+              setFilters({ ...filters, KhoaID: e.target.value, page: 1 })
+            }
           >
-            <option value="">Tất cả Khoa</option>
+            <option value="">
+              {activeTab === "sinhvien" ? "Tất cả Khoa" : "Tất cả Khoa/Phòng"}
+            </option>
+
             {khoas.map((k) => (
               <option key={k.KhoaID} value={k.KhoaID}>
                 {k.TenKhoa}
@@ -370,6 +439,79 @@ const UserManagement = () => {
           </table>
         </div>
       </div>
+
+      {/* Pagination UI */}
+      {!loading && pagination.last_page > 1 && (
+        <div className="px-8 py-6 bg-white rounded-[2rem] border border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm">
+          <div className="text-xs font-black text-gray-400 uppercase tracking-widest">
+            Trang{" "}
+            <span className="text-indigo-600">{pagination.current_page}</span> /{" "}
+            {pagination.last_page}
+            <span className="ml-2 text-gray-300">
+              ({pagination.total} người dùng)
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              disabled={pagination.current_page === 1}
+              onClick={() => setFilters({ ...filters, page: 1 })}
+              className="p-2.5 rounded-xl border border-gray-100 bg-white text-gray-400 hover:text-indigo-600 disabled:opacity-30 transition-all"
+            >
+              «
+            </button>
+
+            <button
+              disabled={pagination.current_page === 1}
+              onClick={() =>
+                setFilters({ ...filters, page: pagination.current_page - 1 })
+              }
+              className="px-4 py-2 rounded-xl border border-gray-100 bg-white text-xs font-black uppercase tracking-widest text-gray-400 hover:text-indigo-600 disabled:opacity-30 transition-all"
+            >
+              Trước
+            </button>
+
+            {getPageNumbers().map((page, index) =>
+              page === "..." ? (
+                <span key={index} className="px-2 text-gray-400">
+                  ...
+                </span>
+              ) : (
+                <button
+                  key={index}
+                  onClick={() => setFilters({ ...filters, page: page })}
+                  className={`w-10 h-10 rounded-xl text-xs font-black transition-all ${
+                    pagination.current_page === page
+                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
+                      : "bg-white text-gray-400 border border-gray-100 hover:bg-indigo-50"
+                  }`}
+                >
+                  {page}
+                </button>
+              ),
+            )}
+
+            <button
+              disabled={pagination.current_page === pagination.last_page}
+              onClick={() =>
+                setFilters({ ...filters, page: pagination.current_page + 1 })
+              }
+              className="px-4 py-2 rounded-xl border border-gray-100 bg-white text-xs font-black uppercase tracking-widest text-gray-400 hover:text-indigo-600 disabled:opacity-30 transition-all"
+            >
+              Sau
+            </button>
+
+            <button
+              disabled={pagination.current_page === pagination.last_page}
+              onClick={() =>
+                setFilters({ ...filters, page: pagination.last_page })
+              }
+              className="p-2.5 rounded-xl border border-gray-100 bg-white text-gray-400 hover:text-indigo-600 disabled:opacity-30 transition-all"
+            >
+              »
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal Thêm/Sửa */}
       <UserModal

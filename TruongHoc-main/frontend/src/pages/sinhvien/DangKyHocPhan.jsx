@@ -1,388 +1,264 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import axiosClient from "@/api/axios";
-import ConfirmModal from "@/components/ConfirmModal";
+import toast from "react-hot-toast";
 import {
-  ClipboardList,
-  ShoppingCart,
   BookOpen,
+  Users,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  Send,
   Layers,
   Info,
-  Trash2,
-  Clock,
 } from "lucide-react";
 
 const DangKyHocPhan = () => {
-  const [lops, setLops] = useState([]);
-  const [daDangKy, setDaDangKy] = useState([]);
-  const [hocKy, setHocKy] = useState("");
+  const [officialClasses, setOfficialClasses] = useState([]);
+  const [tempClasses, setTempClasses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [processingId, setProcessingId] = useState(null); // ID lớp đang đợi xử lý queue
-  const [message, setMessage] = useState({ type: "", content: "" });
-  const [confirmConfig, setConfirmConfig] = useState({
-    isOpen: false,
-    id: null,
-  });
+  const [submitting, setSubmitting] = useState(false);
 
-  // Hàm tiện ích lấy Thứ từ ngày học
-  const getThuLabel = (lich) => {
-    if (lich.Thu) return `Thứ ${lich.Thu}`;
-    if (lich.NgayHoc) {
-      const date = new Date(lich.NgayHoc);
-      const day = date.getDay(); // 0: CN, 1: T2...
-      if (day === 0) return "Chủ Nhật";
-      return `Thứ ${day + 1}`;
-    }
-    return "N/A";
-  };
-
-  // Lấy danh sách lớp mở và lớp đã đăng ký
-  const fetchData = useCallback(async () => {
+  const fetchData = async () => {
+    setLoading(true);
     try {
-      const [resLopMo, resDaDangKy] = await Promise.all([
-        axiosClient.get("/sinh-vien/lop-mo"),
-        axiosClient.get("/sinh-vien/da-dang-ky"),
-      ]);
-
-      // Giả định resLopMo là array trực tiếp hoặc { data: [] } tùy controller
-      setLops(Array.isArray(resLopMo) ? resLopMo : resLopMo.data || []);
-
-      // Trích xuất dữ liệu đã đăng ký từ wrapper { success, data: { data: [], hoc_ky: '' } }
-      const payload = resDaDangKy?.data || resDaDangKy;
-      const enrolledData = Array.isArray(payload?.data)
-        ? payload.data
-        : Array.isArray(payload)
-          ? payload
-          : [];
-
-      setDaDangKy(enrolledData);
-      setHocKy(payload?.hoc_ky || "Học kỳ hiện tại");
+      const res = await axiosClient.get("/sinh-vien/dang-ky-hoc-phan/lop-mo");
+      // API trả về { lop_chinh_thuc: [], lop_tam: [] }
+      setOfficialClasses(res.lop_chinh_thuc || []);
+      setTempClasses(res.lop_tam || []);
     } catch (error) {
-      const errorMsg =
-        error.response?.data?.message || "Không thể tải danh sách học phần.";
-      console.error("Lỗi tải dữ liệu:", errorMsg);
-      showMsg("error", errorMsg);
+      toast.error(
+        error.response?.data?.message || "Không thể tải danh sách lớp",
+      );
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, []);
 
-  const showMsg = (type, content) => {
-    setMessage({ type, content });
-    setTimeout(() => setMessage({ type: "", content: "" }), 5000);
-  };
-
-  // Hàm kiểm tra trạng thái từ Redis (Polling)
-  const checkRegistrationStatus = async (lhpID) => {
+  const handleRegister = async (lopId) => {
+    setSubmitting(true);
     try {
-      const res = await axiosClient.get(`/sinh-vien/check-status/${lhpID}`);
-      if (res.status === "success") {
-        showMsg("success", res.message);
-        setProcessingId(null);
-        fetchData(); // Reload danh sách
-      } else if (res.status === "failed") {
-        showMsg("error", res.message);
-        setProcessingId(null);
-      } else {
-        // Tiếp tục polling sau 2 giây nếu vẫn đang processing
-        setTimeout(() => checkRegistrationStatus(lhpID), 2000);
-      }
-    } catch (error) {
-      setProcessingId(null);
-    }
-  };
-
-  const handleDangKy = async (lhpID) => {
-    setProcessingId(lhpID);
-    try {
-      const res = await axiosClient.post("/sinh-vien/dang-ky", {
-        LopHocPhanID: lhpID,
+      await axiosClient.post("/sinh-vien/dang-ky-hoc-phan", {
+        LopHocPhanID: lopId,
       });
-      if (res.status === "processing") {
-        showMsg("info", res.message);
-        checkRegistrationStatus(lhpID);
-      } else {
-        showMsg("error", res.message || "Đăng ký thất bại");
-        setProcessingId(null);
-      }
-    } catch (error) {
-      showMsg("error", error.response?.data?.message || "Lỗi hệ thống");
-      setProcessingId(null);
-    }
-  };
-
-  const handleHuyMon = async (dangKyID) => {
-    try {
-      const res = await axiosClient.post(`/sinh-vien/huy-mon/${dangKyID}`);
-      const msg = res.message || res.data?.message || "Hủy môn thành công";
-      showMsg("success", msg);
+      toast.success("Đã gửi yêu cầu đăng ký vào hàng đợi xử lý.");
       fetchData();
     } catch (error) {
-      const errorMsg =
-        error.response?.data?.message || "Không thể hủy môn học lúc này.";
-      showMsg("error", errorMsg);
+      toast.error(error.response?.data?.message || "Lỗi đăng ký");
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  if (loading)
-    return <div className="p-10 text-center">Đang tải dữ liệu đăng ký...</div>;
+  const handleRequestOpen = async (monHocId) => {
+    setSubmitting(true);
+    try {
+      // Vì lớp tạm hiển thị theo MonHocID, ta gửi yêu cầu mở môn đó
+      await axiosClient.post("/sinh-vien/dang-ky-hoc-phan/gui-yeu-cau", {
+        monHocID: monHocId,
+        lyDo: "Lớp chính thức đã đầy",
+      });
+      toast.success("Gửi yêu cầu xin mở lớp thành công!");
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Lỗi gửi yêu cầu");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
+        <p className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">
+          Đang tải danh sách học phần...
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8">
-      {/* Thông báo */}
-      {message.content && (
-        <div
-          className={`fixed top-20 right-8 z-50 p-4 rounded-lg shadow-lg border-l-4 transition-all ${
-            message.type === "success"
-              ? "bg-green-50 border-green-500 text-green-700"
-              : message.type === "info"
-                ? "bg-blue-50 border-blue-500 text-blue-700"
-                : "bg-red-50 border-red-500 text-red-700"
-          }`}
-        >
-          {message.content}
-        </div>
-      )}
-
-      <section>
-        <div className="flex justify-between items-end mb-4">
+    <div className="max-w-6xl mx-auto space-y-10 animate-fadeIn pb-20">
+      {/* Header */}
+      <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/50 rounded-full -mr-20 -mt-20 blur-3xl" />
+        <div className="relative flex items-center gap-6">
+          <div className="p-4 bg-indigo-600 rounded-3xl text-white shadow-lg shadow-indigo-100">
+            <BookOpen size={32} />
+          </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">
-              Đăng ký học phần mở
+            <h2 className="text-2xl font-black text-gray-900 tracking-tight">
+              Đăng ký học phần
             </h2>
-            <p className="text-gray-500 text-sm">
-              Chọn các lớp học phần có sẵn trong học kỳ hiện tại
+            <p className="text-gray-500 text-sm font-medium">
+              Lựa chọn các lớp học phần phù hợp với lộ trình của bạn
             </p>
           </div>
-          <div className="text-right">
-            <span className="text-sm font-medium text-gray-500">
-              Đợt đăng ký:
-            </span>
-            <div className="text-blue-600 font-bold">{hocKy || "Đang mở"}</div>
-          </div>
+        </div>
+      </div>
+
+      {/* Official Classes Section */}
+      <section className="space-y-6">
+        <div className="flex items-center gap-3 ml-4">
+          <CheckCircle2 className="text-emerald-500" size={20} />
+          <h3 className="text-sm font-black uppercase tracking-[0.2em] text-gray-400">
+            Lớp học phần chính thức
+          </h3>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-gray-50 text-gray-600 text-xs uppercase font-bold">
-              <tr>
-                <th className="px-6 py-4">Mã Lớp HP</th>
-                <th className="px-6 py-4">Tên Môn Học</th>
-                <th className="px-6 py-4">Tín chỉ</th>
-                <th className="px-6 py-4">Tiên quyết</th>
-                <th className="px-6 py-4">Song hành</th>
-                <th className="px-6 py-4">Giảng viên</th>
-                <th className="px-6 py-4">Lịch học</th>
-                <th className="px-6 py-4">Sĩ số</th>
-                <th className="px-6 py-4 text-right">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {lops.map((lop) => (
-                <tr key={lop.LopHocPhanID} className="hover:bg-gray-50 text-sm">
-                  <td className="px-6 py-4 font-bold text-blue-600">
-                    {lop.MaLopHP || lop.ma_lop_hp}
-                  </td>
-                  <td className="px-6 py-4 font-medium">
-                    {lop.mon_hoc?.TenMon || lop.mon_hoc?.ten_mon}
-                  </td>
-                  <td className="px-6 py-4">
-                    {lop.mon_hoc?.SoTinChi || lop.mon_hoc?.so_tin_chi}
-                  </td>
-                  <td
-                    className="px-6 py-4 text-[10px] text-red-600 italic font-medium max-w-[120px] truncate"
-                    title={lop.MonTienQuyet}
-                  >
-                    {lop.MonTienQuyet || "Không có"}
-                  </td>
-                  <td
-                    className="px-6 py-4 text-[10px] text-purple-600 italic font-medium max-w-[120px] truncate"
-                    title={lop.MonSongHanh}
-                  >
-                    {lop.MonSongHanh || "Không có"}
-                  </td>
-                  <td className="px-6 py-4 text-gray-600">
-                    {lop.giang_vien?.HoTen ||
-                      lop.giang_vien?.ho_ten ||
-                      "Chưa phân công"}
-                  </td>
-                  <td className="px-6 py-4 text-xs">
-                    {/* Lấy duy nhất lịch học theo thứ để tránh lặp lại các tuần */}
-                    {[
-                      ...new Map(
-                        lop.lich_hoc?.map((item) => [getThuLabel(item), item]),
-                      ).values(),
-                    ].map((lh, i) => (
-                      <div key={i}>
-                        {getThuLabel(lh)}: T{lh.TietBatDau || lh.tiet_bat_dau}-
-                        {(lh.TietBatDau || lh.tiet_bat_dau) +
-                          (lh.SoTiet || lh.so_tiet) -
-                          1}
-                        {lh.PhongHoc || lh.phong_hoc
-                          ? ` - P.${lh.PhongHoc || lh.phong_hoc}`
-                          : ""}
-                      </div>
-                    ))}
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="w-24">
-                      <div className="flex justify-between text-[10px] font-bold text-gray-400 mb-1">
-                        <span>
-                          {lop.SoLuongHienTai || 0}/{lop.SoLuongToiDa}
-                        </span>
-                      </div>
-                      <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full transition-all ${(lop.SoLuongHienTai || 0) / lop.SoLuongToiDa > 0.9 ? "bg-rose-500" : "bg-blue-500"}`}
-                          style={{
-                            width: `${((lop.SoLuongHienTai || 0) / lop.SoLuongToiDa) * 100}%`,
-                          }}
-                        />
-                      </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {officialClasses.map((lop) => (
+            <div
+              key={lop.LopHocPhanID}
+              className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm group hover:border-indigo-200 transition-all"
+            >
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <span className="text-[10px] font-black text-indigo-500 bg-indigo-50 px-2 py-1 rounded-lg uppercase tracking-wider mb-2 inline-block">
+                    {lop.MaLopHP}
+                  </span>
+                  <h4 className="text-lg font-black text-gray-900 leading-tight">
+                    {lop.mon_hoc?.TenMon}
+                  </h4>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-black text-gray-400 uppercase">
+                    Tín chỉ
+                  </p>
+                  <p className="text-xl font-black text-gray-700">
+                    {lop.mon_hoc?.SoTinChi}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3 mb-6">
+                <div className="flex items-center gap-3 text-gray-500 text-xs font-bold">
+                  <Users size={14} className="text-indigo-400" />
+                  <span>
+                    Sĩ số: {lop.SoLuongHienTai} / {lop.SoLuongToiDa}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 text-gray-500 text-xs font-bold">
+                  <Clock size={14} className="text-indigo-400" />
+                  <span>
+                    Giảng viên: {lop.giang_vien?.HoTen || "Đang cập nhật"}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                disabled={lop.IsFull || submitting}
+                onClick={() => handleRegister(lop.LopHocPhanID)}
+                className={`w-full py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${
+                  lop.IsFull
+                    ? "bg-gray-50 text-gray-400 cursor-not-allowed"
+                    : "bg-gray-900 text-white hover:bg-indigo-600 shadow-xl shadow-gray-100 active:scale-95"
+                }`}
+              >
+                {lop.IsFull ? "Lớp đã đầy" : "Đăng ký ngay"}
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Temporary Classes Section */}
+      {tempClasses.length > 0 && (
+        <section className="space-y-6">
+          <div className="flex items-center justify-between mx-4">
+            <div className="flex items-center gap-3">
+              <Layers className="text-amber-500" size={20} />
+              <h3 className="text-sm font-black uppercase tracking-[0.2em] text-gray-400">
+                Danh sách môn xin mở lớp
+              </h3>
+            </div>
+            <div className="flex items-center gap-2 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-100">
+              <Info size={14} className="text-amber-600" />
+              <span className="text-[10px] font-bold text-amber-700 uppercase">
+                Dành cho môn đã full chỗ
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {tempClasses.map((lop) => {
+              const progress = Math.min(
+                100,
+                (lop.SoLuongHienTai / lop.SoLuongToiDa) * 100,
+              );
+              return (
+                <div
+                  key={lop.LopHocPhanID}
+                  className="bg-white p-8 rounded-[2.5rem] border border-amber-100 shadow-sm relative overflow-hidden"
+                >
+                  <div className="absolute top-0 right-0 bg-amber-500 text-white px-4 py-1 rounded-bl-2xl text-[8px] font-black uppercase tracking-tighter">
+                    Lớp tạm thời
+                  </div>
+
+                  <div className="mb-6">
+                    <h4 className="text-lg font-black text-gray-900 leading-tight mb-1">
+                      {lop.TenMon}
+                    </h4>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                      Môn học đang chờ gom đủ sinh viên
+                    </p>
+                  </div>
+
+                  {/* Progress Area */}
+                  <div className="space-y-3 mb-8">
+                    <div className="flex justify-between items-end">
+                      <span className="text-xs font-black text-gray-600 uppercase flex items-center gap-2">
+                        <Users size={14} className="text-amber-500" />
+                        Tiến độ xin mở: {lop.SoLuongHienTai} /{" "}
+                        {lop.SoLuongToiDa}
+                      </span>
+                      <span className="text-[10px] font-black text-amber-600">
+                        {Math.round(progress)}%
+                      </span>
                     </div>
-                  </td>
-                  <td className="px-6 py-5 text-right">
-                    <button
-                      disabled={
-                        processingId === lop.LopHocPhanID ||
-                        daDangKy.some(
-                          (d) => d.LopHocPhanID === lop.LopHocPhanID,
-                        )
-                      }
-                      onClick={() => handleDangKy(lop.LopHocPhanID)}
-                      className={`px-5 py-2.5 rounded-xl text-xs font-black transition-all ${
-                        daDangKy.some(
-                          (d) => d.LopHocPhanID === lop.LopHocPhanID,
-                        )
-                          ? "bg-emerald-50 text-emerald-600 border border-emerald-100 cursor-not-allowed"
-                          : processingId === lop.LopHocPhanID
-                            ? "bg-blue-100 text-blue-400 cursor-wait animate-pulse"
-                            : "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-100 active:scale-95"
-                      }`}
-                    >
-                      {processingId === lop.LopHocPhanID
-                        ? "Đang xử lý..."
-                        : daDangKy.some(
-                              (d) => d.LopHocPhanID === lop.LopHocPhanID,
-                            )
-                          ? "Đã chọn"
-                          : "Đăng ký"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
 
-      <section>
-        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-          <span className="bg-green-500 w-2 h-6 rounded mr-3"></span>
-          Kết quả đăng ký
-        </h3>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <table className="w-full text-left">
-            <thead className="bg-green-50 text-green-700 text-xs uppercase font-bold">
-              <tr>
-                <th className="px-6 py-4">STT</th>
-                <th className="px-6 py-4">Mã Môn</th>
-                <th className="px-6 py-4">Tên Môn</th>
-                <th className="px-6 py-4 text-center">Tín chỉ</th>
-                <th className="px-6 py-4 text-center">Học phí</th>
-                <th className="px-6 py-4 text-right">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {daDangKy.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan="6"
-                    className="px-6 py-10 text-center text-gray-400 italic"
+                    <div className="w-full h-3 bg-gray-50 rounded-full overflow-hidden border border-gray-100 p-0.5">
+                      <div
+                        className="h-full bg-amber-500 rounded-full transition-all duration-1000 ease-out shadow-sm shadow-amber-200"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+
+                    <p className="text-[9px] font-bold text-gray-400 italic">
+                      * Khi đạt {lop.SoLuongToiDa} sinh viên, Admin sẽ xem xét
+                      chuyển thành lớp chính thức.
+                    </p>
+                  </div>
+
+                  <button
+                    disabled={submitting}
+                    onClick={() =>
+                      handleRequestOpen(lop.LopHocPhanID.split("_")[1])
+                    }
+                    className="w-full py-4 bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white border border-amber-200 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-amber-50 active:scale-95 flex items-center justify-center gap-2"
                   >
-                    Bạn chưa đăng ký môn học nào.
-                  </td>
-                </tr>
-              ) : (
-                daDangKy.map((item, index) => (
-                  <tr
-                    key={item.DangKyID}
-                    className="group hover:bg-emerald-50/20 transition-all"
-                  >
-                    <td className="px-6 py-5 text-gray-500 text-sm">
-                      {index + 1}
-                    </td>
-                    <td className="px-6 py-5 font-bold text-emerald-600 text-sm">
-                      {item.lop_hoc_phan?.mon_hoc?.MaMon}
-                    </td>
-                    <td className="px-6 py-5 font-bold text-gray-800 text-sm">
-                      {item.lop_hoc_phan?.mon_hoc?.TenMon}
-                    </td>
-                    <td className="px-6 py-5 text-center font-bold text-gray-600 text-sm">
-                      {item.lop_hoc_phan?.mon_hoc?.SoTinChi}
-                    </td>
-                    <td className="px-6 py-5 text-center font-bold text-gray-500 text-xs">
-                      {(
-                        item.lop_hoc_phan?.mon_hoc?.SoTinChi * 500000
-                      ).toLocaleString()}{" "}
-                      VNĐ
-                    </td>
-                    <td className="px-6 py-5 text-right">
-                      <button
-                        onClick={() =>
-                          setConfirmConfig({
-                            isOpen: true,
-                            id: item.DangKyID,
-                          })
-                        }
-                        className="text-rose-500 hover:text-rose-700 font-black text-[10px] uppercase flex items-center gap-1 ml-auto group-hover:scale-105 transition-all"
-                      >
-                        <Trash2 size={12} /> Hủy môn
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-          <div className="p-6 bg-gray-50/50 border-t border-emerald-100 flex flex-col md:flex-row justify-end items-center gap-6">
-            <div className="text-gray-500 font-bold text-xs uppercase tracking-widest">
-              Tổng tín chỉ chọn:{" "}
-              <span className="text-indigo-600 text-lg font-black ml-2">
-                {daDangKy.reduce(
-                  (sum, item) =>
-                    sum + (item.lop_hoc_phan?.mon_hoc?.SoTinChi || 0),
-                  0,
-                )}
-              </span>
-            </div>
-            <div className="text-gray-500 font-bold text-xs uppercase tracking-widest">
-              Tổng học phí:{" "}
-              <span className="text-rose-600 text-lg font-black ml-2">
-                {(
-                  daDangKy.reduce(
-                    (sum, item) =>
-                      sum + (item.lop_hoc_phan?.mon_hoc?.SoTinChi || 0),
-                    0,
-                  ) * 500000
-                ).toLocaleString()}{" "}
-                VNĐ
-              </span>
-            </div>
+                    <Send size={14} />
+                    Tham gia nhóm xin mở lớp
+                  </button>
+                </div>
+              );
+            })}
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      <ConfirmModal
-        isOpen={confirmConfig.isOpen}
-        onClose={() => setConfirmConfig({ isOpen: false, id: null })}
-        onConfirm={() => handleHuyMon(confirmConfig.id)}
-        title="Hủy học phần"
-        message="Bạn có chắc chắn muốn hủy đăng ký học phần này? Chỗ trống sẽ ngay lập tức được dành cho sinh viên khác."
-      />
+      {officialClasses.length === 0 && tempClasses.length === 0 && (
+        <div className="py-32 bg-white rounded-[3rem] border border-dashed border-gray-200 text-center">
+          <AlertCircle size={48} className="mx-auto text-gray-200 mb-4" />
+          <p className="text-gray-400 font-bold uppercase text-xs tracking-widest">
+            Hiện tại không có học phần nào mở đăng ký
+          </p>
+        </div>
+      )}
     </div>
   );
 };

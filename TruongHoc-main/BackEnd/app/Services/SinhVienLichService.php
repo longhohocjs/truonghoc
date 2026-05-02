@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\HocKy;
+use App\Models\LichHoc;
 use App\Models\DangKyHocPhan;
 use Carbon\Carbon;
 
@@ -14,10 +15,37 @@ class SinhVienLichService
         $sinhVien = $user->sinhVien;
         if (!$sinhVien) return ['success' => false, 'message' => 'Không tìm thấy sinh viên'];
 
-        $hocKy = $hocKyId ? HocKy::with('namHoc')->find($hocKyId) : $this->getHocKyHienTai($sinhVien->SinhVienID);
+        // 1. Xác định Học kỳ và Ngày mục tiêu
+        if ($hocKyId) {
+            $hocKy = HocKy::with('namHoc')->find($hocKyId);
+            if (!$date && $hocKy) {
+                // Ưu tiên nhảy tới ngày có buổi học đầu tiên của sinh viên trong kỳ này
+                $firstClass = LichHoc::whereHas('lopHocPhan', function($q) use ($hocKy) {
+                        $q->where('HocKyID', $hocKy->HocKyID);
+                    })
+                    ->whereHas('lopHocPhan.dangKyHocPhan', function($q) use ($sinhVien) {
+                        $q->where('SinhVienID', $sinhVien->SinhVienID)->where('TrangThai', 'ThanhCong');
+                    })
+                    ->where('NgayHoc', '>=', $hocKy->NgayBatDau)
+                    ->orderBy('NgayHoc', 'asc')
+                    ->first();
+
+                $targetDate = $firstClass 
+                    ? Carbon::parse($firstClass->NgayHoc) 
+                    : Carbon::parse($hocKy->NgayBatDau);
+            } else {
+                $targetDate = $date ? Carbon::parse($date) : Carbon::today();
+            }
+        } else {
+            $targetDate = $date ? Carbon::parse($date) : Carbon::today();
+            $hocKy = HocKy::with('namHoc')
+                ->where('NgayBatDau', '<=', $targetDate->toDateString())
+                ->where('NgayKetThuc', '>=', $targetDate->toDateString())
+                ->first() ?: $this->getHocKyHienTai($sinhVien->SinhVienID);
+        }
+
         if (!$hocKy) return ['success' => false, 'message' => 'Không xác định được học kỳ'];
 
-        $targetDate = $date ? Carbon::parse($date) : Carbon::today();
         $startOfWeek = $targetDate->copy()->startOfWeek()->format('Y-m-d');
         $endOfWeek   = $targetDate->copy()->endOfWeek()->format('Y-m-d');
 
@@ -61,7 +89,12 @@ class SinhVienLichService
         $sinhVien = $user->sinhVien;
         if (!$sinhVien) return ['success' => false, 'message' => 'Không tìm thấy sinh viên'];
 
-        $hocKy = $hocKyId ? HocKy::with('namHoc')->find($hocKyId) : $this->getHocKyHienTai($sinhVien->SinhVienID);
+        if ($hocKyId) {
+            $hocKy = HocKy::with('namHoc')->find($hocKyId);
+        } else {
+            $hocKy = $this->getHocKyHienTai($sinhVien->SinhVienID);
+        }
+
         if (!$hocKy) return ['success' => false, 'message' => 'Không xác định được học kỳ'];
 
         $registrations = DangKyHocPhan::where('SinhVienID', $sinhVien->SinhVienID)
