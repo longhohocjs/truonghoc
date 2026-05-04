@@ -32,6 +32,7 @@ class LopHocPhanService
     public function getLopPhanCong($giangVienID)
     {
         return VDanhSachLopGiangVien::where('GiangVienID', $giangVienID)
+            ->where('TrangThai', 1)
             ->orderByDesc('TenHocKy')
             ->get()
             ->map(fn($item) => [
@@ -78,7 +79,8 @@ class LopHocPhanService
                 'd.DiemChuyenCan as diem_cc',
                 'd.DiemGiuaKy as diem_gk',
                 'd.DiemThi as diem_thi',
-                'd.DiemTongKet as diem_tk'
+                'd.DiemTongKet as diem_tk',
+                'dk.TrangThaiThanhToan as da_thanh_toan_hoc_phi' // Thêm cột này
             ])
             ->orderBy('sv.HoTen', 'asc')
             ->get()

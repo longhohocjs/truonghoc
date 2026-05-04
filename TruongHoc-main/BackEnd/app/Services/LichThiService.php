@@ -12,36 +12,38 @@ class LichThiService
 {
     public function createLichThi(array $data)
     {
-        $lopHocPhanID = $data['LopHocPhanID'];
-        $lichThiItems = $data['lich_thi'];
+        return DB::transaction(function () use ($data) {
+            $lopHocPhanID = $data['LopHocPhanID'];
+            $lichThiItems = $data['lich_thi'];
 
-        $lop = LopHocPhan::findOrFail($lopHocPhanID);
-        $ngayKetThucHoc = \Carbon\Carbon::parse($lop->NgayKetThuc)->startOfDay();
+            $lop = LopHocPhan::findOrFail($lopHocPhanID);
+            $ngayKetThucHoc = \Carbon\Carbon::parse($lop->NgayKetThuc)->startOfDay();
 
-        // Xóa tất cả lịch thi cũ của lớp học phần này trước khi thêm mới (Sync logic)
-        LichThi::where('LopHocPhanID', $lopHocPhanID)->delete();
+            // Xóa tất cả lịch thi cũ của lớp học phần này trước khi thêm mới (Sync logic)
+            LichThi::where('LopHocPhanID', $lopHocPhanID)->delete();
 
-        foreach ($lichThiItems as $item) {
-            $ngayThi = \Carbon\Carbon::parse($item['NgayThi'])->copy()->startOfDay();
-            
-            if ($ngayThi->lte($ngayKetThucHoc)) {
-                throw new Exception("Lỗi: Ngày thi " . $ngayThi->format('d/m/Y') . " phải diễn ra sau ngày kết thúc học phần (" . $ngayKetThucHoc->format('d/m/Y') . ").");
+            foreach ($lichThiItems as $item) {
+                $ngayThi = \Carbon\Carbon::parse($item['NgayThi'])->copy()->startOfDay();
+                
+                if ($ngayThi->lte($ngayKetThucHoc)) {
+                    throw new Exception("Lỗi: Ngày thi " . $ngayThi->format('d/m/Y') . " phải diễn ra sau ngày kết thúc học phần (" . $ngayKetThucHoc->format('d/m/Y') . ").");
+                }
+
+                // Kiểm tra trùng lịch của sinh viên đã đăng ký
+                $this->checkTrungLichThi($lopHocPhanID, $item['NgayThi'], $item['GioBatDau'], $item['GioKetThuc']);
+                
+                // Kiểm tra trùng lịch của giảng viên được phân công
+                $this->checkConflictGiangVienThi($lopHocPhanID, $item['NgayThi'], $item['GioBatDau'], $item['GioKetThuc']);
+
+                // Kiểm tra trùng phòng thi toàn hệ thống
+                $this->checkRoomConflict($item['NgayThi'], $item['GioBatDau'], $item['GioKetThuc'], $item['PhongThi']);
+                
+                // Tạo bản ghi mới cho từng buổi thi
+                LichThi::create(array_merge($item, ['LopHocPhanID' => $lopHocPhanID]));
             }
 
-            // Kiểm tra trùng lịch của sinh viên đã đăng ký
-            $this->checkTrungLichThi($lopHocPhanID, $item['NgayThi'], $item['GioBatDau'], $item['GioKetThuc']);
-            
-            // Kiểm tra trùng lịch của giảng viên được phân công
-            $this->checkConflictGiangVienThi($lopHocPhanID, $item['NgayThi'], $item['GioBatDau'], $item['GioKetThuc']);
-
-            // Kiểm tra trùng phòng thi toàn hệ thống
-            $this->checkRoomConflict($item['NgayThi'], $item['GioBatDau'], $item['GioKetThuc'], $item['PhongThi']);
-            
-            // Tạo bản ghi mới cho từng buổi thi
-            LichThi::create(array_merge($item, ['LopHocPhanID' => $lopHocPhanID]));
-        }
-
-        return ['status' => 'success', 'message' => 'Lịch thi đã được cập nhật thành công.'];
+            return ['status' => 'success', 'message' => 'Lịch thi đã được cập nhật thành công.'];
+        });
     }
 
     public function updateLichThi($id, array $data)
@@ -49,19 +51,31 @@ class LichThiService
         $lichThi = LichThi::findOrFail($id);
         $lop = LopHocPhan::findOrFail($lichThi->LopHocPhanID);
 
+        $ngayThi = $data['NgayThi'] ?? $lichThi->NgayThi;
+        $gioBD = $data['GioBatDau'] ?? $lichThi->GioBatDau;
+        $gioKT = $data['GioKetThuc'] ?? $lichThi->GioKetThuc;
+        $phongThi = $data['PhongThi'] ?? $lichThi->PhongThi;
+        $hinhThuc = $data['HinhThucThi'] ?? $lichThi->HinhThucThi;
+
         // 1. Kiểm tra ngày thi phải sau ngày kết thúc môn
-        if (isset($data['NgayThi'])) {
-            $ngayThi = \Carbon\Carbon::parse($data['NgayThi'])->startOfDay();
+        if ($ngayThi) {
+            $ngayThiDt = \Carbon\Carbon::parse($ngayThi)->startOfDay();
             $ngayKetThucHoc = \Carbon\Carbon::parse($lop->NgayKetThuc)->startOfDay();
-            if ($ngayThi->lte($ngayKetThucHoc)) {
+            if ($ngayThiDt->lte($ngayKetThucHoc)) {
                 throw new Exception("Lỗi: Ngày thi phải sau ngày kết thúc học phần (" . $ngayKetThucHoc->format('d/m/Y') . ").");
             }
         }
 
-        $this->checkTrungLichThi($lichThi->LopHocPhanID, $data['NgayThi'], $data['GioBatDau'], $data['GioKetThuc'], $id);
-        $this->checkRoomConflict($data['NgayThi'], $data['GioBatDau'], $data['GioKetThuc'], $data['PhongThi'], $id);
+        $this->checkTrungLichThi($lichThi->LopHocPhanID, $ngayThi, $gioBD, $gioKT, $id);
+        $this->checkRoomConflict($ngayThi, $gioBD, $gioKT, $phongThi, $id);
         
-        $lichThi->update($data);
+        $lichThi->update(array_merge($data, [
+            'NgayThi'     => $ngayThi,
+            'GioBatDau'   => $gioBD,
+            'GioKetThuc'  => $gioKT,
+            'HinhThucThi' => $hinhThuc,
+        ]));
+
         return $lichThi;
     }
 

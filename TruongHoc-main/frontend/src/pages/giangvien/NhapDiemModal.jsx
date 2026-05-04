@@ -6,6 +6,7 @@ import {
   FileDown,
   FileUp,
   ClipboardPenLine,
+  AlertCircle, // Thêm AlertCircle vào đây
   Save,
   Search,
   UserCheck,
@@ -156,6 +157,7 @@ const NhapDiemModal = ({ isOpen, onClose, lop }) => {
                   <th className="pb-6 px-2 text-center w-32">Giữa kỳ</th>
                   <th className="pb-6 px-2 text-center w-32">Điểm thi</th>
                   <th className="pb-6 px-4 text-center w-32">Tổng kết</th>
+                  <th className="pb-6 px-4 text-center w-32">Học phí</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -262,6 +264,17 @@ const NhapDiemModal = ({ isOpen, onClose, lop }) => {
                       >
                         {sv.diem_tk || "-"}
                       </span>
+                    </td>
+                    <td className="py-5 px-4 text-center">
+                      {sv.da_thanh_toan_hoc_phi ? (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wide bg-emerald-50 text-emerald-600">
+                          <UserCheck size={12} className="mr-1" /> Đã TT
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wide bg-rose-50 text-rose-600">
+                          <AlertCircle size={12} className="mr-1" /> Chưa TT
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}

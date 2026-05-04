@@ -40,7 +40,8 @@ class DiemSoService
         // Thực hiện join với bảng lophocphan để lấy trạng thái khóa nhập điểm (TrangThaiNhapDiem)
         // Chúng ta đặt alias là 'IsLocked' để đồng bộ với cách gọi thuộc tính ở Frontend
         $query->join('lophocphan', "$tableName.LopHocPhanID", '=', 'lophocphan.LopHocPhanID')
-              ->select("$tableName.*", 'lophocphan.TrangThaiNhapDiem as IsLocked', 'lophocphan.MonHocID');
+              ->join('dangkyhocphan', "$tableName.DangKyID", '=', 'dangkyhocphan.DangKyID') // Join với bảng dangkyhocphan
+              ->select("$tableName.*", 'lophocphan.TrangThaiNhapDiem as IsLocked', 'lophocphan.MonHocID', 'dangkyhocphan.TrangThaiThanhToan as DaThanhToanHocPhi'); // Thêm cột trạng thái thanh toán
 
         $results = $query->when($filters['LopHocPhanID'] ?? null, function($q, $id) use ($tableName) {
             return $q->where("$tableName.LopHocPhanID", $id);

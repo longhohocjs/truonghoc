@@ -9,6 +9,7 @@ class LichCoiThiService
     public function getLichCoiThi($giangVienID)
     {
         return LopHocPhan::where('GiangVienID', $giangVienID)
+            ->where('TrangThai', 1)
             ->with(['monHoc', 'hocKy', 'lichThi'])
             ->get()
             ->map(fn($lop) => [

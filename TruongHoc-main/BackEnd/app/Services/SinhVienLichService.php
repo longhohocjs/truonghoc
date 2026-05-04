@@ -142,7 +142,7 @@ class SinhVienLichService
                 'gio_ket_thuc'=> $lt->GioKetThuc ? Carbon::parse($lt->GioKetThuc)->format('H:i') : 'N/A',
                 'ca_thi'      => $this->getCaThi($lt->GioBatDau),
                 'phong_thi'   => $lt->PhongThi ?? 'Chưa bố trí',
-                'hinh_thuc'   => $lt->HinhThucThi ?? 'Tập trung',
+                'hinh_thuc'   => $lt->HinhThucThi ?: 'Tập trung',
                 'sbd'         => $sinhVien->MaSV ?? $sinhVien->ma_sv ?? 'N/A', // Sử dụng toán tử ?? để lấy chuỗi thực tế
                 'giang_vien'  => $dk->lopHocPhan->giangVien->HoTen ?? 'N/A',
                 'ngay_hoc_ky' => [
@@ -175,18 +175,11 @@ class SinhVienLichService
             return HocKy::with('namHoc')->find($activeDot->HocKyID);
         }
 
-        // 2. Tìm học kỳ theo ngày hiện tại
-        $current = HocKy::with('namHoc')
-            ->where('NgayBatDau', '<=', Carbon::today())
-            ->where('NgayKetThuc', '>=', Carbon::today())
-            ->first();
-
-        if ($current) return $current;
-
-        // 2. Nếu không có học kỳ hiện tại (thời gian nghỉ), tìm học kỳ gần nhất mà sinh viên có đăng ký
+        // 2. Ưu tiên học kỳ gần nhất mà sinh viên có tương tác đăng ký
+        // Điều này giúp sinh viên thấy ngay lịch của kỳ mới nhất họ vừa đăng ký thành công
         if ($sinhVienID) {
             $latestReg = DangKyHocPhan::where('SinhVienID', $sinhVienID)
-                ->where('TrangThai', 'ThanhCong')
+                ->whereIn('TrangThai', ['ThanhCong', 'DangCho']) // Tính cả các môn đang chờ xử lý
                 ->whereHas('lopHocPhan')
                 ->with('lopHocPhan.hocKy.namHoc')
                 ->latest('ThoiGianDangKy')
@@ -197,7 +190,15 @@ class SinhVienLichService
             }
         }
 
-        // 3. Fallback cuối cùng lấy học kỳ mới nhất
+        // 3. Tìm học kỳ theo ngày hiện tại (nếu sinh viên chưa đăng ký gì mới)
+        $current = HocKy::with('namHoc')
+            ->where('NgayBatDau', '<=', Carbon::today())
+            ->where('NgayKetThuc', '>=', Carbon::today())
+            ->first();
+
+        if ($current) return $current;
+
+        // 4. Fallback cuối cùng lấy học kỳ mới nhất trong hệ thống
         return HocKy::with('namHoc')->orderBy('HocKyID', 'desc')->first();
     }
 

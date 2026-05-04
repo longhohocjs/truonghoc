@@ -10,6 +10,7 @@ class LichGiangDayService
     public function getLichGiangDay($giangVienID)
     {
         return LopHocPhan::where('GiangVienID', $giangVienID)
+            ->where('TrangThai', 1)
             ->with(['monHoc', 'hocKy', 'lichHoc'])
             ->get()
             ->map(function ($lop) {
