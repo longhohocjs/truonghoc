@@ -30,7 +30,9 @@ const ChuongTrinhDaoTaoModal = ({
         MonHocID: editingItem.MonHocID || "",
         MonHocIDs: [editingItem.MonHocID],
         HocKyGoiY: editingItem.HocKyGoiY || 1,
-        KhoiKienThuc: editingItem.KhoiKienThuc || "DaiCuong",
+        // Kiểm tra cả hai trường hợp đặt tên thuộc tính
+        KhoiKienThuc:
+          editingItem.KhoiKienThuc || editingItem.khoi_kien_thuc || "DaiCuong",
         BatBuoc: editingItem.BatBuoc ?? true,
       });
     } else {

@@ -7,6 +7,7 @@ use App\Models\DotDangKy;
 use App\Models\HocKy;
 use App\Services\DotDangKyService;
 use Illuminate\Http\Request;
+use App\Models\LopHocPhan;
 use Illuminate\Support\Facades\Auth;
 
 class DotDangKyController extends Controller
@@ -52,25 +53,23 @@ class DotDangKyController extends Controller
     public function getLopHocPhanByJson(Request $request)
     {
         $request->validate([
-            'DotDangKyID' => 'required|exists:dotdangky,DotDangKyID',
-            'KhoaID'      => 'nullable|integer',
-            'NganhID'     => 'nullable|integer',
+            'DotDangKyID' => 'required|integer|exists:dotdangky,DotDangKyID',
         ]);
 
-        $filters = [
-            'KhoaID'  => $request->input('KhoaID'),
-            'NganhID' => $request->input('NganhID'),
-        ];
+        // 1. Lấy thông tin đợt đăng ký hiện tại
+        $dotDangKy = DotDangKy::findOrFail($request->input('DotDangKyID'));
 
-        $lops = $this->dotDangKyService->getLopHocPhanTheoDot(
-            $request->input('DotDangKyID'), 
-            $filters
-        );
+        // 2. Lấy danh sách lớp học phần dựa trên HocKyID của đợt đăng ký
+        //    và chỉ lấy các lớp đang hoạt động (TrangThai = 1)
+        $lopHocPhanList = LopHocPhan::where('HocKyID', $dotDangKy->HocKyID)
+                                    ->where('TrangThai', 1) // Chỉ lấy các lớp đang hoạt động
+                                    ->with(['monHoc', 'giangVien']) // Tải các mối quan hệ cần thiết
+                                    ->get();
 
         return response()->json([
-            'status' => 'success',
-            'count'  => $lops->count(),
-            'data'   => $lops
+            'success' => true,
+            'data' => $lopHocPhanList,
+            'dotDangKy' => $dotDangKy // Có thể trả về thông tin đợt đăng ký nếu cần
         ]);
     }
 

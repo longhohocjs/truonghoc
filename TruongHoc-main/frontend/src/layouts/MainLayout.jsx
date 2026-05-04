@@ -1,4 +1,4 @@
-import React, { useState, Fragment } from "react";
+import React, { useState, Fragment, useEffect } from "react";
 import {
   Outlet,
   Link,
@@ -7,6 +7,7 @@ import {
   NavLink,
 } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import axiosClient from "@/api/axios";
 import {
   LayoutDashboard,
   Users,
@@ -38,11 +39,40 @@ const MainLayout = () => {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
+
+  // Hàm lấy số lượng thông báo chưa đọc
+  const fetchUnreadCount = async () => {
+    try {
+      const rawRole = user?.role?.toLowerCase() || "";
+      let endpoint = "";
+
+      // Xác định endpoint dựa trên vai trò
+      if (rawRole === "sinhvien" || rawRole === "sinh_vien") {
+        endpoint = "/sinh-vien/notifications/unread-count";
+      } else if (rawRole.includes("giang") || rawRole.includes("giảng")) {
+        endpoint = "/giang-vien/notifications/unread-count";
+      }
+
+      if (endpoint) {
+        const res = await axiosClient.get(endpoint);
+        setUnreadCount(res.unread_count || 0);
+      }
+    } catch (error) {
+      console.error("Lỗi lấy số thông báo chưa đọc:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchUnreadCount();
+    }
+  }, [user, location.pathname]); // Cập nhật lại khi đổi trang (ví dụ vừa xem xong quay ra)
 
   // Định nghĩa danh sách menu theo vai trò
   const menuItems = {
@@ -301,10 +331,24 @@ const MainLayout = () => {
           </h1>
 
           <div className="flex items-center space-x-6">
-            <button className="p-2 text-indigo-100 hover:text-white hover:bg-white/10 rounded-full transition-all relative">
+            <Link
+              to={
+                user?.role?.toLowerCase().includes("admin")
+                  ? "/admin/thong-bao"
+                  : user?.role?.toLowerCase().includes("giang") ||
+                      user?.role?.toLowerCase().includes("giảng")
+                    ? "/giang-vien/thong-bao"
+                    : "/sinh-vien/thong-bao"
+              }
+              className="p-2 text-indigo-100 hover:text-white hover:bg-white/10 rounded-full transition-all relative"
+            >
               <Bell size={20} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-indigo-600"></span>
-            </button>
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 flex h-4 min-w-[1rem] px-1 items-center justify-center bg-rose-500 text-[10px] font-black text-white rounded-full border-2 border-indigo-600 animate-bounce">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </Link>
 
             <div className="relative">
               <button

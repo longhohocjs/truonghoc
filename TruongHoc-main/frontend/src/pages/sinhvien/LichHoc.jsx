@@ -50,10 +50,16 @@ const LichHoc = () => {
         params.date = `${y}-${m}-${d}`;
       }
 
-      const response = await axiosClient.get("/sinh-vien/lich-hoc", { params });
+      const res = await axiosClient.get("/sinh-vien/lich-hoc", { params });
 
-      if (response.success) {
-        setHocKy(response.hoc_ky);
+      // Laravel trả về: { success: true, data: { hoc_ky, range, data: [] } }
+      // Trích xuất payload chứa các metadata
+      const response = res?.data || res;
+      // Mảng lịch học thực sự nằm trong response.data
+      const scheduleItems = Array.isArray(response?.data) ? response.data : [];
+
+      if (res.success || response.success) {
+        setHocKy(response.hoc_ky || res.hoc_ky);
         // Đồng bộ ngày hiển thị trên lịch với range mà Backend trả về
         if (response.range?.start) {
           // Tách chuỗi YYYY-MM-DD để tạo Date local, tránh lỗi UTC jump ngày
@@ -63,7 +69,7 @@ const LichHoc = () => {
 
         // Map dữ liệu vào grid: { "thu-tiet": { data } }
         const mapped = {};
-        response.data.forEach((item) => {
+        scheduleItems.forEach((item) => {
           // Chuyển đổi tên Thứ sang số (2-8) - Normalize chữ thường để tránh lỗi so khớp
           const dayMap = {
             "thứ hai": 2,

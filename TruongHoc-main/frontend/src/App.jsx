@@ -50,6 +50,7 @@ import ChuongTrinhDaoTao from "@/pages/sinhvien/ChuongTrinhDaoTao";
 import MonDaHoanThanh from "@/pages/sinhvien/MonDaHoanThanh";
 import MonConThieu from "@/pages/sinhvien/MonConThieu";
 import HocPhi from "@/pages/sinhvien/HocPhi";
+import UserNotifications from "@/pages/UserNotifications";
 
 const Unauthorized = () => (
   <div className="p-10 text-center text-red-500 font-bold text-2xl">
@@ -152,6 +153,10 @@ function App() {
                 }
               >
                 <Route
+                  path="/giang-vien/thong-bao"
+                  element={<UserNotifications />}
+                />
+                <Route
                   path="/giang-vien/profile"
                   element={<GiangVienProfile />}
                 />
@@ -183,6 +188,10 @@ function App() {
 
               {/* Nhóm chức năng cho SINH VIÊN */}
               <Route element={<ProtectedRoute allowedRoles={["sinhvien"]} />}>
+                <Route
+                  path="/sinh-vien/thong-bao"
+                  element={<UserNotifications />}
+                />
                 <Route path="/sinh-vien/profile" element={<StudentProfile />} />
                 <Route path="/sinh-vien/dang-ky" element={<DangKyHocPhan />} />
                 <Route

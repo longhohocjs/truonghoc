@@ -62,20 +62,26 @@ Route::middleware(['auth:api', \App\Http\Middleware\CheckActiveUser::class])->gr
         Route::get('hoc-ky', [NamHocController::class, 'getDanhSachHocKy']);
 
         Route::post('/hoc-phi/confirm', [HocPhiController::class, 'studentConfirm']);
-        // Đăng ký học phần: Các route lấy danh sách (không cần ID lớp cụ thể)
-        Route::get('lop-mo', [DangKyHocPhanController::class, 'getLopMo']);
-        Route::get('da-dang-ky', [DangKyHocPhanController::class, 'getDaDangKy']);
-        Route::post('huy-mon/{dangKyID}', [DangKyHocPhanController::class, 'huyMon']);
 
-        // Đăng ký học phần (Yêu cầu đợt đăng ký phải đang mở)
-        Route::middleware(['check.dot_open'])->group(function () {
-            Route::post('dang-ky', [DangKyHocPhanController::class, 'dangKy']);
-            Route::get('check-status/{lhpID}', [DangKyHocPhanController::class, 'checkStatus']);
+        // --- Nhóm các route Đăng ký học phần ---
+        Route::prefix('dang-ky-hoc-phan')->group(function () {
+            Route::get('lop-mo', [DangKyHocPhanController::class, 'getLopMo']);
+            Route::get('da-dang-ky', [DangKyHocPhanController::class, 'getDaDangKy']);
+            Route::post('huy-mon/{dangKyID}', [DangKyHocPhanController::class, 'huyMon']);
+
+            // Các route yêu cầu đợt đăng ký phải đang mở
+            Route::middleware(['check.dot_open'])->group(function () {
+                Route::post('/', [DangKyHocPhanController::class, 'dangKy']);
+                Route::get('check-status/{lhpID}', [DangKyHocPhanController::class, 'checkStatus']);
+            });
         });
 
         // Chức năng Xin mở lớp
         Route::get('yeu-cau-mo-lop', [DangKyHocPhanController::class, 'getDanhSachYeuCau']);
         Route::post('yeu-cau-mo-lop', [DangKyHocPhanController::class, 'guiYeuCauMoLop']);
+        Route::get('/notifications/my', [App\Http\Controllers\Api\Admin\ThongBaoController::class, 'getMyNotifications']);
+        Route::get('/notifications/unread-count', [App\Http\Controllers\Api\Admin\ThongBaoController::class, 'getUnreadCount']);
+        Route::post('/notifications/mark-read', [App\Http\Controllers\Api\Admin\ThongBaoController::class, 'markAllAsRead']);
     });
 
     // --- GIẢNG VIÊN ---
@@ -108,6 +114,9 @@ Route::middleware(['auth:api', \App\Http\Middleware\CheckActiveUser::class])->gr
         Route::post('lop-sinh-hoat/sinh-vien', [LopSinhHoatCoVanController::class, 'getSinhVienTrongLop']);
         Route::post('lop-sinh-hoat/diem-ren-luyen', [LopSinhHoatCoVanController::class, 'getDiemRenLuyen']);
         Route::post('lop-sinh-hoat/cap-nhat-diem-ren-luyen', [LopSinhHoatCoVanController::class, 'capNhatDiemRenLuyen']);
+        Route::get('/notifications/my', [App\Http\Controllers\Api\Admin\ThongBaoController::class, 'getMyNotifications']);
+        Route::get('/notifications/unread-count', [App\Http\Controllers\Api\Admin\ThongBaoController::class, 'getUnreadCount']);
+        Route::post('/notifications/mark-read', [App\Http\Controllers\Api\Admin\ThongBaoController::class, 'markAllAsRead']);
     });
 
     // --- ADMIN ---
@@ -115,6 +124,7 @@ Route::middleware(['auth:api', \App\Http\Middleware\CheckActiveUser::class])->gr
         Route::get('thong-bao', [ThongBaoController::class, 'index']);
         Route::post('thong-bao', [ThongBaoController::class, 'store']);
         Route::put('thong-bao/{id}', [ThongBaoController::class, 'update']);
+        Route::post('thong-bao/{id}/send-email', [ThongBaoController::class, 'sendEmail']);
         Route::delete('thong-bao/{id}', [ThongBaoController::class, 'destroy']);
 
         Route::get('thong-ke', [ThongKeController::class, 'index']);

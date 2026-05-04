@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\SinhVien;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log; // Import Log facade
 use Illuminate\Support\Facades\DB;
 use App\Models\LopHocPhan;
 use App\Models\DotDangKy;
@@ -18,7 +19,17 @@ class DangKyHocPhanController extends Controller
 {
     public function getLopMo()
     {
-        $sinhVienID = auth()->user()->sinhVien->SinhVienID;
+        $user = auth()->user();
+        $sinhVien = $user->sinhVien;
+
+        if (!$sinhVien) {
+            return response()->json(['message' => 'Không tìm thấy thông tin sinh viên.'], 404);
+        }
+
+        $sinhVienID = $sinhVien->SinhVienID;
+        $nganhID = $sinhVien->NganhID;
+
+        $sinhVienID = $sinhVien->SinhVienID;
         $dotMo = DotDangKy::where('TrangThai', 1)
             ->where('NgayBatDau', '<=', now())
             ->where('NgayKetThuc', '>=', now())
@@ -37,46 +48,95 @@ class DangKyHocPhanController extends Controller
             'giangVien', 
             'lichHoc'
         ])
+            ->where('TrangThai', 1) // Chỉ lấy các lớp đang ở trạng thái hoạt động
             ->whereIn('HocKyID', $dotMo)
             ->get();
 
         // Lấy danh sách các môn mà sinh viên này ĐÃ đăng ký thành công
         $monDaDangKy = DangKyHocPhan::where('SinhVienID', $sinhVienID)
-            ->where('TrangThai', 'ThanhCong')
+            ->where('dangkyhocphan.TrangThai', 'ThanhCong')
             ->join('lophocphan', 'dangkyhocphan.LopHocPhanID', '=', 'lophocphan.LopHocPhanID')
             ->pluck('lophocphan.MonHocID')
             ->toArray();
 
-        // Lấy danh sách các lớp tạm (Yêu cầu mở lớp) đang chờ duyệt cho các học kỳ đang mở
-        $lopTam = YeuCauMoLop::with('mon_hoc')
-            ->whereIn('MonHocID', function($q) use ($dotMo) {
-                $q->select('MonHocID')->from('chuongtrinhdaotao'); // Hoặc logic lọc môn theo HK
-            })
-            ->select('MonHocID', DB::raw('count(*) as SoLuongHienTai'))
-            ->where('TrangThai', 0) // 0: Đang chờ
-            ->groupBy('MonHocID')
-            ->get();
+        // Lấy danh sách các môn mà sinh viên này ĐANG CHỜ xử lý đăng ký (trong Queue)
+        $monDangCho = DangKyHocPhan::where('SinhVienID', $sinhVienID)
+            ->where('dangkyhocphan.TrangThai', 'DangCho') // Giả định có trạng thái 'DangCho'
+            ->join('lophocphan', 'dangkyhocphan.LopHocPhanID', '=', 'lophocphan.LopHocPhanID')
+            ->pluck('lophocphan.MonHocID')
+            ->toArray();
 
-        // Map dữ liệu để thêm chuỗi tên môn tiên quyết/song hành cho sinh viên dễ xem
-        $data = $lops->map(function ($lop) {
+        // --- Logic xử lý "Xin mở lớp" ---
+        // 1. Xác định danh sách môn trong CTĐT của sinh viên
+        $monTrongCTDT = DB::table('chuongtrinhdaotao')
+            ->where('NganhID', $nganhID)
+            ->pluck('MonHocID')
+            ->toArray();
+
+        // 2. Xác định các môn "Cần xin mở": Chưa học + (Không có lớp mở HOẶC tất cả lớp mở đều đầy)
+        $monCoLopConCho = $lops->filter(fn($l) => $l->SoLuongHienTai < $l->SoLuongToiDa)
+                               ->pluck('MonHocID')->unique()->toArray();
+        
+        $monCanXinMoIDs = array_diff($monTrongCTDT, $monDaDangKy, $monDangCho, $monCoLopConCho);
+
+        // 3. Lấy thông tin môn học
+        $monCanXinMoData = \App\Models\MonHoc::whereIn('MonHocID', $monCanXinMoIDs)->get();
+
+        // Đếm số lượng yêu cầu đang chờ cho các môn này (Trạng thái 0: Đang chờ)
+        $requestCounts = YeuCauMoLop::whereIn('MonHocID', $monCanXinMoIDs)
+            ->where('TrangThai', 0)
+            ->select('MonHocID', DB::raw('count(*) as total'))
+            ->groupBy('MonHocID')
+            ->pluck('total', 'MonHocID');
+
+        // 4. Kiểm tra SV hiện tại đã gửi yêu cầu cho môn nào chưa để hiển thị trạng thái nút
+        $yeuCauDaGui = YeuCauMoLop::where('SinhVienID', $sinhVienID)
+            ->whereIn('MonHocID', $monCanXinMoIDs)
+            ->where('TrangThai', 0)
+            ->pluck('MonHocID')
+            ->toArray();
+
+        // --- Map dữ liệu trả về ---
+        $data = $lops->map(function ($lop) use ($monDaDangKy, $monDangCho) {
             $lop->MonTienQuyet = $lop->monHoc->monTienQuyet->pluck('TenMon')->implode(', ') ?: 'Không có';
             $lop->MonSongHanh = $lop->monHoc->monSongHanh->pluck('TenMon')->implode(', ') ?: 'Không có';
             $lop->IsFull = $lop->SoLuongHienTai >= $lop->SoLuongToiDa;
+            $lop->isRegistered = in_array($lop->MonHocID, $monDaDangKy);
+            $lop->isPending = in_array($lop->MonHocID, $monDangCho);
             return $lop;
         });
 
-        // Trộn thêm các "Lớp tạm" vào danh sách nếu sinh viên chưa đăng ký môn đó
-        $tempClasses = $lopTam->filter(fn($lt) => !in_array($lt->MonHocID, $monDaDangKy))
-            ->map(fn($lt) => [
-                'LopHocPhanID' => 'TEMP_' . $lt->MonHocID,
-                'MaLopHP' => 'Lớp tạm: ' . ($lt->mon_hoc->MaMon ?? 'N/A'),
-                'TenMon' => $lt->mon_hoc->TenMon ?? 'N/A',
-                'SoTinChi' => $lt->mon_hoc->SoTinChi ?? 0,
-                'SoLuongHienTai' => $lt->SoLuongHienTai,
-                'SoLuongToiDa' => 50, // Định mức gợi ý để mở lớp
-                'IsTemp' => true,
-                'TrangThai' => 'Chờ Admin duyệt mở lớp'
-            ]);
+        // Map dữ liệu môn có thể xin mở lớp (Lớp tạm)
+        $tempClasses = $monCanXinMoData->map(function($mh) use ($yeuCauDaGui, $requestCounts) {
+            $daGui = in_array($mh->MonHocID, $yeuCauDaGui);
+            $soLuongYeuCau = $requestCounts->get($mh->MonHocID, 0);
+            return [
+                'LopHocPhanID'   => 'TEMP_' . $mh->MonHocID,
+                'MonHocID'       => $mh->MonHocID,
+                'MaLopHP'        => ($soLuongYeuCau > 0 ? 'Đang xin mở: ' : 'Yêu cầu mở: ') . ($mh->MaMon ?? 'N/A'),
+                'TenMon'         => $mh->TenMon ?? 'N/A',
+                'SoTinChi'       => $mh->SoTinChi ?? 0,
+                'SoLuongHienTai' => $soLuongYeuCau,
+                'SoLuongToiDa'   => 50,
+                'IsTemp'         => true,
+                'DaGuiYeuCau'    => $daGui,
+                'TrangThai'      => $daGui ? 'Bạn đã gửi yêu cầu' : ($soLuongYeuCau > 0 ? 'Chờ Admin duyệt' : 'Chưa có yêu cầu'),
+                'isRegistered'   => false,
+                'isPending'      => false
+            ];
+        });
+
+        Log::debug('--- Debugging getLopMo ---');
+        Log::debug('SinhVienID: ' . $sinhVienID);
+        Log::debug('DotMo HocKyIDs: ' . $dotMo->implode(', '));
+        Log::debug('Lops (active classes) MonHocIDs: ' . $lops->pluck('MonHocID')->implode(', '));
+        Log::debug('MonDaDangKy: ' . implode(', ', $monDaDangKy));
+        Log::debug('MonDangCho: ' . implode(', ', $monDangCho));
+        Log::debug('MonTrongCTDT: ' . implode(', ', $monTrongCTDT));
+        Log::debug('MonCoLopConCho: ' . implode(', ', $monCoLopConCho));
+        Log::debug('MonCanXinMoIDs: ' . implode(', ', $monCanXinMoIDs));
+        Log::debug('TempClasses (MonHocIDs): ' . $tempClasses->pluck('MonHocID')->implode(', '));
+        Log::debug('--- End Debugging getLopMo ---');
 
         return response()->json([
             'lop_chinh_thuc' => $data,

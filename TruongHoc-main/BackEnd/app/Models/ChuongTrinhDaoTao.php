@@ -13,7 +13,8 @@ class ChuongTrinhDaoTao extends Model
         'NganhID',
         'MonHocID',
         'HocKyGoiY',
-        'BatBuoc'
+        'BatBuoc',
+        'KhoiKienThuc'
     ];
 
     public $timestamps = false;

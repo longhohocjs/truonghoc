@@ -53,6 +53,7 @@ const ChuongTrinhDaoTaoManager = () => {
     KhoaID: "", // Add KhoaID to formData for modal
     HocKyGoiY: 1,
     BatBuoc: true,
+    KhoiKienThuc: "DaiCuong",
   });
 
   useEffect(() => {
@@ -146,6 +147,7 @@ const ChuongTrinhDaoTaoManager = () => {
       HocKyGoiY: item.HocKyGoiY,
       KhoaID: item.nganh_dao_tao?.KhoaID || "", // Set KhoaID for editing
       BatBuoc: item.BatBuoc,
+      KhoiKienThuc: item.KhoiKienThuc || "DaiCuong",
     });
     setShowModal(true);
   };
@@ -210,7 +212,8 @@ const ChuongTrinhDaoTaoManager = () => {
     };
 
     programs.forEach((item) => {
-      const key = item.KhoiKienThuc || "DaiCuong";
+      // Đảm bảo nhận diện được cả PascalCase và snake_case từ API
+      const key = item.KhoiKienThuc || item.khoi_kien_thuc || "DaiCuong";
       if (groups[key]) {
         groups[key].items.push(item);
         groups[key].credits += Number(item.mon_hoc?.SoTinChi || 0);

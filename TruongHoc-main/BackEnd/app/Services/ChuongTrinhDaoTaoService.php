@@ -145,7 +145,10 @@ class ChuongTrinhDaoTaoService
      */
     public function capNhatMonTrongCTDT(ChuongTrinhDaoTao $ctdt, array $data): ChuongTrinhDaoTao
     {
-        $ctdt->update($data);
+        // Loại bỏ ID khỏi mảng dữ liệu để đảm bảo update các trường còn lại chính xác
+        $updateData = array_diff_key($data, array_flip(['ID', 'id']));
+        
+        $ctdt->update($updateData);
         return $ctdt;
     }
 
@@ -239,6 +242,7 @@ class ChuongTrinhDaoTaoService
                         'MonHocID'  => $monHoc->MonHocID,
                         'HocKyGoiY' => $row['HocKyGoiY'],
                         'BatBuoc'   => filter_var($row['BatBuoc'], FILTER_VALIDATE_BOOLEAN),
+                        'KhoiKienThuc' => $row['KhoiKienThuc'] ?? 'DaiCuong',
                     ]);
                     $successCount++;
                 } catch (\Exception $e) {

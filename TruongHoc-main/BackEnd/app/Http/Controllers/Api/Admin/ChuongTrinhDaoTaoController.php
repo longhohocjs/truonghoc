@@ -118,6 +118,7 @@ class ChuongTrinhDaoTaoController extends Controller
                     'BatBuoc'   => $row[7] ?? 1,
                     'MonTienQuyet' => $row[8] ?? '', // Danh sách mã môn: MH001,MH002
                     'MonSongHanh'  => $row[9] ?? '',
+                    'KhoiKienThuc' => $row[10] ?? 'DaiCuong', // Thêm cột khối kiến thức (Cột K trong Excel)
                 ];
             }, $data);
 

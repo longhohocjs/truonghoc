@@ -7,6 +7,7 @@ use App\Models\HocKy;
 use App\Models\LichHoc;
 use App\Models\DangKyHocPhan;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class SinhVienLichService
 {
@@ -49,8 +50,19 @@ class SinhVienLichService
         $startOfWeek = $targetDate->copy()->startOfWeek()->format('Y-m-d');
         $endOfWeek   = $targetDate->copy()->endOfWeek()->format('Y-m-d');
 
+        // Debug: Kiểm tra xem sinh viên có đăng ký môn nào trong kỳ này không (kể cả chưa thành công)
+        $allRegs = DangKyHocPhan::where('SinhVienID', $sinhVien->SinhVienID)
+            ->whereHas('lopHocPhan', fn($q) => $q->where('HocKyID', $hocKy->HocKyID))
+            ->get();
+        
+        Log::debug("Check Schedule for SV: {$sinhVien->MaSV} in HK: {$hocKy->TenHocKy}");
+        Log::debug("Found " . $allRegs->count() . " registrations total.");
+        foreach($allRegs as $r) {
+            Log::debug("- LHP ID: {$r->LopHocPhanID}, Status: {$r->TrangThai}");
+        }
+
         $registrations = DangKyHocPhan::where('SinhVienID', $sinhVien->SinhVienID)
-            ->where('TrangThai', 'ThanhCong')
+            ->where('TrangThai', 'ThanhCong') // Điều kiện quan trọng nhất
             ->whereHas('lopHocPhan', fn($q) => $q->where('HocKyID', $hocKy->HocKyID))
             ->with(['lopHocPhan.monHoc', 'lopHocPhan.giangVien', 'lopHocPhan.hocKy', 'lopHocPhan.lichHoc' => function($q) use ($startOfWeek, $endOfWeek) {
                 $q->whereBetween('NgayHoc', [$startOfWeek, $endOfWeek]);
@@ -97,6 +109,20 @@ class SinhVienLichService
 
         if (!$hocKy) return ['success' => false, 'message' => 'Không xác định được học kỳ'];
 
+        Log::debug("--- Debugging getLichThi for SV: {$sinhVien->MaSV} ---");
+        Log::debug("HocKyID being used: {$hocKy->HocKyID} - {$hocKy->TenHocKy} ({$hocKy->namHoc->TenNamHoc})");
+
+        // Log tất cả các đăng ký của sinh viên trong học kỳ này (kể cả chưa thành công)
+        $allRegistrationsInHocKy = DangKyHocPhan::where('SinhVienID', $sinhVien->SinhVienID)
+            ->whereHas('lopHocPhan', fn($q) => $q->where('HocKyID', $hocKy->HocKyID))
+            ->with('lopHocPhan.monHoc')
+            ->get();
+        
+        Log::debug("All registrations for SV {$sinhVien->MaSV} in HK {$hocKy->HocKyID}:");
+        foreach ($allRegistrationsInHocKy as $reg) {
+            Log::debug("- LHP ID: {$reg->LopHocPhanID}, Mon: {$reg->lopHocPhan->monHoc->TenMon}, Status: {$reg->TrangThai}");
+        }
+
         $registrations = DangKyHocPhan::where('SinhVienID', $sinhVien->SinhVienID)
             ->where('TrangThai', 'ThanhCong')
             ->whereHas('lopHocPhan', fn($q) => $q->where('HocKyID', $hocKy->HocKyID))
@@ -126,6 +152,8 @@ class SinhVienLichService
             ]);
         })->sortBy('ngay_thi')->values()->all();
 
+        Log::debug("Final LichThi array to be returned: " . json_encode($lichThi, JSON_UNESCAPED_UNICODE));
+        Log::debug("--- End Debugging getLichThi ---");
         return [
             'success' => true,
             'hoc_ky'  => $hocKy->TenHocKy,

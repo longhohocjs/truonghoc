@@ -99,6 +99,9 @@ class LichThiService
 
     private function checkRoomConflict($ngayThi, $gioBD, $gioKT, $phongThi, $excludeId = null)
     {
+        // Bỏ qua kiểm tra nếu phòng thi chưa được bố trí (TBD)
+        if (empty($phongThi) || strtoupper($phongThi) === 'TBD') return;
+
         $query = DB::table('lichthi')
             ->where('NgayThi', $ngayThi)
             ->where('PhongThi', $phongThi)

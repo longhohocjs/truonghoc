@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ThongBao;
+use App\Jobs\SendNotificationEmailJob;
 use Illuminate\Support\Facades\Auth;
 
 class ThongBaoService
@@ -16,6 +17,13 @@ class ThongBaoService
     {
         $data['NguoiGuiID'] = Auth::id();
         return ThongBao::create($data);
+    }
+
+    public function sendEmailNotification(int $id)
+    {
+        $thongBao = ThongBao::findOrFail($id);
+        SendNotificationEmailJob::dispatch($thongBao);
+        return $thongBao;
     }
 
     public function updateThongBao(int $id, array $data)

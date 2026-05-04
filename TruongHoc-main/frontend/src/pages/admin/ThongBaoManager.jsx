@@ -11,6 +11,7 @@ import {
   Users,
   Calendar,
   Clock,
+  Mail,
   Filter,
   Search,
 } from "lucide-react";
@@ -35,6 +36,7 @@ const ThongBaoManager = () => {
     isOpen: false,
     id: null,
   });
+  const [sendingMailId, setSendingMailId] = useState(null);
 
   const fetchAnnouncements = async () => {
     setLoading(true);
@@ -78,6 +80,20 @@ const ThongBaoManager = () => {
       fetchAnnouncements();
     } catch (error) {
       toast.error(error.response?.data?.message || "Thao tác thất bại");
+    }
+  };
+
+  const handleSendEmail = async (id) => {
+    setSendingMailId(id);
+    try {
+      await axiosClient.post(`/admin/thong-bao/${id}/send-email`);
+      toast.success("Đã đưa yêu cầu gửi email vào hàng đợi thành công");
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || "Không thể thực hiện gửi email",
+      );
+    } finally {
+      setSendingMailId(null);
     }
   };
 
@@ -242,6 +258,18 @@ const ThongBaoManager = () => {
                   </td>
                   <td className="px-8 py-5 text-right">
                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                      <button
+                        onClick={() => handleSendEmail(item.ThongBaoID)}
+                        disabled={sendingMailId === item.ThongBaoID}
+                        className={`p-2.5 bg-white rounded-xl transition-all shadow-sm border border-gray-100 ${
+                          sendingMailId === item.ThongBaoID
+                            ? "text-indigo-300 animate-pulse"
+                            : "text-gray-400 hover:text-emerald-600 hover:bg-emerald-50"
+                        }`}
+                        title="Kích hoạt gửi Email cho toàn bộ đối tượng"
+                      >
+                        <Mail size={16} />
+                      </button>
                       <button
                         onClick={() => openEditModal(item)}
                         className="p-2.5 bg-white text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all shadow-sm border border-gray-100"

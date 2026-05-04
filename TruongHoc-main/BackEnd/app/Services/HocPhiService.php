@@ -25,6 +25,8 @@ class HocPhiService
             return [
                 'ma_sv' => $sinhVien->MaSV ?? '',
                 'hoc_ky' => 'Chưa có đợt mở',
+                'don_gia_lt' => self::DON_GIA_LT,
+                'don_gia_th' => self::DON_GIA_TH,
                 'chi_tiet' => [],
                 'is_locked' => false
             ];

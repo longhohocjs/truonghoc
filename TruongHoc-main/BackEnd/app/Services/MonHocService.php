@@ -130,28 +130,40 @@ class MonHocService
                 }
             }
 
-            $loai = $data['LoaiMonHoc'] ?? $monHoc->LoaiMonHoc;
-            $tinChi = $data['SoTinChi'] ?? $monHoc->SoTinChi;
-            $tietLT = $data['TietLyThuyet'] ?? $monHoc->TietLyThuyet;
-            $tietTH = $data['TietThucHanh'] ?? $monHoc->TietThucHanh;
+            $loaiMonHocMoi = $data['LoaiMonHoc'] ?? $monHoc->LoaiMonHoc;
+            $soTinChiMoi = $data['SoTinChi'] ?? $monHoc->SoTinChi;
+            $tietLyThuyetMoi = $data['TietLyThuyet'] ?? null; // Sử dụng null để biết có được cung cấp hay không
+            $tietThucHanhMoi = $data['TietThucHanh'] ?? null; // Sử dụng null để biết có được cung cấp hay không
 
-            // Cập nhật lại logic nếu loại môn học thay đổi trong khi update
-            if (isset($data['LoaiMonHoc'])) {
-                if ($loai === 'Lý thuyết') { $tinChi = 2; $tietLT = 30; $tietTH = 0; }
-                elseif ($loai === 'Tích hợp') { $tinChi = 3; $tietLT = 30; $tietTH = 30; }
-                elseif (in_array($loai, ['Đồ án', 'Thực tập'])) { $tinChi = 5; $tietLT = 0; $tietTH = 150; }
+            // Chỉ tính toán lại TietLyThuyet và TietThucHanh nếu chúng không được cung cấp trực tiếp
+            // HOẶC nếu LoaiMonHoc hoặc SoTinChi thay đổi (để đảm bảo tính nhất quán)
+            if ($tietLyThuyetMoi === null || $tietThucHanhMoi === null || isset($data['LoaiMonHoc']) || isset($data['SoTinChi'])) {
+                switch ($loaiMonHocMoi) {
+                    case 'Thực hành':
+                    case 'Thực tập':
+                        $tietThucHanhMoi = $soTinChiMoi * 30; // 1 tín TH = 30 tiết
+                        $tietLyThuyetMoi = 0;
+                        break;
+                    case 'Tích hợp':
+                        $tietThucHanhMoi = ($soTinChiMoi >= 1) ? 1 * 30 : 0; // Giả định ít nhất 1 tín chỉ là TH
+                        $tietLyThuyetMoi = ($soTinChiMoi > 1) ? ($soTinChiMoi - 1) * 15 : 0;
+                        break;
+                    case 'Đồ án':
+                        $tietThucHanhMoi = $soTinChiMoi * 45; // Đồ án cần nhiều thời gian hướng dẫn/tự học hơn
+                        $tietLyThuyetMoi = 0;
+                        break;
+                    default: // Lý thuyết
+                        $tietLyThuyetMoi = $soTinChiMoi * 15; // 1 tín LT = 15 tiết
+                        $tietThucHanhMoi = 0;
+                }
             }
-
-            $monHoc->update([
-                'MaMon'        => $data['MaMon'] ?? $monHoc->MaMon,
-                'TenMon'       => $data['TenMon'] ?? $monHoc->TenMon,
-                'SoTinChi'     => $tinChi,
-                'HinhThucHoc'  => $data['HinhThucHoc'] ?? $monHoc->HinhThucHoc,
-                'TietLyThuyet' => $tietLT,
-                'TietThucHanh' => $tietTH,
-                'LoaiMonHoc'   => $loai,
-                'KhoaID'       => $data['KhoaID'] ?? $monHoc->KhoaID,
-            ]);
+            
+            $monHoc->update(array_merge($data, [
+                'SoTinChi'     => $soTinChiMoi,
+                'TietLyThuyet' => $tietLyThuyetMoi,
+                'TietThucHanh' => $tietThucHanhMoi,
+                'LoaiMonHoc'   => $loaiMonHocMoi,
+            ]));
 
             // Cập nhật lại các môn điều kiện
             $this->syncDieuKien($monHoc, $data['mon_tien_quyet'] ?? [], $data['mon_song_hanh'] ?? []);
