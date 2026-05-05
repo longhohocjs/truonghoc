@@ -22,14 +22,23 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Thiết lập thư mục làm việc
 WORKDIR /var/www
 
-# Copy toàn bộ source code vào container
+# Tối ưu layer cache: Cài đặt dependencies trước khi copy code
+COPY composer.json ./
+
+RUN composer install --no-dev --no-scripts --no-autoloader
+
+# Copy toàn bộ source code sau
 COPY . .
 
-# Cài đặt các gói phụ thuộc của Laravel
-RUN composer install --no-dev --optimize-autoloader
+# Tạo autoloader tối ưu
+RUN composer dump-autoload --optimize --no-dev
 
 # Cấu hình quyền truy cập cho thư mục storage và bootstrap/cache
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+
+# Copy entrypoint script
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Copy cấu hình Nginx vào container (File nằm cùng cấp với Dockerfile)
 COPY nginx.conf /etc/nginx/http.d/default.conf
@@ -37,5 +46,5 @@ COPY nginx.conf /etc/nginx/http.d/default.conf
 # Expose cổng 80
 EXPOSE 80
 
-# Script khởi chạy: Chạy cả PHP-FPM và Nginx
-CMD php-fpm -D && nginx -g "daemon off;"
+# Script khởi chạy: Chạy entrypoint script
+CMD ["/usr/local/bin/entrypoint.sh"]
