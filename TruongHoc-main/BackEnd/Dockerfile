@@ -6,13 +6,15 @@ RUN apk add --no-cache \
     nginx \
     libpng-dev \
     libxml2-dev \
+    libzip-dev \
+    oniguruma-dev \
     zip \
     unzip \
     git \
     curl
 
 # Cài đặt các PHP extensions cần thiết cho Laravel
-RUN docker-php-ext-install pdo_mysql gd xml
+RUN docker-php-ext-install pdo_mysql gd xml mbstring zip bcmath
 
 # Cài đặt Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
