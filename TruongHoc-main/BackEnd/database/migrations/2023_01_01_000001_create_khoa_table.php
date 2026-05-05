@@ -5,12 +5,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
     public function up() {
-        Schema::create('khoa', function (Blueprint $table) {
-            $table->increments('KhoaID');
-            $table->string('MaKhoa', 20)->unique();
-            $table->string('TenKhoa', 100);
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('khoa')) {
+            Schema::create('khoa', function (Blueprint $table) {
+                $table->increments('KhoaID');
+                $table->string('MaKhoa', 20)->unique();
+                $table->string('TenKhoa', 100);
+                $table->timestamps();
+            });
+        }
     }
     public function down() {
         Schema::dropIfExists('khoa');

@@ -8,15 +8,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('chuongtrinhdaotao', function (Blueprint $table) {
-            $table->increments('CTDTID');
-            $table->unsignedInteger('NganhID');
-            $table->unsignedInteger('MonHocID');
-            $table->timestamps();
+        if (!Schema::hasTable('chuongtrinhdaotao')) {
+            Schema::create('chuongtrinhdaotao', function (Blueprint $table) {
+                $table->increments('CTDTID');
+                $table->unsignedInteger('NganhID');
+                $table->unsignedInteger('MonHocID');
+                $table->timestamps();
 
-            $table->foreign('NganhID')->references('NganhID')->on('nganhdaotao')->onDelete('cascade');
-            $table->foreign('MonHocID')->references('MonHocID')->on('monhoc')->onDelete('cascade');
-        });
+                $table->foreign('NganhID')->references('NganhID')->on('nganhdaotao')->onDelete('cascade');
+                $table->foreign('MonHocID')->references('MonHocID')->on('monhoc')->onDelete('cascade');
+            });
+        }
     }
     public function down(): void
     {

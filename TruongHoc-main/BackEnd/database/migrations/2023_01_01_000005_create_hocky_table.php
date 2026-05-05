@@ -8,16 +8,18 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('hocky', function (Blueprint $table) {
-            $table->increments('HocKyID');
-            $table->string('TenHocKy', 50);
-            $table->unsignedInteger('NamHocID');
-            $table->date('NgayBatDau');
-            $table->date('NgayKetThuc');
-            $table->timestamps();
+        if (!Schema::hasTable('hocky')) {
+            Schema::create('hocky', function (Blueprint $table) {
+                $table->increments('HocKyID');
+                $table->string('TenHocKy', 50);
+                $table->unsignedInteger('NamHocID');
+                $table->date('NgayBatDau');
+                $table->date('NgayKetThuc');
+                $table->timestamps();
 
-            $table->foreign('NamHocID')->references('NamHocID')->on('namhoc')->onDelete('cascade');
-        });
+                $table->foreign('NamHocID')->references('NamHocID')->on('namhoc')->onDelete('cascade');
+            });
+        }
     }
     public function down(): void
     {
