@@ -44,8 +44,9 @@ return new class extends Migration
                 $table->integer('RoleID');
                 $table->boolean('is_active')->default(true);
                 $table->rememberToken();
-                $table->datetime('CreatedAt')->nullable()->useCurrent();
-                $table->timestamps(); // Tạo created_at và updated_at
+                // Nếu muốn dùng CreatedAt riêng, không dùng timestamps() của Laravel
+                $table->datetime('CreatedAt')->nullable()->useCurrent(); 
+                // Nếu cần updated_at, thêm dòng này: $table->timestamp('updated_at')->nullable();
             });
         }
 

@@ -17,7 +17,8 @@ return new class extends Migration
                 $table->string('email')->unique()->nullable(); // Thêm cột email
                 $table->unsignedInteger('KhoaID');
                 $table->string('ChuyenMon', 100)->nullable();
-                $table->timestamps();
+                $table->timestamp('created_at')->nullable(); // Chỉ tạo created_at
+                // const UPDATED_AT = null; trong model nên không tạo updated_at
 
                 $table->foreign('UserID')->references('UserID')->on('users')->onDelete('set null');
                 $table->foreign('KhoaID')->references('KhoaID')->on('khoa')->onDelete('cascade');
