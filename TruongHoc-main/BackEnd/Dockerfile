@@ -29,8 +29,8 @@ RUN composer install --no-dev --optimize-autoloader
 # Cấu hình quyền truy cập cho thư mục storage và bootstrap/cache
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
-# Copy cấu hình Nginx đã tạo ở bước 1 vào container
-COPY docker/nginx.conf /etc/nginx/http.d/default.conf
+# Copy cấu hình Nginx vào container (File nằm cùng cấp với Dockerfile)
+COPY nginx.conf /etc/nginx/http.d/default.conf
 
 # Expose cổng 80
 EXPOSE 80
