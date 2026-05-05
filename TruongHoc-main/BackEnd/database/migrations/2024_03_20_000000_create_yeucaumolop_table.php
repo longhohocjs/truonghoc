@@ -8,7 +8,7 @@ return new class extends Migration {
     public function up() {
         if (!Schema::hasTable('yeucaumolop')) {
             Schema::create('yeucaumolop', function (Blueprint $table) {
-                $table->id('YeuCauID');
+                $table->increments('YeuCauID');
                 $table->unsignedInteger('SinhVienID');
                 $table->unsignedInteger('MonHocID');
                 $table->text('LyDo')->nullable();

@@ -1,7 +1,11 @@
 #!/bin/sh
+set -e # Dừng script ngay lập tức nếu có lệnh nào bị lỗi
 
 # Chờ một chút để đảm bảo database sẵn sàng (tùy chọn, nhưng hữu ích)
 # sleep 5
+
+# Xóa cache cũ để tránh xung đột dữ liệu cấu hình
+php artisan config:clear
 
 # Chạy database migrations
 echo "Running database migrations..."
