@@ -11,6 +11,10 @@ php artisan config:clear
 echo "Running database migrations..."
 php artisan migrate --force
 
+# Chạy seeder cho Admin user (chỉ chạy một lần hoặc khi cần)
+echo "Running Admin user seeder..."
+php artisan db:seed --class=AdminUserSeeder --force
+
 # Xóa và cache các cấu hình cho môi trường production để tối ưu hiệu suất
 echo "Caching configurations..."
 php artisan config:cache
