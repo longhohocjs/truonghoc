@@ -11,18 +11,40 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasTable('users')) {
-            Schema::create('users', function (Blueprint $table) {
-                $table->increments('UserID'); 
-                $table->string('Username')->unique();
-                $table->string('PasswordHash');
-                $table->unsignedInteger('RoleID')->nullable(); // RoleID có thể null nếu user chưa được gán role
+        $tableName = 'users';
+
+        if (Schema::hasTable($tableName)) {
+            Schema::table($tableName, function (Blueprint $table) use ($tableName) {
+                // Nếu bảng tồn tại với cột 'id' cũ, đổi tên thành 'UserID'
+                if (Schema::hasColumn($tableName, 'id') && !Schema::hasColumn($tableName, 'UserID')) {
+                    $table->renameColumn('id', 'UserID');
+                }
+                
+                // Bổ sung cột Email nếu thiếu (dựa trên schema bạn cung cấp)
+                if (!Schema::hasColumn($tableName, 'Email')) {
+                    $table->string('Email', 100)->nullable()->unique()->after('PasswordHash');
+                }
+
+                // Bổ sung cột RoleID nếu thiếu
+                if (!Schema::hasColumn($tableName, 'RoleID')) {
+                    $table->integer('RoleID')->after('Email');
+                }
+            });
+        } else {
+            Schema::create($tableName, function (Blueprint $table) {
+                $table->increments('UserID'); // int(11) unsigned auto_increment
+                $table->string('Username', 50)->unique();
+                $table->string('PasswordHash', 255);
+                $table->string('Email', 100)->nullable()->unique();
+                $table->integer('RoleID');
                 $table->boolean('is_active')->default(true);
                 $table->rememberToken();
-                $table->timestamps();
+                $table->datetime('CreatedAt')->nullable()->useCurrent();
+                $table->timestamps(); // Tạo created_at và updated_at
             });
         }
 
+        // Các bảng khác không liên quan đến lỗi hiện tại, giữ nguyên logic tạo nếu chưa tồn tại
         if (!Schema::hasTable('password_reset_tokens')) {
             Schema::create('password_reset_tokens', function (Blueprint $table) {
                 $table->string('email')->primary();
@@ -34,7 +56,7 @@ return new class extends Migration
         if (!Schema::hasTable('sessions')) {
             Schema::create('sessions', function (Blueprint $table) {
                 $table->string('id')->primary();
-                $table->unsignedInteger('user_id')->nullable(); // Changed to unsignedInteger
+                $table->unsignedInteger('user_id')->nullable();
                 $table->foreign('user_id')->references('UserID')->on('users')->onDelete('cascade');
                 $table->string('ip_address', 45)->nullable();
                 $table->text('user_agent')->nullable();

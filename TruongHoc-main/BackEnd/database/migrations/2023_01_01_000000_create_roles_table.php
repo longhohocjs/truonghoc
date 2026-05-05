@@ -8,14 +8,12 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('roles')) {
-            Schema::create('roles', function (Blueprint $table) {
-                $table->increments('RoleID');
-                $table->string('RoleName', 50)->unique();
-                $table->string('Description')->nullable();
-                $table->timestamps();
-            });
-        }
+        Schema::create('roles', function (Blueprint $table) {
+            $table->increments('RoleID');
+            $table->string('RoleName', 50)->unique();
+            $table->string('Description')->nullable();
+            $table->timestamps();
+        });
     }
     public function down(): void
     {

@@ -8,21 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('giangvien')) {
-            Schema::create('giangvien', function (Blueprint $table) {
-                $table->increments('GiangVienID');
-                $table->string('MaGV', 20)->unique();
-                $table->unsignedInteger('UserID')->nullable();
-                $table->string('HoTen', 100);
-                $table->string('email')->unique()->nullable(); // Thêm cột email
-                $table->unsignedInteger('KhoaID');
-                $table->string('ChuyenMon', 100)->nullable();
-                $table->timestamps();
+        Schema::create('giangvien', function (Blueprint $table) {
+            $table->increments('GiangVienID');
+            $table->string('MaGV', 20)->unique();
+            $table->unsignedInteger('UserID')->nullable();
+            $table->string('HoTen', 100);
+            $table->string('email')->unique()->nullable(); // Thêm cột email
+            $table->unsignedInteger('KhoaID');
+            $table->string('ChuyenMon', 100)->nullable();
+            $table->timestamps();
 
-                $table->foreign('UserID')->references('UserID')->on('users')->onDelete('set null');
-                $table->foreign('KhoaID')->references('KhoaID')->on('khoa')->onDelete('cascade');
-            });
-        }
+            $table->foreign('UserID')->references('UserID')->on('users')->onDelete('set null');
+            $table->foreign('KhoaID')->references('KhoaID')->on('khoa')->onDelete('cascade');
+        });
     }
     public function down(): void
     {
