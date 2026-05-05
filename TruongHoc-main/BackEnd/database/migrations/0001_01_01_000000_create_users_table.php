@@ -13,6 +13,11 @@ return new class extends Migration
     {
         $tableName = 'users';
 
+        // Nếu tồn tại bảng 'user' (số ít), đổi tên thành 'users' (số nhiều) để khớp với hệ thống
+        if (Schema::hasTable('user') && !Schema::hasTable('users')) {
+            Schema::rename('user', 'users');
+        }
+
         if (Schema::hasTable($tableName)) {
             Schema::table($tableName, function (Blueprint $table) use ($tableName) {
                 // Nếu bảng tồn tại với cột 'id' cũ, đổi tên thành 'UserID'
@@ -34,7 +39,7 @@ return new class extends Migration
             Schema::create($tableName, function (Blueprint $table) {
                 $table->increments('UserID'); // int(11) unsigned auto_increment
                 $table->string('Username', 50)->unique();
-                $table->string('PasswordHash', 255);
+                $table->string('PasswordHash', 255)->nullable();
                 $table->string('Email', 100)->nullable()->unique();
                 $table->integer('RoleID');
                 $table->boolean('is_active')->default(true);
